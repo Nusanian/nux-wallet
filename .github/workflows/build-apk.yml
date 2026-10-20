@@ -48,6 +48,17 @@ jobs:
       - name: Ambil dependency
         run: flutter pub get
 
+      # [patch.crates-io] di rust/Cargo.toml binding menunjuk folder sibling
+      # relatif (../../ldk-node, ../../rust-bitcoin, ../../rust-lightning),
+      # jadi ketiga fork di-clone sebagai sibling salinan binding di pub-cache.
+      - name: Clone fork patch Rust sebagai sibling binding
+        run: |
+          cd "${PUB_CACHE:-$HOME/.pub-cache}/git"
+          git clone --depth 1 --branch nux-spike https://github.com/Nusanian/ldk-node.git
+          git clone --depth 1 https://github.com/Nusanian/rust-bitcoin.git
+          git clone --depth 1 https://github.com/Nusanian/rust-lightning.git
+          ls -d ldk-node rust-bitcoin rust-lightning
+
       # Perbaikan kompatibilitas cargokit dengan Gradle 9: project.exec sudah
       # dihapus dari Gradle modern, diganti layanan ExecOperations. Langkah ini
       # idempotent: kalau binding sudah kompatibel, tidak ada yang diubah.
