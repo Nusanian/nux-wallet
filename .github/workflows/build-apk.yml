@@ -80,6 +80,23 @@ jobs:
               print("patch diterapkan:", f)
           PYEOF
 
+      # android/build.gradle binding masih compileSdk 33, padahal dependency
+      # AndroidX-nya menuntut minimal 34 (cek AAR metadata gagal). Naikkan ke
+      # 36 di salinan pub-cache. Idempotent seperti patch cargokit di atas.
+      - name: Patch compileSdk binding ke 36
+        run: |
+          python3 - <<'PYEOF'
+          import glob
+          for f in glob.glob("/home/runner/.pub-cache/git/ldk-node-flutter-nux-*/android/build.gradle"):
+              s = open(f).read()
+              if "compileSdk = 33" not in s:
+                  print("tidak perlu patch compileSdk:", f)
+                  continue
+              s = s.replace("compileSdk = 33", "compileSdk = 36")
+              open(f, "w").write(s)
+              print("patch compileSdk diterapkan:", f)
+          PYEOF
+
       # Binding ldk_node: semua hasil codegen (Dart + Rust) sudah ter-commit,
       # jadi di sini tidak ada langkah codegen. Native .so dikompilasi
       # cargokit dari sumber rust/ di repo binding.
