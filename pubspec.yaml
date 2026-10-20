@@ -29,7 +29,9 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   ldk_node:
-    path: ../spikes/rust-bitcoin-x11/ldk-node-flutter
+    git:
+      url: https://github.com/Nusanian/ldk-node-flutter-nux.git
+      ref: main
   flutter:
     sdk: flutter
 
