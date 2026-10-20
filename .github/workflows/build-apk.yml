@@ -26,11 +26,15 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
+      # Runner ubuntu GitHub sudah membawa Android SDK + cmdline-tools.
+      # Action setup-android sengaja tidak dipakai: versi barunya mencoba
+      # memasang paket usang "tools" dan gagal.
       - name: Pasang platform dan build-tools Android
-        run: sdkmanager "platforms;android-34" "platforms;android-35" "platforms;android-36" "build-tools;34.0.0" "build-tools;35.0.0" "build-tools;36.0.0"
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | sort -V | tail -1)
+          echo "Memakai sdkmanager: $SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platforms;android-34" "platforms;android-35" "platforms;android-36" "build-tools;34.0.0" "build-tools;35.0.0" "build-tools;36.0.0"
 
       - name: Setup Rust dan target Android
         uses: dtolnay/rust-toolchain@stable
