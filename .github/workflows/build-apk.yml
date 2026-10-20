@@ -123,20 +123,20 @@ jobs:
       # Binding ldk_node: semua hasil codegen (Dart + Rust) sudah ter-commit,
       # jadi di sini tidak ada langkah codegen. Native .so dikompilasi
       # cargokit dari sumber rust/ di repo binding.
-      # Build pertama dibatasi arm64 saja agar iterasi cepat.
+      # Split per ABI agar tiap APK ramping (tidak memuat .so semua arsitektur).
       # Catatan: build.rs crate rs-x11-hash meng-hardcode compiler "clang",
       # jadi bin/ toolchain LLVM dari NDK ditaruh paling depan di PATH agar
       # "clang" yang ketemu adalah clang NDK (sysroot Android-nya lengkap).
-      - name: Build APK release arm64
+      - name: Build APK release split per ABI
         run: |
           NDK_BIN=$(ls -d "$ANDROID_HOME"/ndk/*/toolchains/llvm/prebuilt/linux-x86_64/bin | sort -V | tail -1)
           echo "Memakai clang NDK dari: $NDK_BIN"
           export PATH="$NDK_BIN:$PATH"
           which clang
-          flutter build apk --release --target-platform android-arm64
+          flutter build apk --release --split-per-abi
 
       - name: Unggah APK
         uses: actions/upload-artifact@v4
         with:
           name: nux-wallet-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/*.apk
