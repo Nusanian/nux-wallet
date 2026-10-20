@@ -55,7 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Inisialisasi node LDK + LSPS2 saat aplikasi dibuka.
   ///
-  /// Seed dibuat sekali (32 byte acak) lalu disimpan di app support dir.
+  /// Seed dibuat sekali (64 byte acak) lalu disimpan di app support dir.
   /// CATATAN MVP: seed disimpan sebagai file biasa. Untuk produksi, pindah
   /// ke flutter_secure_storage (Keychain/Keystore).
   Future<void> _boot() async {
@@ -66,17 +66,24 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       final dir = await getApplicationSupportDirectory();
       final seedFile = File('${dir.path}/lsp_seed.bin');
-      final List<int> seedBytes;
+      List<int>? seedBytes;
       if (await seedFile.exists()) {
-        seedBytes = await seedFile.readAsBytes();
-        if (seedBytes.length != 32) {
+        final existing = await seedFile.readAsBytes();
+        if (existing.length == 64) {
+          seedBytes = existing;
+        } else if (existing.length != 32) {
           throw StateError(
-              'File seed korup (panjang ${seedBytes.length}, harus 32). '
+              'File seed korup (panjang ${existing.length}, harus 64). '
               'Hapus ${seedFile.path} untuk generate ulang (DANA LAMA HILANG).');
         }
-      } else {
+        // Panjang 32 = berkas dari versi awal yang keliru (builder
+        // mensyaratkan 64 byte dan selalu menolak 32, jadi node tidak
+        // pernah terbangun dengannya) — belum ada wallet/dana di
+        // bawah seed itu, aman dibuat ulang di bawah ini.
+      }
+      if (seedBytes == null) {
         final rng = Random.secure();
-        seedBytes = List<int>.generate(32, (_) => rng.nextInt(256));
+        seedBytes = List<int>.generate(64, (_) => rng.nextInt(256));
         await seedFile.writeAsBytes(seedBytes, flush: true);
       }
       final storageDir = Directory('${dir.path}/lsp_storage');
