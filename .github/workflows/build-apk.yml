@@ -123,6 +123,16 @@ jobs:
       # Binding ldk_node: semua hasil codegen (Dart + Rust) sudah ter-commit,
       # jadi di sini tidak ada langkah codegen. Native .so dikompilasi
       # cargokit dari sumber rust/ di repo binding.
+      # Wrapper Gradle di android/ repo masih menunjuk gradle-2.14.1 (2015),
+      # yang tidak bisa membaca versi Java 17 dan tidak kompatibel dengan
+      # AGP 9.1 di settings.gradle.kts. Samakan ke 9.3.1, versi template
+      # Flutter 3.47.7 (templateDefaultGradleVersion di gradle_utils.dart).
+      # Idempotent: kalau repo sudah diperbarui, tidak ada yang berubah.
+      - name: Samakan versi Gradle wrapper dengan template Flutter
+        run: |
+          sed -i -E 's#gradle-[0-9.]+-all\.zip#gradle-9.3.1-all.zip#' android/gradle/wrapper/gradle-wrapper.properties
+          grep distributionUrl android/gradle/wrapper/gradle-wrapper.properties
+
       # Split per ABI agar tiap APK ramping (tidak memuat .so semua arsitektur).
       # Catatan: build.rs crate rs-x11-hash meng-hardcode compiler "clang",
       # jadi bin/ toolchain LLVM dari NDK ditaruh paling depan di PATH agar
