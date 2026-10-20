@@ -1,0 +1,58 @@
+name: Build APK NUX Wallet
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Ambil kode
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter 3.47.7
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+          channel: stable
+          cache: true
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Pasang platform dan build-tools Android
+        run: sdkmanager "platforms;android-34" "platforms;android-35" "platforms;android-36" "build-tools;34.0.0" "build-tools;35.0.0" "build-tools;36.0.0"
+
+      - name: Setup Rust dan target Android
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+
+      # Repo aplikasi belum punya folder android/, jadi dibuat di runner.
+      - name: Buat scaffolding android aplikasi
+        run: flutter create --platforms=android --project-name nux_wallet .
+
+      - name: Ambil dependency
+        run: flutter pub get
+
+      # Binding ldk_node: semua hasil codegen (Dart + Rust) sudah ter-commit,
+      # jadi di sini tidak ada langkah codegen. Native .so dikompilasi
+      # cargokit dari sumber rust/ di repo binding.
+      # Build pertama dibatasi arm64 saja agar iterasi cepat.
+      - name: Build APK release arm64
+        run: flutter build apk --release --target-platform android-arm64
+
+      - name: Unggah APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: nux-wallet-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
