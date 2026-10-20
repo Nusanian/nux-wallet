@@ -1,4 +1,5 @@
-import 'dart:typed_data';
+import 'dart:io';
+
 import 'package:ldk_node/ldk_node.dart';
 import 'package:ldk_node/src/generated/api/builder.dart';
 import 'package:ldk_node/src/generated/api/node.dart';
@@ -20,13 +21,30 @@ class LspService {
     required String electrumUrl,
     bool isTestnet = true,
   }) async {
-    final parts = lspAddress.split(':');
-    final lspPort = int.parse(parts[1]);
-    final octets = Uint8List.fromList(
-        parts[0].split('.').map(int.parse).toList());
+    // lspAddress format "host:port" — host boleh hostname (mis.
+    // lsp.taobot.org) atau IPv4 dotted. Hostname di-resolve ke IPv4 dulu
+    // supaya memakai jalur SocketAddress.tcpIpV4 yang sudah terbukti di
+    // uji handshake LSPS2 19 Okt 2026.
+    final sep = lspAddress.lastIndexOf(':');
+    if (sep < 0) {
+      throw StateError(
+          'Format lspAddress salah: "$lspAddress" (mesti host:port)');
+    }
+    final lspHost = lspAddress.substring(0, sep);
+    final lspPort = int.parse(lspAddress.substring(sep + 1));
+    final addrs = await InternetAddress.lookup(lspHost);
+    final ipv4 = addrs.firstWhere(
+      (a) => a.type == InternetAddressType.IPv4,
+      orElse: () =>
+          throw StateError('Tidak ada alamat IPv4 untuk host "$lspHost"'),
+    );
 
     final config = Config(
-      network: isTestnet ? Network.testnet : Network.nusacoin,
+      // Testnet = Nusacoin testnet (X11) — chain hash-nya cocok dengan
+      // server LSP. JANGAN pakai Network.testnet: itu Bitcoin testnet3,
+      // chain hash-nya beda sehingga handshake P2P dengan LSP ditolak
+      // dan sync header dari electrs gagal.
+      network: isTestnet ? Network.nusacoinTestnet : Network.nusacoin,
       storageDirPath: storagePath,
       trustedPeers0Conf: [PublicKey(hex: lspNodeId)],
       probingLiquidityLimitMultiplier: BigInt.from(3),
@@ -39,7 +57,7 @@ class LspService {
     final liquidityConfig = LiquiditySourceConfig(
       lsps2Service: (
         SocketAddress.tcpIpV4(
-          addr: U8Array4(octets),
+          addr: U8Array4(ipv4.rawAddress),
           port: lspPort,
         ),
         PublicKey(hex: lspNodeId),
