@@ -48,6 +48,27 @@ jobs:
       - name: Ambil dependency
         run: flutter pub get
 
+      # Perbaikan kompatibilitas cargokit dengan Gradle 9: project.exec sudah
+      # dihapus dari Gradle modern, diganti layanan ExecOperations. Langkah ini
+      # idempotent: kalau binding sudah kompatibel, tidak ada yang diubah.
+      - name: Patch cargokit binding untuk Gradle 9
+        run: |
+          python3 - <<'PYEOF'
+          import glob
+          for f in glob.glob("/home/runner/.pub-cache/git/ldk-node-flutter-nux-*/cargokit/gradle/plugin.gradle"):
+              s = open(f).read()
+              if "project.exec {" not in s:
+                  print("tidak perlu patch (binding sudah kompatibel Gradle 9):", f)
+                  continue
+              s = s.replace("import org.apache.tools.ant.taskdefs.condition.Os",
+                            "import javax.inject.Inject\nimport org.gradle.process.ExecOperations\nimport org.apache.tools.ant.taskdefs.condition.Os", 1)
+              s = s.replace("abstract class CargoKitBuildTask extends DefaultTask {\n",
+                            "abstract class CargoKitBuildTask extends DefaultTask {\n\n    @Inject\n    abstract ExecOperations getExecOperations()\n", 1)
+              s = s.replace("project.exec {", "execOperations.exec {")
+              open(f, "w").write(s)
+              print("patch diterapkan:", f)
+          PYEOF
+
       # Binding ldk_node: semua hasil codegen (Dart + Rust) sudah ter-commit,
       # jadi di sini tidak ada langkah codegen. Native .so dikompilasi
       # cargokit dari sumber rust/ di repo binding.
