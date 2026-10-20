@@ -6,10 +6,10 @@ class AppConfig {
   /// Alamat P2P node LSP, format "host:port" (subdomain, DNS-only).
   static const String lspAddress = 'lsp.taobot.org:9738';
 
-  /// Public key (node id) node LSP — WAJIB diisi operator sebelum build.
-  /// Selama masih placeholder, aplikasi menampilkan pesan error yang jelas
-  /// saat dibuka (bukan crash misterius).
-  static const String lspNodeId = 'GANTI_DENGAN_NODE_ID_LSP';
+  /// Public key (node id) node LSP — server testnet di VPS
+  /// (stabil, diturunkan dari seed.bin yang persisten sejak 19 Okt 2026).
+  static const String lspNodeId =
+      '02b69d63f7f07765257d729b4141426abff80a91088eb439ec6f2e9669b6423549';
 
   /// Token akses LSPS2 (bLIP-52) yang dibagikan operator.
   static const String lspToken = 'nux-lsp-test-token';
