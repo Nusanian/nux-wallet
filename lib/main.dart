@@ -1,4 +1,9 @@
+import 'dart:io';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'config.dart';
 import 'screens/receive_screen.dart';
 import 'screens/send_screen.dart';
 import 'services/lsp_service.dart';
@@ -39,9 +44,129 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _tabIndex = 0;
+  bool _booting = true;
+  String? _bootError;
+
+  @override
+  void initState() {
+    super.initState();
+    _boot();
+  }
+
+  /// Inisialisasi node LDK + LSPS2 saat aplikasi dibuka.
+  ///
+  /// Seed dibuat sekali (32 byte acak) lalu disimpan di app support dir.
+  /// CATATAN MVP: seed disimpan sebagai file biasa. Untuk produksi, pindah
+  /// ke flutter_secure_storage (Keychain/Keystore).
+  Future<void> _boot() async {
+    try {
+      if (!AppConfig.lspConfigured) {
+        throw StateError(
+            'lspNodeId belum diisi di lib/config.dart — minta node id LSP ke operator.');
+      }
+      final dir = await getApplicationSupportDirectory();
+      final seedFile = File('${dir.path}/lsp_seed.bin');
+      final List<int> seedBytes;
+      if (await seedFile.exists()) {
+        seedBytes = await seedFile.readAsBytes();
+        if (seedBytes.length != 32) {
+          throw StateError(
+              'File seed korup (panjang ${seedBytes.length}, harus 32). '
+              'Hapus ${seedFile.path} untuk generate ulang (DANA LAMA HILANG).');
+        }
+      } else {
+        final rng = Random.secure();
+        seedBytes = List<int>.generate(32, (_) => rng.nextInt(256));
+        await seedFile.writeAsBytes(seedBytes, flush: true);
+      }
+      final storageDir = Directory('${dir.path}/lsp_storage');
+      if (!await storageDir.exists()) {
+        await storageDir.create(recursive: true);
+      }
+      await lspService.init(
+        seedBytes: seedBytes,
+        storagePath: storageDir.path,
+        lspAddress: AppConfig.lspAddress,
+        lspNodeId: AppConfig.lspNodeId,
+        lspToken: AppConfig.lspToken,
+        electrumUrl: AppConfig.electrumUrl,
+        isTestnet: AppConfig.isTestnet,
+      );
+      if (mounted) setState(() => _booting = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _booting = false;
+          _bootError = '$e';
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_booting) {
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: Color(0xFF10B981)),
+              SizedBox(height: 16),
+              Text('Menghubungkan ke LSP…',
+                  style: TextStyle(color: Color(0xFF8A9A90))),
+            ],
+          ),
+        ),
+      );
+    }
+    if (_bootError != null) {
+      return Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('⚠️',
+                    style: TextStyle(fontSize: 40),
+                    textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                const Text('Gagal menghubungkan node',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                    textAlign: TextAlign.center),
+                const SizedBox(height: 8),
+                Text(_bootError!,
+                    style: const TextStyle(
+                        fontSize: 13, color: Color(0xFF8A9A90)),
+                    textAlign: TextAlign.center),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _booting = true;
+                      _bootError = null;
+                    });
+                    _boot();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text('Coba lagi'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -134,14 +259,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: Colors.black.withOpacity(0.25),
                         borderRadius: BorderRadius.circular(100),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _PulseDot(),
-                          SizedBox(width: 7),
-                          Text('Lightning aktif \u2014 siap terima instan',
-                              style: TextStyle(
-                                  fontSize: 12.5, fontWeight: FontWeight.w600)),
+                          _PulseDot(active: lspService.isRunning),
+                          const SizedBox(width: 7),
+                          Text(
+                              lspService.isRunning
+                                  ? 'Lightning aktif \u2014 siap terima instan'
+                                  : 'Menghubungkan Lightning\u2026',
+                              style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ),
@@ -404,7 +533,8 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _PulseDot extends StatefulWidget {
-  const _PulseDot();
+  final bool active;
+  const _PulseDot({this.active = true});
 
   @override
   State<_PulseDot> createState() => _PulseDotState();
