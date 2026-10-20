@@ -41,9 +41,29 @@ jobs:
         with:
           targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
 
-      # Repo aplikasi belum punya folder android/, jadi dibuat di runner.
-      - name: Buat scaffolding android aplikasi
-        run: flutter create --platforms=android --project-name nux_wallet .
+      # Folder android/ sudah ter-commit di repo (dengan INTERNET permission
+      # di manifest main). flutter create hanya fallback kalau foldernya
+      # hilang. Permission wajib dicek keras: template Flutter tidak
+      # memasangnya di manifest main, dan APK release tanpa permission itu
+      # tidak bisa jaringan sama sekali (kejadian uji HP 20 Okt 2026).
+      - name: Pastikan scaffolding android + INTERNET permission
+        run: |
+          if [ ! -d android ]; then
+            flutter create --platforms=android --project-name nux_wallet .
+          fi
+          python3 - <<'PYEOF'
+          p = "android/app/src/main/AndroidManifest.xml"
+          s = open(p).read()
+          perm = '<uses-permission android:name="android.permission.INTERNET"/>'
+          if perm not in s:
+              anchor = '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
+              assert anchor in s, "anchor manifest tidak ditemukan"
+              s = s.replace(anchor, anchor + "\n    " + perm, 1)
+              open(p, "w").write(s)
+              print("INTERNET permission ditambahkan ke manifest main")
+          assert perm in open(p).read(), "INTERNET permission tetap tidak ada!"
+          print("manifest main OK: INTERNET permission ada")
+          PYEOF
 
       - name: Ambil dependency
         run: flutter pub get
