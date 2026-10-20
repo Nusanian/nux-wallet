@@ -77,9 +77,14 @@ class LspService {
       liquiditySourceConfig: liquidityConfig,
     );
 
-    builder.setEntropySeedBytes(seedBytes: seedBytes);
+    // setEntropySeedBytes MEMAKAN builder (parameter `self` di Rust)
+    // dan mengembalikan builder baru — nilai kembalinya WAJIB yang
+    // dipakai. Memanggil build() pada builder lama melempar
+    // DroppableDisposedException (RustArc sudah di-dispose).
+    final configuredBuilder =
+        builder.setEntropySeedBytes(seedBytes: seedBytes);
 
-    _node = await builder.build();
+    _node = await configuredBuilder.build();
     await _node!.start();
     _running = true;
   }
