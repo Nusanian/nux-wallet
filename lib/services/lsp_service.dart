@@ -4,6 +4,7 @@ import 'package:ldk_node/ldk_node.dart';
 import 'package:ldk_node/src/generated/api/builder.dart';
 import 'package:ldk_node/src/generated/api/node.dart';
 import 'package:ldk_node/src/generated/api/bolt11.dart' as bolt11_api;
+import 'package:ldk_node/src/utils/frb.dart';
 
 /// Service untuk koneksi ke LSP Nusacoin via LSPS2 (bLIP-52).
 class LspService {
@@ -21,6 +22,11 @@ class LspService {
     required String electrumUrl,
     bool isTestnet = true,
   }) async {
+    // Inisialisasi runtime flutter_rust_bridge (kelas `core` di
+    // binding) sebelum panggilan API pertama. verifyInit idempotent:
+    // aman dipanggil ulang saat retry. Tanpa ini aplikasi berhenti
+    // dengan StateError "flutter_rust_bridge has not been initialized".
+    await Frb.verifyInit();
     // lspAddress format "host:port" — host boleh hostname (mis.
     // lsp.taobot.org) atau IPv4 dotted. Hostname di-resolve ke IPv4 dulu
     // supaya memakai jalur SocketAddress.tcpIpV4 yang sudah terbukti di
