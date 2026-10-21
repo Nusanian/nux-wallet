@@ -1,3 +1,5 @@
+import java.io.File
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -10,7 +12,7 @@ plugins {
 // debug seperti sebelumnya.
 val jalurKeystoreRilis = System.getenv("RELEASE_KEYSTORE_PATH")
 val pakaiSigningRilis =
-    jalurKeystoreRilis != null && java.io.File(jalurKeystoreRilis).exists()
+    jalurKeystoreRilis != null && File(jalurKeystoreRilis).exists()
 
 android {
     namespace = "com.example.nux_wallet"
