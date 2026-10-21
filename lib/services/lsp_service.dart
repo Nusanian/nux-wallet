@@ -122,9 +122,18 @@ class LspService {
   ///
   /// Mengembalikan null bila antrean kosong. Dipakai layar Terima
   /// untuk menunggu event pembayaran masuk (Event.paymentReceived).
+  ///
+  /// Catatan: nextEvent() hanya mengintip (peek) — event yang sama akan
+  /// terus dikembalikan sampai ditandai selesai lewat eventHandled().
+  /// Karena itu setiap event yang terbaca langsung ditandai selesai di
+  /// sini, supaya event berikutnya (mis. PaymentReceived) bisa maju.
   Future<Event?> pollNextEvent() async {
     _ensureRunning();
-    return _node!.nextEvent();
+    final event = await _node!.nextEvent();
+    if (event != null) {
+      await _node!.eventHandled();
+    }
+    return event;
   }
 
   Future<void> stop() async {
