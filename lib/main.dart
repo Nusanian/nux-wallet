@@ -7,6 +7,7 @@ import 'config.dart';
 import 'screens/receive_screen.dart';
 import 'screens/send_screen.dart';
 import 'services/lsp_service.dart';
+import 'utils/format.dart';
 
 void main() {
   runApp(const NuxWalletApp());
@@ -42,15 +43,46 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with WidgetsBindingObserver {
   int _tabIndex = 0;
   bool _booting = true;
   String? _bootError;
 
+  /// Saldo Lightning terakhir dari node (msat); null = belum terbaca.
+  BigInt? _balanceMsat;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _boot();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_booting && _bootError == null) {
+      _refreshBalance();
+    }
+  }
+
+  /// Baca ulang saldo Lightning dari node dan tampilkan di dashboard.
+  /// Kegagalan baca (mis. node belum sinkron) tidak mengosongkan nilai
+  /// terakhir yang berhasil dibaca.
+  Future<void> _refreshBalance() async {
+    if (!lspService.isRunning) return;
+    try {
+      final balance = await lspService.getLightningBalance();
+      if (mounted) setState(() => _balanceMsat = balance);
+    } catch (_) {
+      // Abaikan — saldo lama tetap ditampilkan.
+    }
   }
 
   /// Inisialisasi node LDK + LSPS2 saat aplikasi dibuka.
@@ -99,6 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
         electrumUrl: AppConfig.electrumUrl,
         isTestnet: AppConfig.isTestnet,
       );
+      await _refreshBalance();
       if (mounted) setState(() => _booting = false);
     } catch (e) {
       if (mounted) {
@@ -176,8 +209,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
+        child: IndexedStack(
+          index: _tabIndex,
+          children: [
+            SingleChildScrollView(
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
@@ -239,25 +275,32 @@ class _HomeScreenState extends State<HomeScreen> {
                     const Text('Total Saldo',
                         style: TextStyle(fontSize: 13, color: Colors.white70)),
                     const SizedBox(height: 6),
-                    const Row(
+                    Row(
                       crossAxisAlignment: CrossAxisAlignment.baseline,
                       textBaseline: TextBaseline.alphabetic,
                       children: [
-                        Text('12.50',
-                            style: TextStyle(
+                        Text(
+                            _balanceMsat == null
+                                ? '\u2014'
+                                : formatNusan(_balanceMsat!),
+                            style: const TextStyle(
                                 fontSize: 44,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: -1)),
-                        SizedBox(width: 6),
-                        Text('NUX',
+                        const SizedBox(width: 6),
+                        const Text('nusan',
                             style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white70)),
                       ],
                     ),
-                    const Text('\u2248 \$0.06 USD  \u2022  Rp1.007',
-                        style: TextStyle(fontSize: 13, color: Colors.white70)),
+                    Text(
+                        AppConfig.isTestnet
+                            ? 'Lightning Network \u2022 Testnet'
+                            : 'Lightning Network \u2022 Mainnet',
+                        style: const TextStyle(
+                            fontSize: 13, color: Colors.white70)),
                     const SizedBox(height: 14),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -296,7 +339,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           builder: (_) =>
                               SendScreen(lspService: lspService),
                         ),
-                      );
+                      ).then((_) => _refreshBalance());
                     }),
                     const SizedBox(width: 10),
                     _quickAction('\u2199', 'Terima', true, () {
@@ -306,7 +349,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           builder: (_) =>
                               ReceiveScreen(lspService: lspService),
                         ),
-                      );
+                      ).then((_) => _refreshBalance());
                     }),
                     const SizedBox(width: 10),
                     _quickAction('\uFF0B', 'Beli', false, () {}),
@@ -342,6 +385,23 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 80),
             ],
           ),
+            ),
+            const _ComingSoonPage(
+              icon: '\u25CD',
+              title: 'Pasar',
+              message: 'Info pasar NUX \u2014 segera hadir.',
+            ),
+            const _ComingSoonPage(
+              icon: '\u21BA',
+              title: 'Riwayat',
+              message: 'Riwayat transaksi \u2014 segera hadir.',
+            ),
+            const _ComingSoonPage(
+              icon: '\u25CB',
+              title: 'Profil',
+              message: 'Profil & pengaturan \u2014 segera hadir.',
+            ),
+          ],
         ),
       ),
       // Floating tab bar
@@ -499,7 +559,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final active = _tabIndex == index;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _tabIndex = index),
+        onTap: () {
+          setState(() => _tabIndex = index);
+          if (index == 0) _refreshBalance();
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
@@ -533,6 +596,45 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: active ? Colors.white : const Color(0xFF6B7D73))),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Halaman placeholder untuk tab yang belum punya konten sendiri.
+class _ComingSoonPage extends StatelessWidget {
+  final String icon;
+  final String title;
+  final String message;
+
+  const _ComingSoonPage({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(icon,
+                style: const TextStyle(
+                    fontSize: 44, color: Color(0xFF34D399))),
+            const SizedBox(height: 14),
+            Text(title,
+                style: const TextStyle(
+                    fontSize: 20, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            Text(message,
+                style: const TextStyle(
+                    fontSize: 13, color: Color(0xFF8A9A90)),
+                textAlign: TextAlign.center),
+          ],
         ),
       ),
     );

@@ -118,6 +118,15 @@ class LspService {
     return balances.totalLightningBalanceSats * BigInt.from(1000);
   }
 
+  /// Ambil satu event node dari antrean (non-blocking).
+  ///
+  /// Mengembalikan null bila antrean kosong. Dipakai layar Terima
+  /// untuk menunggu event pembayaran masuk (Event.paymentReceived).
+  Future<Event?> pollNextEvent() async {
+    _ensureRunning();
+    return _node!.nextEvent();
+  }
+
   Future<void> stop() async {
     if (_running && _node != null) {
       await _node!.stop();
