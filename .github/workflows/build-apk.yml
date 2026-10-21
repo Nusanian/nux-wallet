@@ -133,17 +133,45 @@ jobs:
           sed -i -E 's#gradle-[0-9.]+-all\.zip#gradle-9.3.1-all.zip#' android/gradle/wrapper/gradle-wrapper.properties
           grep distributionUrl android/gradle/wrapper/gradle-wrapper.properties
 
+      # Keystore release dari GitHub Secrets. ATURAN KEAMANAN (repo publik):
+      # file hasil decode tinggal di runner.temp — DI LUAR checkout — dan
+      # tidak pernah di-upload (langkah unggah hanya mengambil *.apk dari
+      # folder output Flutter); tidak ada langkah yang mencetak isi/nilai
+      # secrets; langkah ini hanya jalan pada trigger tepercaya (push ke
+      # main / dispatch manual — workflow ini memang tidak punya trigger
+      # pull_request, jadi jalur PR fork tidak pernah menyentuh signing).
+      - name: Siapkan keystore release dari Secrets
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$RELEASE_KEYSTORE_BASE64" ]; then
+            printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "${{ runner.temp }}/nux-release.jks"
+            chmod 600 "${{ runner.temp }}/nux-release.jks"
+            echo "keystore release siap di runner.temp"
+          else
+            echo "secret keystore belum terpasang — build memakai signing debug"
+          fi
+
       # Split per ABI agar tiap APK ramping (tidak memuat .so semua arsitektur).
+      # versionCode otomatis dari nomor run CI (--build-number): selalu naik
+      # tiap build tanpa bergantung ingatan manusia; satu rilis lupa naik
+      # akan ditolak Android saat update.
       # Catatan: build.rs crate rs-x11-hash meng-hardcode compiler "clang",
       # jadi bin/ toolchain LLVM dari NDK ditaruh paling depan di PATH agar
       # "clang" yang ketemu adalah clang NDK (sysroot Android-nya lengkap).
       - name: Build APK release split per ABI
+        env:
+          RELEASE_KEYSTORE_PATH: ${{ runner.temp }}/nux-release.jks
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           NDK_BIN=$(ls -d "$ANDROID_HOME"/ndk/*/toolchains/llvm/prebuilt/linux-x86_64/bin | sort -V | tail -1)
           echo "Memakai clang NDK dari: $NDK_BIN"
           export PATH="$NDK_BIN:$PATH"
           which clang
-          flutter build apk --release --split-per-abi
+          flutter build apk --release --split-per-abi --build-number=${{ github.run_number }}
 
       - name: Unggah APK
         uses: actions/upload-artifact@v4
