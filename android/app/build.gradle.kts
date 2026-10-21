@@ -4,6 +4,14 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Penandatanganan rilis dibaca dari environment: di CI, workflow mengisi
+// RELEASE_KEYSTORE_PATH (file hasil decode GitHub Secrets di runner) beserta
+// password dan alias-nya. Tanpa env itu (build lokal), rilis memakai signing
+// debug seperti sebelumnya.
+val jalurKeystoreRilis = System.getenv("RELEASE_KEYSTORE_PATH")
+val pakaiSigningRilis =
+    jalurKeystoreRilis != null && java.io.File(jalurKeystoreRilis).exists()
+
 android {
     namespace = "com.example.nux_wallet"
     compileSdk = flutter.compileSdkVersion
@@ -29,11 +37,26 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (pakaiSigningRilis) {
+            create("release") {
+                storeFile = file(jalurKeystoreRilis!!)
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Di CI memakai keystore release tetap dari Secrets (identitas
+            // update permanen); di lokal tanpa env, jatuh ke debug.
+            signingConfig = if (pakaiSigningRilis) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
