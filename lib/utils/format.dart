@@ -25,3 +25,25 @@ String formatNusan(BigInt msat) {
   }
   return buf.toString();
 }
+
+/// Format waktu transaksi untuk daftar aktivitas/riwayat.
+///
+/// Hari ini → jam 'HH.mm'; kemarin → 'Kemarin'; lebih lama → 'd MMM'
+/// dengan singkatan bulan Indonesia. [now] bisa diisi untuk pengujian.
+String formatTxTime(DateTime time, {DateTime? now}) {
+  final ref = now ?? DateTime.now();
+  final day = DateTime(time.year, time.month, time.day);
+  final today = DateTime(ref.year, ref.month, ref.day);
+  final diffDays = today.difference(day).inDays;
+  if (diffDays == 0) {
+    final hh = time.hour.toString().padLeft(2, '0');
+    final mm = time.minute.toString().padLeft(2, '0');
+    return '$hh.$mm';
+  }
+  if (diffDays == 1) return 'Kemarin';
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+  ];
+  return '${time.day} ${months[time.month - 1]}';
+}

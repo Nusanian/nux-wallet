@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:ldk_node/src/generated/api/types.dart';
 import 'package:path_provider/path_provider.dart';
 import 'config.dart';
 import 'screens/receive_screen.dart';
@@ -52,6 +53,9 @@ class _HomeScreenState extends State<HomeScreen>
   /// Saldo Lightning terakhir dari node (msat); null = belum terbaca.
   BigInt? _balanceMsat;
 
+  /// Riwayat pembayaran terakhir dari node (terbaru di depan).
+  List<PaymentDetails> _payments = const [];
+
   @override
   void initState() {
     super.initState();
@@ -68,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && !_booting && _bootError == null) {
-      _refreshBalance();
+      _refreshDashboard();
     }
   }
 
@@ -83,6 +87,26 @@ class _HomeScreenState extends State<HomeScreen>
     } catch (_) {
       // Abaikan — saldo lama tetap ditampilkan.
     }
+  }
+
+  /// Baca ulang riwayat pembayaran dari node untuk daftar Aktivitas
+  /// dashboard dan tab Riwayat. Pola sama seperti saldo: kegagalan
+  /// baca mempertahankan daftar terakhir yang berhasil dibaca.
+  Future<void> _refreshPayments() async {
+    if (!lspService.isRunning) return;
+    try {
+      final payments = await lspService.listPayments();
+      if (mounted) setState(() => _payments = payments);
+    } catch (_) {
+      // Abaikan — daftar lama tetap ditampilkan.
+    }
+  }
+
+  /// Segarkan saldo + riwayat sekaligus. Dipakai di titik-titik
+  /// refresh yang sebelumnya hanya menyegarkan saldo.
+  Future<void> _refreshDashboard() async {
+    await _refreshBalance();
+    await _refreshPayments();
   }
 
   /// Inisialisasi node LDK + LSPS2 saat aplikasi dibuka.
@@ -131,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen>
         electrumUrl: AppConfig.electrumUrl,
         isTestnet: AppConfig.isTestnet,
       );
-      await _refreshBalance();
+      await _refreshDashboard();
       if (mounted) setState(() => _booting = false);
     } catch (e) {
       if (mounted) {
@@ -339,7 +363,7 @@ class _HomeScreenState extends State<HomeScreen>
                           builder: (_) =>
                               SendScreen(lspService: lspService),
                         ),
-                      ).then((_) => _refreshBalance());
+                      ).then((_) => _refreshDashboard());
                     }),
                     const SizedBox(width: 10),
                     _quickAction('\u2199', 'Terima', true, () {
@@ -349,7 +373,7 @@ class _HomeScreenState extends State<HomeScreen>
                           builder: (_) =>
                               ReceiveScreen(lspService: lspService),
                         ),
-                      ).then((_) => _refreshBalance());
+                      ).then((_) => _refreshDashboard());
                     }),
                     const SizedBox(width: 10),
                     _quickAction('\uFF0B', 'Beli', false, () {}),
@@ -360,28 +384,39 @@ class _HomeScreenState extends State<HomeScreen>
               ),
               const SizedBox(height: 18),
               // Transactions header
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 22),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 22),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Aktivitas',
+                    const Text('Aktivitas',
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w700)),
-                    Text('Lihat semua',
-                        style: TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF34D399),
-                            fontWeight: FontWeight.w600)),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() => _tabIndex = 2);
+                        _refreshDashboard();
+                      },
+                      child: const Text('Lihat semua',
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF34D399),
+                              fontWeight: FontWeight.w600)),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 6),
               // Transaction list
-              _txRow('\u2193', 'Diterima', 'uQsen\u20260001', '\u26A1 JIT', true, '+0.05', '17.17'),
-              _txRow('\u2191', 'Terkirim', 'uQRec\u20260002', '\u26A1', false, '\u22120.02', '13.17'),
-              _txRow('\u2193', 'Diterima', 'uQsen\u20260003', '\u26A1 JIT', true, '+1.00', 'Kemarin'),
-              _txRow('\u2191', 'Terkirim', 'uQRec\u20260004', '\u26D3 on-chain', false, '\u22120.50', '15 Okt'),
+              if (_payments.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+                  child: Text('Belum ada aktivitas',
+                      style:
+                          TextStyle(fontSize: 13, color: Color(0xFF7D8F86))),
+                )
+              else
+                ..._payments.take(5).map(_paymentRow),
               const SizedBox(height: 80),
             ],
           ),
@@ -391,11 +426,7 @@ class _HomeScreenState extends State<HomeScreen>
               title: 'Pasar',
               message: 'Info pasar NUX \u2014 segera hadir.',
             ),
-            const _ComingSoonPage(
-              icon: '\u21BA',
-              title: 'Riwayat',
-              message: 'Riwayat transaksi \u2014 segera hadir.',
-            ),
+            _HistoryPage(payments: _payments, rowBuilder: _paymentRow),
             const _ComingSoonPage(
               icon: '\u25CB',
               title: 'Profil',
@@ -469,8 +500,43 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  /// Ubah satu catatan pembayaran node menjadi baris daftar
+  /// aktivitas/riwayat. Nominal ditampilkan bertanda (+ masuk,
+  /// − keluar) dalam nusan; label status hanya muncul untuk
+  /// pembayaran yang belum sukses (Menunggu/Gagal).
+  Widget _paymentRow(PaymentDetails payment) {
+    final isIn = payment.direction == PaymentDirection.inbound;
+    final kind = payment.kind;
+    final tag = kind is PaymentKind_Bolt11Jit
+        ? '\u26A1 JIT'
+        : kind is PaymentKind_Onchain
+            ? '\u26D3 on-chain'
+            : '\u26A1';
+    final amount = payment.amountMsat == null
+        ? '\u2014'
+        : '${isIn ? '+' : '\u2212'}${formatNusan(payment.amountMsat!)}';
+    final time = formatTxTime(DateTime.fromMillisecondsSinceEpoch(
+        payment.latestUpdateTimestamp.toInt() * 1000));
+    return _txRow(
+      isIn ? '\u2193' : '\u2191',
+      isIn ? 'Diterima' : 'Terkirim',
+      _shortPaymentId(payment.id),
+      tag,
+      isIn,
+      amount,
+      time,
+      status: switch (payment.status) {
+        PaymentStatus.pending => 'Menunggu',
+        PaymentStatus.failed => 'Gagal',
+        PaymentStatus.succeeded => null,
+      },
+      statusBad: payment.status == PaymentStatus.failed,
+    );
+  }
+
   Widget _txRow(String icon, String title, String addr, String tag, bool isIn,
-      String amount, String time) {
+      String amount, String time,
+      {String? status, bool statusBad = false}) {
     final isJit = tag.contains('JIT');
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
@@ -529,6 +595,27 @@ class _HomeScreenState extends State<HomeScreen>
                                   ? const Color(0xFF34D399)
                                   : const Color(0xFF9AA8A0))),
                     ),
+                    if (status != null) ...[
+                      const SizedBox(width: 5),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: (statusBad
+                                  ? const Color(0xFFEF4444)
+                                  : const Color(0xFFF59E0B))
+                              .withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Text(status,
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: statusBad
+                                    ? const Color(0xFFF87171)
+                                    : const Color(0xFFFBBF24))),
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -561,7 +648,7 @@ class _HomeScreenState extends State<HomeScreen>
       child: GestureDetector(
         onTap: () {
           setState(() => _tabIndex = index);
-          if (index == 0) _refreshBalance();
+          if (index == 0 || index == 2) _refreshDashboard();
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -598,6 +685,64 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
       ),
+    );
+  }
+}
+
+/// ID pembayaran dipendekkan untuk subjudul baris daftar:
+/// 5 karakter hex awal + 4 karakter hex akhir.
+String _shortPaymentId(PaymentId id) {
+  final hex = id.data.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+  if (hex.length <= 10) return hex;
+  return '${hex.substring(0, 5)}\u2026${hex.substring(hex.length - 4)}';
+}
+
+/// Tab Riwayat — seluruh pembayaran dari node, terbaru di depan.
+class _HistoryPage extends StatelessWidget {
+  final List<PaymentDetails> payments;
+  final Widget Function(PaymentDetails) rowBuilder;
+
+  const _HistoryPage({required this.payments, required this.rowBuilder});
+
+  @override
+  Widget build(BuildContext context) {
+    if (payments.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('\u21BA',
+                  style: TextStyle(fontSize: 44, color: Color(0xFF34D399))),
+              SizedBox(height: 14),
+              Text('Riwayat',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              SizedBox(height: 6),
+              Text(
+                  'Belum ada transaksi. Pembayaran masuk dan keluar akan tampil di sini.',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF8A9A90)),
+                  textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(22, 22, 22, 10),
+          child: Text('Riwayat',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+        ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: 24),
+            children: payments.map(rowBuilder).toList(),
+          ),
+        ),
+      ],
     );
   }
 }

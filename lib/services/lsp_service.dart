@@ -118,6 +118,20 @@ class LspService {
     return balances.totalLightningBalanceSats * BigInt.from(1000);
   }
 
+  /// Ambil seluruh riwayat pembayaran dari node, terbaru di depan.
+  ///
+  /// Binding tidak menjamin urutan, jadi hasil diurutkan menurun
+  /// menurut latestUpdateTimestamp. Semua status ikut terbawa
+  /// (termasuk menunggu/gagal) dan semua jenis pembayaran
+  /// (Lightning + on-chain) — penyaringan tampilan urusan UI.
+  Future<List<PaymentDetails>> listPayments() async {
+    _ensureRunning();
+    final payments = await _node!.listPayments();
+    payments.sort((a, b) =>
+        b.latestUpdateTimestamp.compareTo(a.latestUpdateTimestamp));
+    return payments;
+  }
+
   /// Ambil satu event node dari antrean (non-blocking).
   ///
   /// Mengembalikan null bila antrean kosong. Dipakai layar Terima
