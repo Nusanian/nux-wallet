@@ -6,6 +6,7 @@ import 'package:ldk_node/src/generated/api/types.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../services/lsp_service.dart';
 import '../utils/format.dart';
+import '../utils/friendly_error.dart';
 
 /// Layar Terima — buat invoice Lightning via JIT channel.
 ///
@@ -67,7 +68,8 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
       setState(() => _invoice = invoice);
       _startWatching();
     } catch (e) {
-      setState(() => _error = 'Gagal buat invoice: $e');
+      setState(() => _error =
+          friendlyError(e, fallback: 'Gagal membuat invoice. Coba lagi.'));
     } finally {
       setState(() => _loading = false);
     }

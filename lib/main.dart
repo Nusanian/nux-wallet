@@ -9,6 +9,7 @@ import 'screens/receive_screen.dart';
 import 'screens/send_screen.dart';
 import 'services/lsp_service.dart';
 import 'utils/format.dart';
+import 'utils/friendly_error.dart';
 
 void main() {
   runApp(const NuxWalletApp());
@@ -161,7 +162,8 @@ class _HomeScreenState extends State<HomeScreen>
       if (mounted) {
         setState(() {
           _booting = false;
-          _bootError = '$e';
+          _bootError =
+              friendlyError(e, fallback: 'Terjadi kendala saat memulai dompet.');
         });
       }
     }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/lsp_service.dart';
+import '../utils/friendly_error.dart';
 
 /// Layar Kirim — bayar invoice Lightning.
 ///
@@ -47,7 +48,8 @@ class _SendScreenState extends State<SendScreen> {
       await widget.lspService.payInvoice(invoice);
       setState(() => _paid = true);
     } catch (e) {
-      setState(() => _error = 'Gagal bayar: $e');
+      setState(() => _error =
+          friendlyError(e, fallback: 'Pembayaran gagal. Coba lagi.'));
     } finally {
       setState(() => _loading = false);
     }
