@@ -122,7 +122,15 @@ class _HomeScreenState extends State<HomeScreen>
             'lspNodeId belum diisi di lib/config.dart — minta node id LSP ke operator.');
       }
       final dir = await getApplicationSupportDirectory();
-      final seedFile = File('${dir.path}/lsp_seed.bin');
+      // Seed & storage dipisah per network: build mainnet memakai nama
+      // berakhiran _mainnet supaya tidak mewarisi seed/storage testnet
+      // (APK mainnet menimpa paket yang sama). Nama testnet dibiarkan
+      // persis seperti sebelumnya — wallet testnet yang ada tidak berubah.
+      final seedName =
+          AppConfig.isTestnet ? 'lsp_seed.bin' : 'lsp_seed_mainnet.bin';
+      final storageName =
+          AppConfig.isTestnet ? 'lsp_storage' : 'lsp_storage_mainnet';
+      final seedFile = File('${dir.path}/$seedName');
       List<int>? seedBytes;
       if (await seedFile.exists()) {
         final existing = await seedFile.readAsBytes();
@@ -143,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen>
         seedBytes = List<int>.generate(64, (_) => rng.nextInt(256));
         await seedFile.writeAsBytes(seedBytes, flush: true);
       }
-      final storageDir = Directory('${dir.path}/lsp_storage');
+      final storageDir = Directory('${dir.path}/$storageName');
       if (!await storageDir.exists()) {
         await storageDir.create(recursive: true);
       }

@@ -1,24 +1,29 @@
-/// Konfigurasi koneksi ke LSP Nusacoin (MVP).
+/// Konfigurasi koneksi ke LSP Nusacoin (MVP) — VARIAN MAINNET.
 ///
-/// Nilai testnet diambil dari BUILD_MACOS.md. Untuk mainnet nanti:
-/// ganti ke parameter mainnet dan set [isTestnet] = false.
+/// File ini adalah pengganti drop-in untuk lib/config.dart pada build
+/// mainnet: nama class dan field sama persis, hanya nilainya yang beda.
+/// (Model aplikasi saat ini: satu config per build — lihat REPORT.md.)
 class AppConfig {
   /// Alamat P2P node LSP, format "host:port" (subdomain, DNS-only).
-  static const String lspAddress = 'lsp.taobot.org:9738';
+  static const String lspAddress = 'lsp.taobot.org:9739';
 
-  /// Public key (node id) node LSP — server testnet di VPS
-  /// (stabil, diturunkan dari seed.bin yang persisten sejak 19 Okt 2026).
+  /// Public key (node id) node LSP — server mainnet di VPS
+  /// (stabil, diturunkan dari seed.bin mainnet yang persisten sejak
+  /// 22 Okt 2026; node_id terpanen dari start live 23 Okt 2026).
   static const String lspNodeId =
-      '02b69d63f7f07765257d729b4141426abff80a91088eb439ec6f2e9669b6423549';
+      '02a3c442a933b1f0a630d56151e84a19f17b662541b2e305a3878b8255c572981a';
 
   /// Token akses LSPS2 (bLIP-52) yang dibagikan operator.
-  static const String lspToken = 'nux-lsp-test-token';
+  /// WAJIB DIGANTI operator dengan token mainnet asli dari
+  /// /root/lsp-mainnet/credentials.txt di VPS sebelum build rilis —
+  /// nilai asli tidak pernah ditulis di repo/chat.
+  static const String lspToken = 'ISI_TOKEN_LSP_MAINNET';
 
   /// URL server Electrum (electrs) untuk chain data.
-  static const String electrumUrl = 'tcp://lsp.taobot.org:60009';
+  static const String electrumUrl = 'tcp://lsp.taobot.org:50009';
 
   /// true = testnet Nusacoin, false = mainnet (Network.nusacoin).
-  static const bool isTestnet = true;
+  static const bool isTestnet = false;
 
   /// true kalau [lspNodeId] sudah diisi nilai aslinya.
   static bool get lspConfigured =>
