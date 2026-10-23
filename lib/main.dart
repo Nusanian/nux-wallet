@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:bip39/bip39.dart' as bip39;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:ldk_node/src/generated/api/types.dart';
 import 'package:path_provider/path_provider.dart';
 import 'config.dart';
@@ -67,6 +68,15 @@ class _HomeScreenState extends State<HomeScreen>
   File? _seedFile;
   File? _mnemonicFile;
   Directory? _storageDir;
+
+  /// Sapaan mengikuti jam lokal HP user.
+  String get _greeting {
+    final h = DateTime.now().hour;
+    if (h >= 4 && h < 11) return 'Selamat pagi';
+    if (h >= 11 && h < 15) return 'Selamat siang';
+    if (h >= 15 && h < 18) return 'Selamat sore';
+    return 'Selamat malam';
+  }
 
   /// Saldo Lightning terakhir dari node (msat); null = belum terbaca.
   BigInt? _balanceMsat;
@@ -281,8 +291,64 @@ class _HomeScreenState extends State<HomeScreen>
     await _boot();
   }
 
+  /// Dialog konfirmasi keluar aplikasi, desain selaras tema:
+  /// permukaan gelap, sudut membulat, aksen emerald.
+  Future<void> _confirmExit() async {
+    final keluar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF101412),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: Colors.white.withOpacity(0.06)),
+        ),
+        title: const Text('Keluar dari ELNUX?',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+        content: const Text(
+          'Aplikasi akan ditutup. Selama aplikasi tertutup, dompet tidak '
+          'dapat menerima pembayaran.',
+          style: TextStyle(
+              fontSize: 13.5, color: Color(0xFF8A9A90), height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal',
+                style: TextStyle(color: Color(0xFF8A9A90))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Keluar'),
+          ),
+        ],
+      ),
+    );
+    if (keluar == true) {
+      await SystemNavigator.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Cegat tombol kembali di layar utama: minta konfirmasi dulu
+    // sebelum aplikasi benar-benar keluar.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmExit();
+      },
+      child: _buildBody(context),
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
     if (_booting) {
       return const Scaffold(
         body: Center(
@@ -360,36 +426,36 @@ class _HomeScreenState extends State<HomeScreen>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Column(
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Selamat malam',
-                            style: TextStyle(fontSize: 13, color: Color(0xFF8A9A90))),
-                        SizedBox(height: 2),
-                        Text('nusacoin \u2726',
+                        Text(_greeting,
+                            style: const TextStyle(
+                                fontSize: 13, color: Color(0xFF8A9A90))),
+                        const SizedBox(height: 2),
+                        const Text('Nusanian \u2726',
                             style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: -0.3)),
                       ],
                     ),
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF34D399), Color(0xFF10B981)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                    // Lencana ikon aplikasi — ketuk untuk ke tab Profil.
+                    GestureDetector(
+                      onTap: () => setState(() => _tabIndex = 3),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                              color: Colors.white.withOpacity(0.08)),
                         ),
-                      ),
-                      child: const Center(
-                        child: Text('N',
-                            style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF06231A))),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.asset('assets/app_icon.png',
+                              fit: BoxFit.cover),
+                        ),
                       ),
                     ),
                   ],
@@ -512,7 +578,13 @@ class _HomeScreenState extends State<HomeScreen>
                       ).then((_) => _refreshDashboard());
                     }),
                     const SizedBox(width: 10),
-                    _quickAction(Icons.south_west_rounded, 'Terima', true, () {
+                    // Keamanan: Terima NONAKTIF selama dompet belum punya
+                    // frasa backup (dompet legacy) — dana yang masuk ke
+                    // dompet tanpa frasa tidak bisa dipulihkan bila HP
+                    // hilang/rusak. Strip peringatan di atas menjelaskan
+                    // cara mengaktifkannya (buat dompet berfrasa).
+                    _quickAction(Icons.south_west_rounded, 'Terima',
+                        !_legacyWallet, () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
