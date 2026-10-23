@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ldk_node/src/generated/api/types.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'config.dart';
 import 'screens/backup_screen.dart';
 import 'screens/receive_screen.dart';
@@ -14,6 +15,11 @@ import 'utils/format.dart';
 import 'utils/friendly_error.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Layar tetap menyala selama aplikasi hidup (permintaan NUX):
+  // dompet harus siap menerima pembayaran, layar tidak boleh
+  // mati sendiri. Diaktifkan lagi setiap aplikasi kembali ke depan.
+  WakelockPlus.enable().catchError((_) {});
   runApp(const NuxWalletApp());
 }
 
@@ -99,8 +105,13 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && !_booting && _bootError == null) {
-      _refreshDashboard();
+    if (state == AppLifecycleState.resumed) {
+      // Pastikan wakelock aktif lagi — beberapa perangkat melepasnya
+      // saat aplikasi sempat ke latar.
+      WakelockPlus.enable().catchError((_) {});
+      if (!_booting && _bootError == null) {
+        _refreshDashboard();
+      }
     }
   }
 

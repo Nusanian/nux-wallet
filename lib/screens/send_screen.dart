@@ -2,6 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/lsp_service.dart';
 import '../utils/friendly_error.dart';
+import 'scan_screen.dart';
+
+/// Normalisasi hasil scan QR menjadi teks invoice siap pakai:
+/// buang awalan "lightning:" (beberapa QR memakainya), dan samakan
+/// huruf menjadi kecil — invoice bech32 sah dalam huruf besar semua,
+/// diseragamkan agar lolos pemeriksaan awalan di layar Kirim.
+String normalizeInvoice(String raw) {
+  var text = raw.trim();
+  if (text.toLowerCase().startsWith('lightning:')) {
+    text = text.substring('lightning:'.length).trim();
+  }
+  if (text.toLowerCase().startsWith('ln')) {
+    text = text.toLowerCase();
+  }
+  return text;
+}
 
 /// Layar Kirim — bayar invoice Lightning.
 ///
@@ -84,7 +100,7 @@ class _SendScreenState extends State<SendScreen> {
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Tempel invoice Lightning dari penerima. '
+                      'Tempel atau scan invoice Lightning dari penerima. '
                       'Pembayaran instan via channel.',
                       style: TextStyle(fontSize: 13, color: Color(0xFFB8C8BF)),
                     ),
@@ -144,12 +160,19 @@ class _SendScreenState extends State<SendScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {
-                      // TODO: scan QR pakai package mobile_scanner
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Scan QR — segera hadir')),
+                    onPressed: () async {
+                      final scanned = await Navigator.push<String>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ScanScreen(),
+                        ),
                       );
+                      if (!mounted) return;
+                      if (scanned != null) {
+                        _invoiceController.text =
+                            normalizeInvoice(scanned);
+                        setState(() => _error = null);
+                      }
                     },
                     icon: const Icon(Icons.qr_code_scanner,
                         color: Color(0xFF34D399), size: 18),
