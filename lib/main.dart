@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:bip39/bip39.dart' as bip39;
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ldk_node/src/generated/api/types.dart';
@@ -12,6 +14,7 @@ import 'screens/receive_screen.dart';
 import 'screens/send_screen.dart';
 import 'services/lsp_service.dart';
 import 'utils/format.dart';
+import 'utils/coin_alert.dart';
 import 'utils/friendly_error.dart';
 
 void main() {
@@ -90,6 +93,13 @@ class _HomeScreenState extends State<HomeScreen>
   /// Riwayat pembayaran terakhir dari node (terbaru di depan).
   List<PaymentDetails> _payments = const [];
 
+  /// Deteksi koin masuk: true setelah muat riwayat pertama selesai —
+  /// riwayat lama tidak memicu bunyi/getar, hanya kedatangan baru.
+  bool _paymentsPrimed = false;
+
+  /// Penyegar berkala dashboard selama aplikasi terbuka.
+  Timer? _pollTimer;
+
   @override
   void initState() {
     super.initState();
@@ -99,6 +109,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -131,10 +142,25 @@ class _HomeScreenState extends State<HomeScreen>
   /// Baca ulang riwayat pembayaran dari node untuk daftar Aktivitas
   /// dashboard dan tab Riwayat. Pola sama seperti saldo: kegagalan
   /// baca mempertahankan daftar terakhir yang berhasil dibaca.
+  String _paymentKey(PaymentDetails p) =>
+      p.id.data.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+
   Future<void> _refreshPayments() async {
     if (!lspService.isRunning) return;
     try {
       final payments = await lspService.listPayments();
+      // Deteksi koin masuk: pembayaran inbound yang berhasil dan
+      // belum pernah terlihat → bunyi cling + getar. Muat pertama
+      // (riwayat lama) TIDAK memicu — hanya kedatangan baru.
+      if (_paymentsPrimed) {
+        final seen = _payments.map(_paymentKey).toSet();
+        final coinIn = payments.any((p) =>
+            p.direction == PaymentDirection.inbound &&
+            p.status == PaymentStatus.succeeded &&
+            !seen.contains(_paymentKey(p)));
+        if (coinIn) CoinAlert.play();
+      }
+      _paymentsPrimed = true;
       if (mounted) setState(() => _payments = payments);
     } catch (_) {
       // Abaikan — daftar lama tetap ditampilkan.
@@ -245,6 +271,13 @@ class _HomeScreenState extends State<HomeScreen>
       );
       await _refreshDashboard();
       if (mounted) setState(() => _booting = false);
+      // Segarkan berkala selama aplikasi terbuka: saldo + riwayat
+      // selalu mutakhir, dan koin masuk terdeteksi untuk peringatan
+      // bunyi + getar (lihat _refreshPayments).
+      _pollTimer ??= Timer.periodic(
+        const Duration(seconds: 5),
+        (_) => _refreshDashboard(),
+      );
       if (_isNewWallet && mounted) {
         _isNewWallet = false;
         // Dompet baru: tampilkan frasa backup sekali sebelum user
@@ -440,9 +473,24 @@ class _HomeScreenState extends State<HomeScreen>
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(_greeting,
-                            style: const TextStyle(
-                                fontSize: 13, color: Color(0xFF8A9A90))),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(_greeting,
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF8A9A90))),
+                            const SizedBox(width: 7),
+                            // Duplikat ikon live dari kartu saldo
+                            // (permintaan NUX) — hijau emerald agar
+                            // lebih terlihat di header.
+                            _PulseDot(
+                              active: lspService.isRunning,
+                              color: const Color(0xFF34D399),
+                              size: 9,
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 2),
                         const Text('Nusanian \u2726',
                             style: TextStyle(
@@ -1202,7 +1250,13 @@ class _ComingSoonPage extends StatelessWidget {
 
 class _PulseDot extends StatefulWidget {
   final bool active;
-  const _PulseDot({this.active = true});
+  final Color color;
+  final double size;
+  const _PulseDot({
+    this.active = true,
+    this.color = const Color(0xFFA7F3D0),
+    this.size = 8,
+  });
 
   @override
   State<_PulseDot> createState() => _PulseDotState();
@@ -1231,14 +1285,14 @@ class _PulseDotState extends State<_PulseDot>
     return FadeTransition(
       opacity: Tween(begin: 1.0, end: 0.4).animate(_ctrl),
       child: Container(
-        width: 8,
-        height: 8,
+        width: widget.size,
+        height: widget.size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: const Color(0xFFA7F3D0),
+          color: widget.color,
           boxShadow: [
             BoxShadow(
-                color: const Color(0xFFA7F3D0).withOpacity(0.8), blurRadius: 10)
+                color: widget.color.withOpacity(0.8), blurRadius: 10)
           ],
         ),
       ),
