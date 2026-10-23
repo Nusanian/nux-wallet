@@ -47,7 +47,7 @@ class _BackupScreenState extends State<BackupScreen> {
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Tulis 12 kata ini di kertas dan simpan di tempat aman. '
+                      'Tulis kata-kata ini di kertas dan simpan di tempat aman. '
                       'Siapa pun yang punya kata-kata ini bisa mengambil danamu.',
                       style: TextStyle(fontSize: 13, color: Color(0xFFB8C8BF)),
                     ),
@@ -142,7 +142,7 @@ class _BackupScreenState extends State<BackupScreen> {
                 onChanged: (v) =>
                     setState(() => _confirmed = v ?? false),
                 title: const Text(
-                  'Saya sudah menulis 12 kata ini di tempat aman',
+                  'Saya sudah menulis kata-kata ini di tempat aman',
                   style: TextStyle(fontSize: 14),
                 ),
                 controlAffinity:
