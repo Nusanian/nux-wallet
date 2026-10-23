@@ -358,7 +358,9 @@ class _HomeScreenState extends State<HomeScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Row(
                   children: [
-                    _quickAction('\u2197', 'Kirim', true, () {
+                    _quickAction(
+                        const Icon(Icons.arrow_outward_rounded, size: 25),
+                        'Kirim', true, () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -368,7 +370,9 @@ class _HomeScreenState extends State<HomeScreen>
                       ).then((_) => _refreshDashboard());
                     }),
                     const SizedBox(width: 10),
-                    _quickAction('\u2199', 'Terima', true, () {
+                    _quickAction(
+                        const Icon(Icons.south_west_rounded, size: 25),
+                        'Terima', true, () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -378,9 +382,9 @@ class _HomeScreenState extends State<HomeScreen>
                       ).then((_) => _refreshDashboard());
                     }),
                     const SizedBox(width: 10),
-                    _quickAction('\uFF0B', 'Beli', false, () {}),
+                    _quickAction(const Text('\uFF0B', style: TextStyle(fontSize: 20)), 'Beli', false, () {}),
                     const SizedBox(width: 10),
-                    _quickAction('\u21C4', 'Tukar', false, () {}),
+                    _quickAction(const Text('\u21C4', style: TextStyle(fontSize: 20)), 'Tukar', false, () {}),
                   ],
                 ),
               ),
@@ -458,7 +462,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _quickAction(String icon, String label, bool enabled, VoidCallback onTap) {
+  Widget _quickAction(Widget icon, String label, bool enabled, VoidCallback onTap) {
     return Expanded(
       child: Opacity(
         opacity: enabled ? 1.0 : 0.3,
@@ -485,8 +489,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ],
                     ),
                   ),
-                  child: Center(
-                      child: Text(icon, style: const TextStyle(fontSize: 20))),
+                  child: Center(child: icon),
                 ),
                 const SizedBox(height: 8),
                 Text(label,
@@ -520,7 +523,9 @@ class _HomeScreenState extends State<HomeScreen>
     final time = formatTxTime(DateTime.fromMillisecondsSinceEpoch(
         payment.latestUpdateTimestamp.toInt() * 1000));
     return _txRow(
-      isIn ? '\u2193' : '\u2191',
+      isIn
+          ? const Icon(Icons.arrow_downward_rounded, size: 22)
+          : const Icon(Icons.arrow_upward_rounded, size: 22),
       isIn ? 'Diterima' : 'Terkirim',
       _shortPaymentId(payment.id),
       tag,
@@ -536,7 +541,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _txRow(String icon, String title, String addr, String tag, bool isIn,
+  Widget _txRow(Widget icon, String title, String addr, String tag, bool isIn,
       String amount, String time,
       {String? status, bool statusBad = false}) {
     final isJit = tag.contains('JIT');
@@ -563,7 +568,7 @@ class _HomeScreenState extends State<HomeScreen>
                   : null,
               color: isIn ? null : Colors.white.withOpacity(0.05),
             ),
-            child: Center(child: Text(icon, style: const TextStyle(fontSize: 18))),
+            child: Center(child: icon),
           ),
           const SizedBox(width: 13),
           Expanded(
