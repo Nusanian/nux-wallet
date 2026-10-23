@@ -65,6 +65,26 @@ jobs:
           print("manifest main OK: INTERNET permission ada")
           PYEOF
 
+      # Token LSP mainnet TIDAK disimpan di repo (repo publik). Nilai asli
+      # tinggal di GitHub Secret LSP_TOKEN_MAINNET dan disuntikkan ke
+      # lib/config.dart hanya di dalam runner saat build mainnet berjalan.
+      # Placeholder masih ada tapi secret kosong = build GAGAL keras; lebih
+      # baik gagal daripada merilis APK dengan token kosong.
+      - name: Isi token LSP mainnet dari Secrets
+        env:
+          LSP_TOKEN_MAINNET: ${{ secrets.LSP_TOKEN_MAINNET }}
+        run: |
+          if grep -q 'ISI_TOKEN_LSP_MAINNET' lib/config.dart; then
+            if [ -z "$LSP_TOKEN_MAINNET" ]; then
+              echo 'ERROR: secret LSP_TOKEN_MAINNET belum terpasang'
+              exit 1
+            fi
+            python3 -c "import os; p='lib/config.dart'; s=open(p).read(); assert 'ISI_TOKEN_LSP_MAINNET' in s; open(p,'w').write(s.replace('ISI_TOKEN_LSP_MAINNET', os.environ['LSP_TOKEN_MAINNET'])); print('token mainnet terisi dari secret')"
+            if grep -q 'ISI_TOKEN_LSP_MAINNET' lib/config.dart; then echo 'ERROR: placeholder token masih ada'; exit 1; fi
+          else
+            echo 'tidak ada placeholder token - langkah dilewati'
+          fi
+
       - name: Ambil dependency
         run: flutter pub get
 
