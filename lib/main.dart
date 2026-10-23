@@ -1,10 +1,11 @@
 import 'dart:io';
-import 'dart:math';
 
+import 'package:bip39/bip39.dart' as bip39;
 import 'package:flutter/material.dart';
 import 'package:ldk_node/src/generated/api/types.dart';
 import 'package:path_provider/path_provider.dart';
 import 'config.dart';
+import 'screens/backup_screen.dart';
 import 'screens/receive_screen.dart';
 import 'screens/send_screen.dart';
 import 'services/lsp_service.dart';
@@ -50,6 +51,22 @@ class _HomeScreenState extends State<HomeScreen>
   int _tabIndex = 0;
   bool _booting = true;
   String? _bootError;
+
+  /// Kata frasa backup dompet ini (null bila dompet lama tanpa frasa).
+  List<String>? _mnemonicWords;
+
+  /// True bila dompet diwarisi dari versi sebelum fitur frasa backup:
+  /// seed-nya ada tapi tidak ada frasa yang bisa ditampilkan ke user.
+  bool _legacyWallet = false;
+
+  /// True bila dompet BARU saja dibuat pada boot ini — frasanya wajib
+  /// ditampilkan sekali lewat layar Backup sebelum user memakai dompet.
+  bool _isNewWallet = false;
+
+  /// Berkas & direktori dompet (diisi _boot; dipakai aksi reset dompet).
+  File? _seedFile;
+  File? _mnemonicFile;
+  Directory? _storageDir;
 
   /// Saldo Lightning terakhir dari node (msat); null = belum terbaca.
   BigInt? _balanceMsat;
@@ -112,9 +129,12 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// Inisialisasi node LDK + LSPS2 saat aplikasi dibuka.
   ///
-  /// Seed dibuat sekali (64 byte acak) lalu disimpan di app support dir.
-  /// CATATAN MVP: seed disimpan sebagai file biasa. Untuk produksi, pindah
-  /// ke flutter_secure_storage (Keychain/Keystore).
+  /// Dompet baru lahir dari frasa BIP39 12 kata: seed node (64 byte)
+  /// diturunkan dari frasa itu (mnemonicToSeed), lalu frasa + seed
+  /// disimpan di app support dir dan frasa ditampilkan sekali ke user.
+  /// Dompet lama (seed ada, frasa tidak ada) ditandai legacy.
+  /// CATATAN MVP: berkas disimpan sebagai file biasa. Untuk produksi,
+  /// pindah ke flutter_secure_storage (Keychain/Keystore).
   Future<void> _boot() async {
     try {
       if (!AppConfig.lspConfigured) {
@@ -130,7 +150,13 @@ class _HomeScreenState extends State<HomeScreen>
           AppConfig.isTestnet ? 'lsp_seed.bin' : 'lsp_seed_mainnet.bin';
       final storageName =
           AppConfig.isTestnet ? 'lsp_storage' : 'lsp_storage_mainnet';
+      final mnemonicName = AppConfig.isTestnet
+          ? 'wallet_mnemonic.txt'
+          : 'wallet_mnemonic_mainnet.txt';
       final seedFile = File('${dir.path}/$seedName');
+      final mnemonicFile = File('${dir.path}/$mnemonicName');
+      _seedFile = seedFile;
+      _mnemonicFile = mnemonicFile;
       List<int>? seedBytes;
       if (await seedFile.exists()) {
         final existing = await seedFile.readAsBytes();
@@ -146,12 +172,44 @@ class _HomeScreenState extends State<HomeScreen>
         // pernah terbangun dengannya) — belum ada wallet/dana di
         // bawah seed itu, aman dibuat ulang di bawah ini.
       }
+      if (seedBytes != null) {
+        // Dompet yang sudah ada: frasa hanya tersedia bila berkas
+        // frasanya ikut ada (dompet dibuat oleh versi frasa BIP39).
+        // Dompet dari versi sebelumnya tidak punya frasa — tandai
+        // legacy supaya user ditawari membuat dompet baru berfrasa.
+        if (await mnemonicFile.exists()) {
+          final words = (await mnemonicFile.readAsString())
+              .trim()
+              .split(RegExp(r'\s+'))
+              .where((w) => w.isNotEmpty)
+              .toList();
+          if (words.length >= 12 &&
+              bip39.validateMnemonic(words.join(' '))) {
+            _mnemonicWords = words;
+          } else {
+            _legacyWallet = true;
+          }
+        } else {
+          _legacyWallet = true;
+        }
+      }
       if (seedBytes == null) {
-        final rng = Random.secure();
-        seedBytes = List<int>.generate(64, (_) => rng.nextInt(256));
+        // Dompet BARU: lahir dari frasa BIP39 12 kata. Seed node =
+        // mnemonicToSeed (PBKDF2-HMAC-SHA512, 64 byte) — persis format
+        // yang diminta builder LDK. Frasa disimpan terpisah supaya bisa
+        // ditampilkan lagi dari tab Profil; seed tetap disimpan sebagai
+        // berkas 64 byte seperti sebelumnya supaya identitas node
+        // stabil antar-update aplikasi.
+        final mnemonic = bip39.generateMnemonic();
+        seedBytes = bip39.mnemonicToSeed(mnemonic);
         await seedFile.writeAsBytes(seedBytes, flush: true);
+        await mnemonicFile.writeAsString(mnemonic, flush: true);
+        _mnemonicWords = mnemonic.split(' ');
+        _legacyWallet = false;
+        _isNewWallet = true;
       }
       final storageDir = Directory('${dir.path}/$storageName');
+      _storageDir = storageDir;
       if (!await storageDir.exists()) {
         await storageDir.create(recursive: true);
       }
@@ -166,6 +224,20 @@ class _HomeScreenState extends State<HomeScreen>
       );
       await _refreshDashboard();
       if (mounted) setState(() => _booting = false);
+      if (_isNewWallet && mounted) {
+        _isNewWallet = false;
+        // Dompet baru: tampilkan frasa backup sekali sebelum user
+        // memakai dompet — frasa ini satu-satunya cadangan dananya.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _mnemonicWords == null) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => BackupScreen(mnemonic: _mnemonicWords!),
+            ),
+          );
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -175,6 +247,38 @@ class _HomeScreenState extends State<HomeScreen>
         });
       }
     }
+  }
+
+  /// Hapus dompet lama tanpa frasa dan buat dompet baru berfrasa.
+  /// Hanya ditawarkan untuk dompet legacy; pemanggil (tab Profil)
+  /// sudah memastikan user paham dompet lama harus KOSONG — dana di
+  /// dompet lama hilang permanen begitu berkasnya dihapus.
+  Future<void> _resetWalletWithPhrase() async {
+    try {
+      await lspService.stop();
+    } catch (_) {
+      // Node mungkin belum sempat start penuh — abaikan.
+    }
+    if (_seedFile != null && await _seedFile!.exists()) {
+      await _seedFile!.delete();
+    }
+    if (_mnemonicFile != null && await _mnemonicFile!.exists()) {
+      await _mnemonicFile!.delete();
+    }
+    if (_storageDir != null && await _storageDir!.exists()) {
+      await _storageDir!.delete(recursive: true);
+    }
+    if (!mounted) return;
+    setState(() {
+      _mnemonicWords = null;
+      _legacyWallet = false;
+      _balanceMsat = null;
+      _payments = const [];
+      _tabIndex = 0;
+      _booting = true;
+      _bootError = null;
+    });
+    await _boot();
   }
 
   @override
@@ -361,12 +465,44 @@ class _HomeScreenState extends State<HomeScreen>
                   ],
                 ),
               ),
+              // Peringatan dompet lama tanpa frasa backup
+              if (_legacyWallet)
+                GestureDetector(
+                  onTap: () => setState(() => _tabIndex = 3),
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(18, 0, 18, 4),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B).withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                          color: const Color(0xFFF59E0B).withOpacity(0.35)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.warning_amber_rounded,
+                            color: Color(0xFFFBBF24), size: 20),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Dompet ini belum punya frasa backup. Buka tab Profil '
+                            'untuk membuat dompet baru dengan frasa sebelum menerima dana.',
+                            style: TextStyle(
+                                fontSize: 12.5,
+                                color: Color(0xFFFDE68A),
+                                height: 1.35),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               // Quick actions
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Row(
                   children: [
-                    _quickAction('\u2197', 'Kirim', true, () {
+                    _quickAction(Icons.arrow_outward_rounded, 'Kirim', true, () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -376,7 +512,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ).then((_) => _refreshDashboard());
                     }),
                     const SizedBox(width: 10),
-                    _quickAction('\u2199', 'Terima', true, () {
+                    _quickAction(Icons.south_west_rounded, 'Terima', true, () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -386,9 +522,9 @@ class _HomeScreenState extends State<HomeScreen>
                       ).then((_) => _refreshDashboard());
                     }),
                     const SizedBox(width: 10),
-                    _quickAction('\uFF0B', 'Beli', false, () {}),
+                    _quickAction(Icons.add_rounded, 'Beli', false, () {}),
                     const SizedBox(width: 10),
-                    _quickAction('\u21C4', 'Tukar', false, () {}),
+                    _quickAction(Icons.swap_horiz_rounded, 'Tukar', false, () {}),
                   ],
                 ),
               ),
@@ -437,10 +573,21 @@ class _HomeScreenState extends State<HomeScreen>
               message: 'Info pasar NUX \u2014 segera hadir.',
             ),
             _HistoryPage(payments: _payments, rowBuilder: _paymentRow),
-            const _ComingSoonPage(
-              icon: '\u25CB',
-              title: 'Profil',
-              message: 'Profil & pengaturan \u2014 segera hadir.',
+            _ProfilePage(
+              mnemonicWords: _mnemonicWords,
+              legacyWallet: _legacyWallet,
+              isTestnet: AppConfig.isTestnet,
+              onViewBackup: () {
+                if (_mnemonicWords == null) return;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        BackupScreen(mnemonic: _mnemonicWords!),
+                  ),
+                );
+              },
+              onResetWallet: _resetWalletWithPhrase,
             ),
           ],
         ),
@@ -466,7 +613,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _quickAction(String icon, String label, bool enabled, VoidCallback onTap) {
+  Widget _quickAction(IconData icon, String label, bool enabled, VoidCallback onTap) {
     return Expanded(
       child: Opacity(
         opacity: enabled ? 1.0 : 0.3,
@@ -494,7 +641,8 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
                   child: Center(
-                      child: Text(icon, style: const TextStyle(fontSize: 20))),
+                      child: Icon(icon,
+                          size: 22, color: const Color(0xFF34D399))),
                 ),
                 const SizedBox(height: 8),
                 Text(label,
@@ -705,6 +853,179 @@ String _shortPaymentId(PaymentId id) {
   final hex = id.data.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   if (hex.length <= 10) return hex;
   return '${hex.substring(0, 5)}\u2026${hex.substring(hex.length - 4)}';
+}
+
+/// Tab Profil — pengaturan dompet: frasa backup & info jaringan.
+/// Untuk dompet legacy (tanpa frasa) halaman ini menampung tawaran
+/// membuat dompet baru berfrasa, lengkap dengan konfirmasi bahaya.
+class _ProfilePage extends StatelessWidget {
+  final List<String>? mnemonicWords;
+  final bool legacyWallet;
+  final bool isTestnet;
+  final VoidCallback onViewBackup;
+  final Future<void> Function() onResetWallet;
+
+  const _ProfilePage({
+    required this.mnemonicWords,
+    required this.legacyWallet,
+    required this.isTestnet,
+    required this.onViewBackup,
+    required this.onResetWallet,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(22, 22, 22, 10),
+            child: Text('Profil',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          ),
+          // Baris Backup Wallet
+          GestureDetector(
+            onTap: legacyWallet ? null : onViewBackup,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF101412),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.white.withOpacity(0.04)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: LinearGradient(colors: [
+                        const Color(0xFF10B981).withOpacity(0.25),
+                        const Color(0xFF10B981).withOpacity(0.08),
+                      ]),
+                    ),
+                    child: const Icon(Icons.key_rounded,
+                        color: Color(0xFF34D399), size: 20),
+                  ),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Backup Wallet',
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 3),
+                        Text(
+                          legacyWallet
+                              ? 'Dompet ini dibuat sebelum fitur frasa backup ada'
+                              : 'Lihat frasa backup dompet Anda',
+                          style: const TextStyle(
+                              fontSize: 12, color: Color(0xFF7D8F86)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!legacyWallet)
+                    const Icon(Icons.chevron_right_rounded,
+                        color: Color(0xFF7D8F86)),
+                ],
+              ),
+            ),
+          ),
+          // Kartu dompet legacy: tawarkan buat ulang berfrasa
+          if (legacyWallet)
+            Container(
+              margin: const EdgeInsets.fromLTRB(18, 10, 18, 4),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF59E0B).withOpacity(0.10),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                    color: const Color(0xFFF59E0B).withOpacity(0.30)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('Dompet ini tidak punya frasa backup',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFFDE68A))),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Dompet ini dibuat oleh versi aplikasi sebelumnya yang '
+                    'menyimpan kunci tanpa frasa. Bila HP hilang atau rusak, '
+                    'dana di dompet ini tidak bisa dipulihkan.\n\n'
+                    'Bila dompet ini masih KOSONG (belum pernah menerima '
+                    'dana), buat dompet baru yang dilengkapi frasa backup '
+                    'sekarang:',
+                    style: TextStyle(
+                        fontSize: 12.5,
+                        color: Color(0xFFB8C8BF),
+                        height: 1.4),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final ok = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: const Color(0xFF101412),
+                          title: const Text('Buat dompet baru?'),
+                          content: const Text(
+                              'Dompet lama akan DIHAPUS PERMANEN beserta '
+                              'seluruh datanya. Lanjutkan HANYA bila dompet '
+                              'lama masih kosong — dana apa pun di dalamnya '
+                              'hilang selamanya.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Batal'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('Hapus & buat baru',
+                                  style:
+                                      TextStyle(color: Color(0xFFEF4444))),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (ok == true) await onResetWallet();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text('Buat dompet baru dengan frasa'),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 14),
+          // Info jaringan
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 22),
+            child: Text(
+              isTestnet
+                  ? 'Jaringan: Nusacoin Testnet'
+                  : 'Jaringan: Nusacoin Mainnet',
+              style: const TextStyle(fontSize: 12.5, color: Color(0xFF7D8F86)),
+            ),
+          ),
+          const SizedBox(height: 80),
+        ],
+      ),
+    );
+  }
 }
 
 /// Tab Riwayat — seluruh pembayaran dari node, terbaru di depan.

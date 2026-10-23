@@ -41,6 +41,10 @@ dependencies:
   # Render QR code invoice Lightning di layar Terima.
   qr_flutter: ^4.1.0
 
+  # Frasa backup BIP39: dompet dibuat dari 24 kata, diturunkan menjadi
+  # seed 64 byte untuk node LDK (mnemonicToSeed = PBKDF2-HMAC-SHA512).
+  bip39: ^1.0.6
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
