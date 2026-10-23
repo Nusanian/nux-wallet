@@ -71,6 +71,11 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Ikon aplikasi (sama dengan ikon launcher) untuk lencana di header —
+  # ketuk lencana menuju tab Profil.
+  assets:
+    - assets/app_icon.png
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
