@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../locale_controller.dart';
+
 /// Layar Scan QR — membaca QR invoice Lightning dengan kamera.
 ///
 /// Mengembalikan teks hasil scan (String) ke pemanggil lewat
@@ -39,7 +41,7 @@ class _ScanScreenState extends State<ScanScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan QR Invoice'),
+        title: Text(context.l10n.scanTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -56,9 +58,8 @@ class _ScanScreenState extends State<ScanScreen> {
                   child: Text(
                     error.errorCode ==
                             MobileScannerErrorCode.permissionDenied
-                        ? 'Izin kamera ditolak. Aktifkan izin kamera untuk '
-                            'ELNUX di Pengaturan HP, lalu coba lagi.'
-                        : 'Kamera tidak dapat dibuka di perangkat ini.',
+                        ? context.l10n.cameraDenied
+                        : context.l10n.cameraUnavailable,
                     style: const TextStyle(
                         color: Color(0xFFB8C8BF), fontSize: 14),
                     textAlign: TextAlign.center,
@@ -83,8 +84,8 @@ class _ScanScreenState extends State<ScanScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    'Arahkan kamera ke QR invoice',
+                  Text(
+                    context.l10n.pointCamera,
                     style: TextStyle(color: Colors.white70, fontSize: 13.5),
                   ),
                 ],

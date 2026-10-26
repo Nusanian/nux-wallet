@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../l10n/app_localizations.dart';
+
 /// Ubah error teknis menjadi pesan ringkas yang layak tampil ke pengguna.
 ///
 /// Prinsip: UI TIDAK PERNAH menampilkan error mentah — error mentah memuat
@@ -8,8 +10,10 @@ import 'package:flutter/foundation.dart';
 /// hanya ditulis ke log developer lewat [debugPrint].
 ///
 /// [fallback] dipakai bila error tidak cocok pola mana pun — isi dengan
-/// pesan ringkas sesuai konteks layar pemanggil.
-String friendlyError(Object error, {required String fallback}) {
+/// pesan ringkas sesuai konteks layar pemanggil (sudah diterjemahkan).
+/// [l10n] dipakai untuk keempat pesan baku di bawah.
+String friendlyError(Object error,
+    {required String fallback, required AppLocalizations l10n}) {
   debugPrint('[error-teknis] $error');
   final s = error.toString().toLowerCase();
 
@@ -21,24 +25,23 @@ String friendlyError(Object error, {required String fallback}) {
       s.contains('failed host lookup') ||
       s.contains('unreachable') ||
       s.contains('handshake')) {
-    return 'Tidak dapat terhubung. Periksa koneksi internet Anda, '
-        'lalu coba lagi.';
+    return l10n.errorConnection;
   }
 
   // Saldo / dana tidak cukup.
   if (s.contains('insufficient') || s.contains('balance')) {
-    return 'Saldo tidak mencukupi.';
+    return l10n.errorBalance;
   }
 
   // Invoice tidak valid / kedaluwarsa.
   if (s.contains('invoice') &&
       (s.contains('invalid') || s.contains('expired') || s.contains('parse'))) {
-    return 'Invoice tidak valid atau sudah kedaluwarsa.';
+    return l10n.errorInvoice;
   }
 
   // Data dompet lokal bermasalah (seed/storage) — jangan tampilkan detail.
   if (s.contains('seed') || s.contains('korup') || s.contains('storage')) {
-    return 'Data dompet bermasalah. Hubungi operator untuk bantuan.';
+    return l10n.errorWalletData;
   }
 
   return fallback;

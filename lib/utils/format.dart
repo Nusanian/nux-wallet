@@ -28,9 +28,10 @@ String formatNusan(BigInt msat) {
 
 /// Format waktu transaksi untuk daftar aktivitas/riwayat.
 ///
-/// Hari ini → jam 'HH.mm'; kemarin → 'Kemarin'; lebih lama → 'd MMM'
-/// dengan singkatan bulan Indonesia. [now] bisa diisi untuk pengujian.
-String formatTxTime(DateTime time, {DateTime? now}) {
+/// Hari ini → jam 'HH.mm'; kemarin → 'Kemarin'/'Yesterday';
+/// lebih lama → 'd MMM' dengan singkatan bulan sesuai [locale]
+/// ('id' atau 'en'). [now] bisa diisi untuk pengujian.
+String formatTxTime(DateTime time, {DateTime? now, String locale = 'id'}) {
   final ref = now ?? DateTime.now();
   final day = DateTime(time.year, time.month, time.day);
   final today = DateTime(ref.year, ref.month, ref.day);
@@ -40,10 +41,15 @@ String formatTxTime(DateTime time, {DateTime? now}) {
     final mm = time.minute.toString().padLeft(2, '0');
     return '$hh.$mm';
   }
-  if (diffDays == 1) return 'Kemarin';
-  const months = [
+  if (diffDays == 1) return locale == 'en' ? 'Yesterday' : 'Kemarin';
+  const monthsId = [
     'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
     'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
   ];
+  const monthsEn = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  final months = locale == 'en' ? monthsEn : monthsId;
   return '${time.day} ${months[time.month - 1]}';
 }

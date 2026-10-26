@@ -9,6 +9,8 @@ import 'package:ldk_node/src/generated/api/types.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'config.dart';
+import 'locale_controller.dart';
+import 'l10n/app_localizations.dart';
 import 'theme.dart';
 import 'screens/backup_screen.dart';
 import 'screens/receive_screen.dart';
@@ -22,6 +24,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Muat pilihan tema tersimpan (default gelap) sebelum aplikasi jalan.
   await ThemeController.load();
+  // Muat pilihan bahasa tersimpan (default Indonesia) sebelum jalan.
+  await LocaleController.load();
   // Layar tetap menyala selama aplikasi hidup (permintaan NUX):
   // dompet harus siap menerima pembayaran, layar tidak boleh
   // mati sendiri. Diaktifkan lagi setiap aplikasi kembali ke depan.
@@ -37,15 +41,19 @@ class NuxWalletApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: ThemeController.mode,
-      builder: (context, mode, _) {
+    return ListenableBuilder(
+      listenable:
+          Listenable.merge([ThemeController.mode, LocaleController.locale]),
+      builder: (context, _) {
         return MaterialApp(
           title: 'NUX Wallet',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
-          themeMode: mode,
+          themeMode: ThemeController.mode.value,
+          locale: LocaleController.locale.value,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: LocaleController.supported,
           home: const HomeScreen(),
         );
       },
@@ -85,10 +93,10 @@ class _HomeScreenState extends State<HomeScreen>
   /// Sapaan mengikuti jam lokal HP user.
   String get _greeting {
     final h = DateTime.now().hour;
-    if (h >= 4 && h < 11) return 'Selamat pagi';
-    if (h >= 11 && h < 15) return 'Selamat siang';
-    if (h >= 15 && h < 18) return 'Selamat sore';
-    return 'Selamat malam';
+    if (h >= 4 && h < 11) return context.l10n.greetingMorning;
+    if (h >= 11 && h < 15) return context.l10n.greetingAfternoon;
+    if (h >= 15 && h < 18) return context.l10n.greetingEvening;
+    return context.l10n.greetingNight;
   }
 
   /// Saldo Lightning terakhir dari node (msat); null = belum terbaca.
@@ -190,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       if (!AppConfig.lspConfigured) {
         throw StateError(
-            'lspNodeId belum diisi di lib/config.dart — minta node id LSP ke operator.');
+            context.l10n.lspNodeIdMissing);
       }
       final dir = await getApplicationSupportDirectory();
       // Seed & storage dipisah per network: build mainnet memakai nama
@@ -214,9 +222,8 @@ class _HomeScreenState extends State<HomeScreen>
         if (existing.length == 64) {
           seedBytes = existing;
         } else if (existing.length != 32) {
-          throw StateError(
-              'File seed korup (panjang ${existing.length}, harus 64). '
-              'Hapus ${seedFile.path} untuk generate ulang (DANA LAMA HILANG).');
+          throw StateError(context.l10n.seedCorrupt(
+              existing.length, seedFile.path));
         }
         // Panjang 32 = berkas dari versi awal yang keliru (builder
         // mensyaratkan 64 byte dan selalu menolak 32, jadi node tidak
@@ -301,7 +308,9 @@ class _HomeScreenState extends State<HomeScreen>
         setState(() {
           _booting = false;
           _bootError =
-              friendlyError(e, fallback: 'Terjadi kendala saat memulai dompet.');
+              friendlyError(e,
+                  fallback: context.l10n.bootGenericError,
+                  l10n: context.l10n);
         });
       }
     }
@@ -350,18 +359,17 @@ class _HomeScreenState extends State<HomeScreen>
           borderRadius: BorderRadius.circular(24),
           side: BorderSide(color: ctx.palette.border),
         ),
-        title: const Text('Keluar dari ELNUX?',
+        title: Text(context.l10n.exitTitle,
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
         content: Text(
-          'Aplikasi akan ditutup. Selama aplikasi tertutup, dompet tidak '
-          'dapat menerima pembayaran.',
+          context.l10n.exitBody,
           style: TextStyle(
               fontSize: 13.5, color: ctx.palette.secondary, height: 1.4),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Batal',
+            child: Text(context.l10n.cancel,
                 style: TextStyle(color: ctx.palette.secondary)),
           ),
           ElevatedButton(
@@ -373,7 +381,7 @@ class _HomeScreenState extends State<HomeScreen>
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Keluar'),
+            child: Text(context.l10n.exitConfirm),
           ),
         ],
       ),
@@ -405,7 +413,7 @@ class _HomeScreenState extends State<HomeScreen>
             children: [
               CircularProgressIndicator(color: Color(0xFF10B981)),
               SizedBox(height: 16),
-              Text('Menghubungkan ke LSP…',
+              Text(context.l10n.bootConnecting,
                   style: TextStyle(color: context.palette.secondary)),
             ],
           ),
@@ -425,7 +433,7 @@ class _HomeScreenState extends State<HomeScreen>
                     style: TextStyle(fontSize: 40),
                     textAlign: TextAlign.center),
                 const SizedBox(height: 12),
-                const Text('Gagal menghubungkan node',
+                Text(context.l10n.bootFailedTitle,
                     style:
                         TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                     textAlign: TextAlign.center),
@@ -451,7 +459,7 @@ class _HomeScreenState extends State<HomeScreen>
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text('Coba lagi'),
+                  child: Text(context.l10n.bootFailedRetry),
                 ),
               ],
             ),
@@ -509,7 +517,7 @@ class _HomeScreenState extends State<HomeScreen>
                         // dan berlaku di semua layar.
                         IconButton(
                           onPressed: ThemeController.toggle,
-                          tooltip: 'Ganti tema',
+                          tooltip: context.l10n.changeThemeTooltip,
                           icon: Icon(
                             Theme.of(context).brightness == Brightness.dark
                                 ? Icons.light_mode_rounded
@@ -564,7 +572,7 @@ class _HomeScreenState extends State<HomeScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Total Saldo',
+                    Text(context.l10n.totalBalance,
                         style: TextStyle(fontSize: 13, color: Colors.white70)),
                     const SizedBox(height: 6),
                     Row(
@@ -589,8 +597,8 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                     Text(
                         AppConfig.isTestnet
-                            ? 'Lightning Network \u2022 Testnet'
-                            : 'Lightning Network \u2022 Mainnet',
+                            ? context.l10n.networkTestnet
+                            : context.l10n.networkMainnet,
                         style: const TextStyle(
                             fontSize: 13, color: Colors.white70)),
                     const SizedBox(height: 14),
@@ -608,8 +616,8 @@ class _HomeScreenState extends State<HomeScreen>
                           const SizedBox(width: 7),
                           Text(
                               lspService.isRunning
-                                  ? 'Lightning aktif \u2014 siap terima instan'
-                                  : 'Menghubungkan Lightning\u2026',
+                                  ? context.l10n.lightningActive
+                                  : context.l10n.lightningConnecting,
                               style: const TextStyle(
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w600)),
@@ -639,8 +647,7 @@ class _HomeScreenState extends State<HomeScreen>
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Dompet ini belum punya frasa backup. Buka tab Profil '
-                            'untuk membuat dompet baru dengan frasa sebelum menerima dana.',
+                            context.l10n.legacyStrip,
                             style: TextStyle(
                                 fontSize: 12.5,
                                 color: context.palette.warningText,
@@ -658,7 +665,7 @@ class _HomeScreenState extends State<HomeScreen>
                   children: [
                     _quickAction(
                         const Icon(Icons.arrow_outward_rounded, size: 25),
-                        'Kirim', true, () {
+                        context.l10n.send, true, () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -675,7 +682,7 @@ class _HomeScreenState extends State<HomeScreen>
                     // cara mengaktifkannya (buat dompet berfrasa).
                     _quickAction(
                         const Icon(Icons.south_west_rounded, size: 25),
-                        'Terima', !_legacyWallet, () {
+                        context.l10n.receive, !_legacyWallet, () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -685,9 +692,9 @@ class _HomeScreenState extends State<HomeScreen>
                       ).then((_) => _refreshDashboard());
                     }),
                     const SizedBox(width: 10),
-_quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
+_quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, () {}),
                     const SizedBox(width: 10),
-                    _quickAction(const Icon(Icons.swap_horiz_rounded, size: 25), 'Tukar', false, () {})
+                    _quickAction(const Icon(Icons.swap_horiz_rounded, size: 25), context.l10n.swap, false, () {})
                   ],
                 ),
               ),
@@ -698,7 +705,7 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Aktivitas',
+                    Text(context.l10n.activity,
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w700)),
                     GestureDetector(
@@ -706,7 +713,7 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
                         setState(() => _tabIndex = 2);
                         _refreshDashboard();
                       },
-                      child: const Text('Lihat semua',
+                      child: Text(context.l10n.seeAll,
                           style: TextStyle(
                               fontSize: 13,
                               color: Color(0xFF34D399),
@@ -720,7 +727,7 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
               if (_payments.isEmpty)
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-                  child: Text('Belum ada aktivitas',
+                  child: Text(context.l10n.noActivity,
                       style:
                           TextStyle(fontSize: 13, color: context.palette.muted)),
                 )
@@ -730,10 +737,10 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
             ],
           ),
             ),
-            const _ComingSoonPage(
+            _ComingSoonPage(
               icon: '\u25CD',
-              title: 'Pasar',
-              message: 'Info pasar NUX \u2014 segera hadir.',
+              title: context.l10n.market,
+              message: context.l10n.marketSoon,
             ),
             _HistoryPage(payments: _payments, rowBuilder: _paymentRow),
             _ProfilePage(
@@ -766,10 +773,10 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
         ),
         child: Row(
           children: [
-            _tab(0, '\u25C9', 'Beranda'),
-            _tab(1, '\u25CD', 'Pasar'),
-            _tab(2, '\u21BA', 'Riwayat'),
-            _tab(3, '\u25CB', 'Profil'),
+            _tab(0, '\u25C9', context.l10n.home),
+            _tab(1, '\u25CD', context.l10n.market),
+            _tab(2, '\u21BA', context.l10n.history),
+            _tab(3, '\u25CB', context.l10n.profile),
           ],
         ),
       ),
@@ -834,21 +841,23 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
     final amount = payment.amountMsat == null
         ? '\u2014'
         : '${isIn ? '+' : '\u2212'}${formatNusan(payment.amountMsat!)}';
-    final time = formatTxTime(DateTime.fromMillisecondsSinceEpoch(
-        payment.latestUpdateTimestamp.toInt() * 1000));
+    final time = formatTxTime(
+        DateTime.fromMillisecondsSinceEpoch(
+            payment.latestUpdateTimestamp.toInt() * 1000),
+        locale: context.l10n.localeName);
     return _txRow(
       isIn
           ? const Icon(Icons.arrow_downward_rounded, size: 22)
           : const Icon(Icons.arrow_upward_rounded, size: 22),
-      isIn ? 'Diterima' : 'Terkirim',
+      isIn ? context.l10n.received : context.l10n.sent,
       _shortPaymentId(payment.id),
       tag,
       isIn,
       amount,
       time,
       status: switch (payment.status) {
-        PaymentStatus.pending => 'Menunggu',
-        PaymentStatus.failed => 'Gagal',
+        PaymentStatus.pending => context.l10n.pending,
+        PaymentStatus.failed => context.l10n.failed,
         PaymentStatus.succeeded => null,
       },
       statusBad: payment.status == PaymentStatus.failed,
@@ -1036,15 +1045,50 @@ class _ProfilePage extends StatelessWidget {
     required this.onResetWallet,
   });
 
+  /// Dialog pilih bahasa — dua opsi, yang aktif bertanda centang.
+  Future<void> _showLanguageDialog(BuildContext context) async {
+    final l10n = context.l10n;
+    final current = LocaleController.locale.value;
+    final picked = await showDialog<Locale>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ctx.palette.card,
+        title: Text(l10n.chooseLanguage),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _languageOption(ctx, const Locale('id'),
+                l10n.languageIndonesian, current.languageCode == 'id'),
+            _languageOption(ctx, const Locale('en'), l10n.languageEnglish,
+                current.languageCode == 'en'),
+          ],
+        ),
+      ),
+    );
+    if (picked != null) await LocaleController.setLocale(picked);
+  }
+
+  Widget _languageOption(
+      BuildContext ctx, Locale locale, String label, bool selected) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(label),
+      trailing: selected
+          ? const Icon(Icons.check_rounded, color: Color(0xFF34D399))
+          : null,
+      onTap: () => Navigator.pop(ctx, locale),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(22, 22, 22, 10),
-            child: Text('Profil',
+            child: Text(context.l10n.profile,
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
           ),
           // Baris Tema — toggle Gelap/Terang (tersimpan, sama
@@ -1078,12 +1122,12 @@ class _ProfilePage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Tema',
+                      Text(context.l10n.themeTitle,
                           style: TextStyle(
                               fontSize: 14, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 3),
                       Text(
-                        'Gelap atau terang, sesuai selera',
+                        context.l10n.themeSubtitle,
                         style: TextStyle(
                             fontSize: 12, color: context.palette.muted),
                       ),
@@ -1100,6 +1144,61 @@ class _ProfilePage extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+          // Baris Bahasa — pilih Indonesia/English (tersimpan,
+          // berlaku di semua layar setelah dipilih).
+          GestureDetector(
+            onTap: () => _showLanguageDialog(context),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: context.palette.card,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: context.palette.border),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: LinearGradient(colors: [
+                        const Color(0xFF10B981).withValues(alpha: 0.25),
+                        const Color(0xFF10B981).withValues(alpha: 0.08),
+                      ]),
+                    ),
+                    child: const Icon(Icons.language_rounded,
+                        color: Color(0xFF34D399), size: 20),
+                  ),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(context.l10n.appLanguage,
+                            style: const TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 3),
+                        ValueListenableBuilder<Locale>(
+                          valueListenable: LocaleController.locale,
+                          builder: (context, locale, _) => Text(
+                            locale.languageCode == 'en'
+                                ? 'English'
+                                : 'Bahasa Indonesia',
+                            style: TextStyle(
+                                fontSize: 12, color: context.palette.muted),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded,
+                      color: context.palette.muted),
+                ],
+              ),
             ),
           ),
           // Baris Backup Wallet
@@ -1133,14 +1232,14 @@ class _ProfilePage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Backup Wallet',
+                        Text(context.l10n.backupWallet,
                             style: TextStyle(
                                 fontSize: 14, fontWeight: FontWeight.w600)),
                         const SizedBox(height: 3),
                         Text(
                           legacyWallet
-                              ? 'Dompet ini dibuat sebelum fitur frasa backup ada'
-                              : 'Lihat frasa backup dompet Anda',
+                              ? context.l10n.legacyWalletSubtitle
+                              : context.l10n.backupSubtitle,
                           style: TextStyle(
                               fontSize: 12, color: context.palette.muted),
                         ),
@@ -1168,19 +1267,14 @@ class _ProfilePage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Dompet ini tidak punya frasa backup',
+                  Text(context.l10n.noPhraseTitle,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: context.palette.warningText)),
                   const SizedBox(height: 6),
                   Text(
-                    'Dompet ini dibuat oleh versi aplikasi sebelumnya yang '
-                    'menyimpan kunci tanpa frasa. Bila HP hilang atau rusak, '
-                    'dana di dompet ini tidak bisa dipulihkan.\n\n'
-                    'Bila dompet ini masih KOSONG (belum pernah menerima '
-                    'dana), buat dompet baru yang dilengkapi frasa backup '
-                    'sekarang:',
+                    context.l10n.noPhraseBody,
                     style: TextStyle(
                         fontSize: 12.5,
                         color: context.palette.label,
@@ -1193,20 +1287,17 @@ class _ProfilePage extends StatelessWidget {
                         context: context,
                         builder: (ctx) => AlertDialog(
                           backgroundColor: ctx.palette.card,
-                          title: const Text('Buat dompet baru?'),
-                          content: const Text(
-                              'Dompet lama akan DIHAPUS PERMANEN beserta '
-                              'seluruh datanya. Lanjutkan HANYA bila dompet '
-                              'lama masih kosong — dana apa pun di dalamnya '
-                              'hilang selamanya.'),
+                          title: Text(ctx.l10n.createNewWalletTitle),
+                          content: Text(
+                              ctx.l10n.deleteOldWalletBody),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Batal'),
+                              child: Text(ctx.l10n.cancel),
                             ),
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Hapus & buat baru',
+                              child: Text(ctx.l10n.deleteAndCreate,
                                   style:
                                       TextStyle(color: Color(0xFFEF4444))),
                             ),
@@ -1223,7 +1314,7 @@ class _ProfilePage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: const Text('Buat dompet baru dengan frasa'),
+                    child: Text(context.l10n.createNewWalletButton),
                   ),
                 ],
               ),
@@ -1234,8 +1325,8 @@ class _ProfilePage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 22),
             child: Text(
               isTestnet
-                  ? 'Jaringan: Nusacoin Testnet'
-                  : 'Jaringan: Nusacoin Mainnet',
+                  ? context.l10n.networkTestnetLabel
+                  : context.l10n.networkMainnetLabel,
               style: TextStyle(fontSize: 12.5, color: context.palette.muted),
             ),
           ),
@@ -1265,11 +1356,11 @@ class _HistoryPage extends StatelessWidget {
               Text('\u21BA',
                   style: TextStyle(fontSize: 44, color: Color(0xFF34D399))),
               SizedBox(height: 14),
-              Text('Riwayat',
+              Text(context.l10n.history,
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
               SizedBox(height: 6),
               Text(
-                  'Belum ada transaksi. Pembayaran masuk dan keluar akan tampil di sini.',
+                  context.l10n.noTransactions,
                   style: TextStyle(fontSize: 13, color: context.palette.secondary),
                   textAlign: TextAlign.center),
             ],
@@ -1280,9 +1371,9 @@ class _HistoryPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.fromLTRB(22, 22, 22, 10),
-          child: Text('Riwayat',
+          child: Text(context.l10n.history,
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
         ),
         Expanded(

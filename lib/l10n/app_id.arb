@@ -1,0 +1,118 @@
+{
+  "@@locale": "id",
+  "appLanguage": "Bahasa",
+  "chooseLanguage": "Pilih Bahasa",
+  "languageIndonesian": "Bahasa Indonesia",
+  "languageEnglish": "English",
+  "themeTitle": "Tema",
+  "themeSubtitle": "Gelap atau terang, sesuai selera",
+  "changeThemeTooltip": "Ganti tema",
+  "greetingMorning": "Selamat pagi",
+  "greetingAfternoon": "Selamat siang",
+  "greetingEvening": "Selamat sore",
+  "greetingNight": "Selamat malam",
+  "bootConnecting": "Menghubungkan ke LSP…",
+  "bootFailedTitle": "Gagal menghubungkan node",
+  "bootFailedRetry": "Coba lagi",
+  "bootGenericError": "Terjadi kendala saat memulai dompet.",
+  "lspNodeIdMissing": "lspNodeId belum diisi di lib/config.dart — minta node id LSP ke operator.",
+  "seedCorrupt": "File seed korup (panjang {length}, harus 64). Hapus {path} untuk generate ulang (DANA LAMA HILANG).",
+  "@seedCorrupt": {
+    "placeholders": {
+      "length": {
+        "type": "int"
+      },
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "exitTitle": "Keluar dari ELNUX?",
+  "exitBody": "Aplikasi akan ditutup. Selama aplikasi tertutup, dompet tidak dapat menerima pembayaran.",
+  "cancel": "Batal",
+  "exitConfirm": "Keluar",
+  "totalBalance": "Total Saldo",
+  "networkTestnet": "Lightning Network • Testnet",
+  "networkMainnet": "Lightning Network • Mainnet",
+  "lightningActive": "Lightning aktif — siap terima instan",
+  "lightningConnecting": "Menghubungkan Lightning…",
+  "legacyStrip": "Dompet ini belum punya frasa backup. Buka tab Profil untuk membuat dompet baru dengan frasa sebelum menerima dana.",
+  "send": "Kirim",
+  "receive": "Terima",
+  "buy": "Beli",
+  "swap": "Tukar",
+  "activity": "Aktivitas",
+  "seeAll": "Lihat semua",
+  "noActivity": "Belum ada aktivitas",
+  "market": "Pasar",
+  "marketSoon": "Info pasar NUX — segera hadir.",
+  "home": "Beranda",
+  "history": "Riwayat",
+  "profile": "Profil",
+  "received": "Diterima",
+  "sent": "Terkirim",
+  "pending": "Menunggu",
+  "failed": "Gagal",
+  "noTransactions": "Belum ada transaksi. Pembayaran masuk dan keluar akan tampil di sini.",
+  "backupWallet": "Backup Wallet",
+  "legacyWalletSubtitle": "Dompet ini dibuat sebelum fitur frasa backup ada",
+  "backupSubtitle": "Lihat frasa backup dompet Anda",
+  "noPhraseTitle": "Dompet ini tidak punya frasa backup",
+  "noPhraseBody": "Dompet ini dibuat oleh versi aplikasi sebelumnya yang menyimpan kunci tanpa frasa. Bila HP hilang atau rusak, dana di dompet ini tidak bisa dipulihkan.\n\nBila dompet ini masih KOSONG (belum pernah menerima dana), buat dompet baru yang dilengkapi frasa backup sekarang:",
+  "createNewWalletTitle": "Buat dompet baru?",
+  "deleteOldWalletBody": "Dompet lama akan DIHAPUS PERMANEN beserta seluruh datanya. Lanjutkan HANYA bila dompet lama masih kosong — dana apa pun di dalamnya hilang selamanya.",
+  "deleteAndCreate": "Hapus & buat baru",
+  "createNewWalletButton": "Buat dompet baru dengan frasa",
+  "networkTestnetLabel": "Jaringan: Nusacoin Testnet",
+  "networkMainnetLabel": "Jaringan: Nusacoin Mainnet",
+  "backupWarning": "Tulis kata-kata ini di kertas dan simpan di tempat aman. Siapa pun yang punya kata-kata ini bisa mengambil danamu.",
+  "showBackupWords": "Tampilkan Kata Backup",
+  "backupCopied": "Kata backup disalin",
+  "copy": "Salin",
+  "backupConfirmed": "Saya sudah menulis kata-kata ini di tempat aman",
+  "done": "Selesai",
+  "invalidAmount": "Masukkan nominal yang valid",
+  "receiveInvoiceDesc": "Terima {amount} nusan",
+  "@receiveInvoiceDesc": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "createInvoiceFailed": "Gagal membuat invoice. Coba lagi.",
+  "receiveTitle": "Terima NUX",
+  "jitInfo": "Invoice Lightning dengan channel instan (JIT). Tidak perlu tunggu konfirmasi block.",
+  "amountLabel": "Nominal (nusan)",
+  "createInvoice": "Buat Invoice",
+  "paymentReceived": "Pembayaran Diterima",
+  "receivedAmount": "+{amount} nusan",
+  "@receivedAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "fundsArrived": "Dana sudah masuk ke channel Lightning kamu.",
+  "invoiceTitle": "Invoice Lightning",
+  "invoiceCopied": "Invoice disalin",
+  "shareInvoiceHint": "Bagikan invoice ini ke pengirim. Channel akan dibuka otomatis saat pembayaran diterima.",
+  "pasteInvoiceFirst": "Tempel invoice dulu",
+  "invalidInvoice": "Ini bukan invoice Lightning yang valid",
+  "payFailed": "Pembayaran gagal. Coba lagi.",
+  "sendTitle": "Kirim NUX",
+  "sendInfo": "Tempel atau scan invoice Lightning dari penerima. Pembayaran instan via channel.",
+  "paste": "Tempel",
+  "scanQr": "Scan QR",
+  "pay": "Bayar",
+  "paymentSuccess": "Pembayaran Berhasil!",
+  "scanTitle": "Scan QR Invoice",
+  "cameraDenied": "Izin kamera ditolak. Aktifkan izin kamera untuk ELNUX di Pengaturan HP, lalu coba lagi.",
+  "cameraUnavailable": "Kamera tidak dapat dibuka di perangkat ini.",
+  "pointCamera": "Arahkan kamera ke QR invoice",
+  "errorConnection": "Tidak dapat terhubung. Periksa koneksi internet Anda, lalu coba lagi.",
+  "errorBalance": "Saldo tidak mencukupi.",
+  "errorInvoice": "Invoice tidak valid atau sudah kedaluwarsa.",
+  "errorWalletData": "Data dompet bermasalah. Hubungi operator untuk bantuan."
+}

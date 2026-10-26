@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../locale_controller.dart';
 import '../theme.dart';
 import 'package:flutter/services.dart';
 import '../services/lsp_service.dart';
@@ -47,11 +48,11 @@ class _SendScreenState extends State<SendScreen> {
   Future<void> _pay() async {
     final invoice = _invoiceController.text.trim();
     if (invoice.isEmpty) {
-      setState(() => _error = 'Tempel invoice dulu');
+      setState(() => _error = context.l10n.pasteInvoiceFirst);
       return;
     }
     if (!invoice.startsWith('ln')) {
-      setState(() => _error = 'Ini bukan invoice Lightning yang valid');
+      setState(() => _error = context.l10n.invalidInvoice);
       return;
     }
 
@@ -65,8 +66,8 @@ class _SendScreenState extends State<SendScreen> {
       await widget.lspService.payInvoice(invoice);
       setState(() => _paid = true);
     } catch (e) {
-      setState(() => _error =
-          friendlyError(e, fallback: 'Pembayaran gagal. Coba lagi.'));
+      setState(() => _error = friendlyError(e,
+          fallback: context.l10n.payFailed, l10n: context.l10n));
     } finally {
       setState(() => _loading = false);
     }
@@ -76,7 +77,7 @@ class _SendScreenState extends State<SendScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kirim NUX'),
+        title: Text(context.l10n.sendTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -101,8 +102,7 @@ class _SendScreenState extends State<SendScreen> {
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Tempel atau scan invoice Lightning dari penerima. '
-                      'Pembayaran instan via channel.',
+                      context.l10n.sendInfo,
                       style: TextStyle(fontSize: 13, color: context.palette.label),
                     ),
                   ),
@@ -111,7 +111,7 @@ class _SendScreenState extends State<SendScreen> {
             ),
             const SizedBox(height: 20),
             // Invoice input
-            const Text('Invoice Lightning',
+            Text(context.l10n.invoiceTitle,
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             TextField(
@@ -145,7 +145,7 @@ class _SendScreenState extends State<SendScreen> {
                     },
                     icon: const Icon(Icons.paste,
                         color: Color(0xFF34D399), size: 18),
-                    label: const Text('Tempel',
+                    label: Text(context.l10n.paste,
                         style: TextStyle(color: Color(0xFF34D399))),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
@@ -177,7 +177,7 @@ class _SendScreenState extends State<SendScreen> {
                     },
                     icon: const Icon(Icons.qr_code_scanner,
                         color: Color(0xFF34D399), size: 18),
-                    label: const Text('Scan QR',
+                    label: Text(context.l10n.scanQr,
                         style: TextStyle(color: Color(0xFF34D399))),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
@@ -211,7 +211,7 @@ class _SendScreenState extends State<SendScreen> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white),
                     )
-                  : const Text('Bayar',
+                  : Text(context.l10n.pay,
                       style: TextStyle(
                           fontSize: 16, fontWeight: FontWeight.w700)),
             ),
@@ -233,12 +233,12 @@ class _SendScreenState extends State<SendScreen> {
                     color: const Color(0xFF10B981).withOpacity(0.4),
                   ),
                 ),
-                child: const Column(
+                child: Column(
                   children: [
                     Text('\u2705',
                         style: TextStyle(fontSize: 40)),
                     SizedBox(height: 8),
-                    Text('Pembayaran Berhasil!',
+                    Text(context.l10n.paymentSuccess,
                         style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,

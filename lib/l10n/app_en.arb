@@ -1,0 +1,118 @@
+{
+  "@@locale": "en",
+  "appLanguage": "Language",
+  "chooseLanguage": "Choose Language",
+  "languageIndonesian": "Bahasa Indonesia",
+  "languageEnglish": "English",
+  "themeTitle": "Theme",
+  "themeSubtitle": "Dark or light, as you like",
+  "changeThemeTooltip": "Change theme",
+  "greetingMorning": "Good morning",
+  "greetingAfternoon": "Good afternoon",
+  "greetingEvening": "Good evening",
+  "greetingNight": "Good night",
+  "bootConnecting": "Connecting to LSP…",
+  "bootFailedTitle": "Failed to connect node",
+  "bootFailedRetry": "Try again",
+  "bootGenericError": "Something went wrong while starting the wallet.",
+  "lspNodeIdMissing": "lspNodeId is not set in lib/config.dart — ask the operator for the LSP node id.",
+  "seedCorrupt": "Seed file corrupted (length {length}, must be 64). Delete {path} to regenerate (OLD FUNDS WILL BE LOST).",
+  "@seedCorrupt": {
+    "placeholders": {
+      "length": {
+        "type": "int"
+      },
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "exitTitle": "Exit ELNUX?",
+  "exitBody": "The app will close. While the app is closed, the wallet cannot receive payments.",
+  "cancel": "Cancel",
+  "exitConfirm": "Exit",
+  "totalBalance": "Total Balance",
+  "networkTestnet": "Lightning Network • Testnet",
+  "networkMainnet": "Lightning Network • Mainnet",
+  "lightningActive": "Lightning active — ready for instant receive",
+  "lightningConnecting": "Connecting Lightning…",
+  "legacyStrip": "This wallet has no backup phrase yet. Open the Profile tab to create a new wallet with a phrase before receiving funds.",
+  "send": "Send",
+  "receive": "Receive",
+  "buy": "Buy",
+  "swap": "Swap",
+  "activity": "Activity",
+  "seeAll": "See all",
+  "noActivity": "No activity yet",
+  "market": "Market",
+  "marketSoon": "NUX market info — coming soon.",
+  "home": "Home",
+  "history": "History",
+  "profile": "Profile",
+  "received": "Received",
+  "sent": "Sent",
+  "pending": "Pending",
+  "failed": "Failed",
+  "noTransactions": "No transactions yet. Incoming and outgoing payments will appear here.",
+  "backupWallet": "Backup Wallet",
+  "legacyWalletSubtitle": "This wallet was created before the backup phrase feature existed",
+  "backupSubtitle": "View your wallet backup phrase",
+  "noPhraseTitle": "This wallet has no backup phrase",
+  "noPhraseBody": "This wallet was created by a previous app version that stored keys without a phrase. If the phone is lost or damaged, funds in this wallet cannot be recovered.\n\nIf this wallet is still EMPTY (never received funds), create a new phrase-backed wallet now:",
+  "createNewWalletTitle": "Create a new wallet?",
+  "deleteOldWalletBody": "The old wallet will be PERMANENTLY DELETED along with all its data. Continue ONLY if the old wallet is still empty — any funds in it will be lost forever.",
+  "deleteAndCreate": "Delete & create new",
+  "createNewWalletButton": "Create a new wallet with a phrase",
+  "networkTestnetLabel": "Network: Nusacoin Testnet",
+  "networkMainnetLabel": "Network: Nusacoin Mainnet",
+  "backupWarning": "Write these words on paper and store them somewhere safe. Anyone who has these words can take your funds.",
+  "showBackupWords": "Show Backup Words",
+  "backupCopied": "Backup words copied",
+  "copy": "Copy",
+  "backupConfirmed": "I have written these words somewhere safe",
+  "done": "Done",
+  "invalidAmount": "Enter a valid amount",
+  "receiveInvoiceDesc": "Receive {amount} nusan",
+  "@receiveInvoiceDesc": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "createInvoiceFailed": "Failed to create invoice. Try again.",
+  "receiveTitle": "Receive NUX",
+  "jitInfo": "Lightning invoice with an instant channel (JIT). No need to wait for block confirmation.",
+  "amountLabel": "Amount (nusan)",
+  "createInvoice": "Create Invoice",
+  "paymentReceived": "Payment Received",
+  "receivedAmount": "+{amount} nusan",
+  "@receivedAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "fundsArrived": "Funds have arrived in your Lightning channel.",
+  "invoiceTitle": "Lightning Invoice",
+  "invoiceCopied": "Invoice copied",
+  "shareInvoiceHint": "Share this invoice with the sender. The channel will open automatically when the payment is received.",
+  "pasteInvoiceFirst": "Paste an invoice first",
+  "invalidInvoice": "This is not a valid Lightning invoice",
+  "payFailed": "Payment failed. Try again.",
+  "sendTitle": "Send NUX",
+  "sendInfo": "Paste or scan a Lightning invoice from the recipient. Instant payment via channel.",
+  "paste": "Paste",
+  "scanQr": "Scan QR",
+  "pay": "Pay",
+  "paymentSuccess": "Payment Successful!",
+  "scanTitle": "Scan QR Invoice",
+  "cameraDenied": "Camera permission denied. Enable camera permission for ELNUX in phone Settings, then try again.",
+  "cameraUnavailable": "Camera cannot be opened on this device.",
+  "pointCamera": "Point the camera at the QR invoice",
+  "errorConnection": "Cannot connect. Check your internet connection, then try again.",
+  "errorBalance": "Insufficient balance.",
+  "errorInvoice": "Invoice is invalid or has expired.",
+  "errorWalletData": "Wallet data is corrupted. Contact the operator for help."
+}
