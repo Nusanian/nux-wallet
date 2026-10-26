@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../theme.dart';
 import 'package:flutter/services.dart';
 import 'package:ldk_node/src/generated/api/types.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -150,7 +151,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                   color: const Color(0xFF10B981).withOpacity(0.3),
                 ),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Text('\u26A1', style: TextStyle(fontSize: 24)),
                   SizedBox(width: 12),
@@ -158,7 +159,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                     child: Text(
                       'Invoice Lightning dengan channel instan (JIT). '
                       'Tidak perlu tunggu konfirmasi block.',
-                      style: TextStyle(fontSize: 13, color: Color(0xFFB8C8BF)),
+                      style: TextStyle(fontSize: 13, color: context.palette.label),
                     ),
                   ),
                 ],
@@ -178,17 +179,17 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
               decoration: InputDecoration(
                 hintText: '0',
                 hintStyle: TextStyle(
-                    color: Colors.white.withOpacity(0.2)),
+                    color: context.palette.hint),
                 filled: true,
-                fillColor: const Color(0xFF121715),
+                fillColor: context.palette.cardAlt,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
                 ),
                 suffixText: 'nusan',
-                suffixStyle: const TextStyle(
+                suffixStyle: TextStyle(
                     fontSize: 16,
-                    color: Color(0xFF7D8F86),
+                    color: context.palette.muted,
                     fontWeight: FontWeight.w600),
               ),
             ),
@@ -248,10 +249,10 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Dana sudah masuk ke channel Lightning kamu.',
                       style:
-                          TextStyle(fontSize: 12, color: Color(0xFF7D8F86)),
+                          TextStyle(fontSize: 12, color: context.palette.muted),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -283,7 +284,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF121715),
+                  color: context.palette.cardAlt,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -291,8 +292,8 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                     Expanded(
                       child: Text(
                         _invoice!,
-                        style: const TextStyle(
-                            fontSize: 12, color: Color(0xFFB8C8BF)),
+                        style: TextStyle(
+                            fontSize: 12, color: context.palette.label),
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -313,11 +314,11 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Bagikan invoice ini ke pengirim. '
                 'Channel akan dibuka otomatis saat pembayaran diterima.',
                 style:
-                    TextStyle(fontSize: 12, color: Color(0xFF7D8F86)),
+                    TextStyle(fontSize: 12, color: context.palette.muted),
                 textAlign: TextAlign.center,
               ),
             ],

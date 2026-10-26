@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme.dart';
 import 'package:flutter/services.dart';
 
 /// Layar Backup Phrase — WAJIB untuk self-custodial.
@@ -41,7 +42,7 @@ class _BackupScreenState extends State<BackupScreen> {
                   color: Colors.orange.withOpacity(0.3),
                 ),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Text('\u26A0\uFE0F', style: TextStyle(fontSize: 24)),
                   SizedBox(width: 12),
@@ -49,7 +50,7 @@ class _BackupScreenState extends State<BackupScreen> {
                     child: Text(
                       'Tulis kata-kata ini di kertas dan simpan di tempat aman. '
                       'Siapa pun yang punya kata-kata ini bisa mengambil danamu.',
-                      style: TextStyle(fontSize: 13, color: Color(0xFFB8C8BF)),
+                      style: TextStyle(fontSize: 13, color: context.palette.label),
                     ),
                   ),
                 ],
@@ -87,19 +88,19 @@ class _BackupScreenState extends State<BackupScreen> {
                 itemBuilder: (context, i) {
                   return Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF121715),
+                      color: context.palette.cardAlt,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: Colors.white.withOpacity(0.05)),
+                          color: context.palette.border),
                     ),
                     child: Center(
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text('${i + 1}.',
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 11,
-                                  color: Color(0xFF7D8F86))),
+                                  color: context.palette.muted)),
                           const SizedBox(width: 4),
                           Text(widget.mnemonic[i],
                               style: const TextStyle(

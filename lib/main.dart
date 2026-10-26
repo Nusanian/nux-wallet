@@ -9,6 +9,7 @@ import 'package:ldk_node/src/generated/api/types.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'config.dart';
+import 'theme.dart';
 import 'screens/backup_screen.dart';
 import 'screens/receive_screen.dart';
 import 'screens/send_screen.dart';
@@ -17,8 +18,10 @@ import 'utils/format.dart';
 import 'utils/coin_alert.dart';
 import 'utils/friendly_error.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Muat pilihan tema tersimpan (default gelap) sebelum aplikasi jalan.
+  await ThemeController.load();
   // Layar tetap menyala selama aplikasi hidup (permintaan NUX):
   // dompet harus siap menerima pembayaran, layar tidak boleh
   // mati sendiri. Diaktifkan lagi setiap aplikasi kembali ke depan.
@@ -34,17 +37,18 @@ class NuxWalletApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'NUX Wallet',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF0B0E0C),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF10B981),
-          surface: Color(0xFF101412),
-        ),
-      ),
-      home: const HomeScreen(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeController.mode,
+      builder: (context, mode, _) {
+        return MaterialApp(
+          title: 'NUX Wallet',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: mode,
+          home: const HomeScreen(),
+        );
+      },
     );
   }
 }
@@ -336,29 +340,29 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   /// Dialog konfirmasi keluar aplikasi, desain selaras tema:
-  /// permukaan gelap, sudut membulat, aksen emerald.
+  /// permukaan mengikuti tema, sudut membulat, aksen emerald.
   Future<void> _confirmExit() async {
     final keluar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF101412),
+        backgroundColor: ctx.palette.card,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: Colors.white.withOpacity(0.06)),
+          side: BorderSide(color: ctx.palette.border),
         ),
         title: const Text('Keluar dari ELNUX?',
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-        content: const Text(
+        content: Text(
           'Aplikasi akan ditutup. Selama aplikasi tertutup, dompet tidak '
           'dapat menerima pembayaran.',
           style: TextStyle(
-              fontSize: 13.5, color: Color(0xFF8A9A90), height: 1.4),
+              fontSize: 13.5, color: ctx.palette.secondary, height: 1.4),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal',
-                style: TextStyle(color: Color(0xFF8A9A90))),
+            child: Text('Batal',
+                style: TextStyle(color: ctx.palette.secondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -394,7 +398,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildBody(BuildContext context) {
     if (_booting) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -402,7 +406,7 @@ class _HomeScreenState extends State<HomeScreen>
               CircularProgressIndicator(color: Color(0xFF10B981)),
               SizedBox(height: 16),
               Text('Menghubungkan ke LSP…',
-                  style: TextStyle(color: Color(0xFF8A9A90))),
+                  style: TextStyle(color: context.palette.secondary)),
             ],
           ),
         ),
@@ -427,8 +431,8 @@ class _HomeScreenState extends State<HomeScreen>
                     textAlign: TextAlign.center),
                 const SizedBox(height: 8),
                 Text(_bootError!,
-                    style: const TextStyle(
-                        fontSize: 13, color: Color(0xFF8A9A90)),
+                    style: TextStyle(
+                        fontSize: 13, color: context.palette.secondary),
                     textAlign: TextAlign.center),
                 const SizedBox(height: 20),
                 ElevatedButton(
@@ -477,9 +481,9 @@ class _HomeScreenState extends State<HomeScreen>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(_greeting,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 13,
-                                    color: Color(0xFF8A9A90))),
+                                    color: context.palette.secondary)),
                             const SizedBox(width: 7),
                             // Duplikat ikon live dari kartu saldo
                             // (permintaan NUX) — hijau emerald agar
@@ -499,23 +503,48 @@ class _HomeScreenState extends State<HomeScreen>
                                 letterSpacing: -0.3)),
                       ],
                     ),
-                    // Lencana ikon aplikasi — ketuk untuk ke tab Profil.
-                    GestureDetector(
-                      onTap: () => setState(() => _tabIndex = 3),
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                              color: Colors.white.withOpacity(0.08)),
+                    Row(
+                      children: [
+                        // Toggle tema Gelap/Terang — pilihan tersimpan
+                        // dan berlaku di semua layar.
+                        IconButton(
+                          onPressed: ThemeController.toggle,
+                          tooltip: 'Ganti tema',
+                          icon: Icon(
+                            Theme.of(context).brightness == Brightness.dark
+                                ? Icons.light_mode_rounded
+                                : Icons.dark_mode_rounded,
+                            color: context.palette.muted,
+                          ),
+                          style: IconButton.styleFrom(
+                            backgroundColor: context.palette.card,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            side:
+                                BorderSide(color: context.palette.border),
+                          ),
                         ),
+                        const SizedBox(width: 10),
+                        // Lencana ikon aplikasi — ketuk untuk ke tab Profil.
+                        GestureDetector(
+                          onTap: () => setState(() => _tabIndex = 3),
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                  color: context.palette.border),
+                            ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(14),
                           child: Image.asset('assets/app_icon.png',
                               fit: BoxFit.cover),
                         ),
                       ),
+                    ),
+                      ],
                     ),
                   ],
                 ),
@@ -603,10 +632,10 @@ class _HomeScreenState extends State<HomeScreen>
                       border: Border.all(
                           color: const Color(0xFFF59E0B).withOpacity(0.35)),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
                         Icon(Icons.warning_amber_rounded,
-                            color: Color(0xFFFBBF24), size: 20),
+                            color: context.palette.warningIcon, size: 20),
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -614,7 +643,7 @@ class _HomeScreenState extends State<HomeScreen>
                             'untuk membuat dompet baru dengan frasa sebelum menerima dana.',
                             style: TextStyle(
                                 fontSize: 12.5,
-                                color: Color(0xFFFDE68A),
+                                color: context.palette.warningText,
                                 height: 1.35),
                           ),
                         ),
@@ -689,11 +718,11 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
               const SizedBox(height: 6),
               // Transaction list
               if (_payments.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(horizontal: 22, vertical: 10),
                   child: Text('Belum ada aktivitas',
                       style:
-                          TextStyle(fontSize: 13, color: Color(0xFF7D8F86))),
+                          TextStyle(fontSize: 13, color: context.palette.muted)),
                 )
               else
                 ..._payments.take(5).map(_paymentRow),
@@ -731,9 +760,9 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
         margin: const EdgeInsets.fromLTRB(18, 0, 18, 20),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFF101412),
+          color: context.palette.card,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: context.palette.border),
         ),
         child: Row(
           children: [
@@ -756,9 +785,9 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
-              color: const Color(0xFF121715),
+              color: context.palette.cardAlt,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(color: context.palette.border),
             ),
             child: Column(
               children: [
@@ -778,9 +807,9 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
                 ),
                 const SizedBox(height: 8),
                 Text(label,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFFB8C8BF),
+                        color: context.palette.label,
                         fontWeight: FontWeight.w500)),
               ],
             ),
@@ -834,9 +863,9 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
       margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: const Color(0xFF101412),
+        color: context.palette.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: context.palette.border),
       ),
       child: Row(
         children: [
@@ -851,7 +880,7 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
                       const Color(0xFF10B981).withOpacity(0.08),
                     ])
                   : null,
-              color: isIn ? null : Colors.white.withOpacity(0.05),
+              color: isIn ? null : context.palette.softBg,
             ),
             child: Center(child: icon),
           ),
@@ -867,8 +896,8 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
                 Row(
                   children: [
                     Text(addr,
-                        style: const TextStyle(
-                            fontSize: 12, color: Color(0xFF7D8F86))),
+                        style: TextStyle(
+                            fontSize: 12, color: context.palette.muted)),
                     const SizedBox(width: 5),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -876,7 +905,7 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
                       decoration: BoxDecoration(
                         color: isJit
                             ? const Color(0xFF10B981).withOpacity(0.15)
-                            : Colors.white.withOpacity(0.08),
+                            : context.palette.softBg,
                         borderRadius: BorderRadius.circular(100),
                       ),
                       child: Text(tag,
@@ -885,7 +914,7 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
                               fontWeight: FontWeight.w700,
                               color: isJit
                                   ? const Color(0xFF34D399)
-                                  : const Color(0xFF9AA8A0))),
+                                  : context.palette.dim)),
                     ),
                     if (status != null) ...[
                       const SizedBox(width: 5),
@@ -904,8 +933,8 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                                 color: statusBad
-                                    ? const Color(0xFFF87171)
-                                    : const Color(0xFFFBBF24))),
+                                    ? context.palette.dangerSoft
+                                    : context.palette.warningIcon)),
                       ),
                     ],
                   ],
@@ -926,7 +955,7 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
               const SizedBox(height: 3),
               Text(time,
                   style:
-                      const TextStyle(fontSize: 11, color: Color(0xFF7D8F86))),
+                      TextStyle(fontSize: 11, color: context.palette.muted)),
             ],
           ),
         ],
@@ -966,13 +995,13 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), 'Beli', false, () {}),
               Text(icon,
                   style: TextStyle(
                       fontSize: 20,
-                      color: active ? Colors.white : const Color(0xFF6B7D73))),
+                      color: active ? Colors.white : context.palette.faint)),
               const SizedBox(height: 3),
               Text(label,
                   style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: active ? Colors.white : const Color(0xFF6B7D73))),
+                      color: active ? Colors.white : context.palette.faint)),
             ],
           ),
         ),
@@ -989,7 +1018,7 @@ String _shortPaymentId(PaymentId id) {
   return '${hex.substring(0, 5)}\u2026${hex.substring(hex.length - 4)}';
 }
 
-/// Tab Profil — pengaturan dompet: frasa backup & info jaringan.
+/// Tab Profil — pengaturan dompet: tema, frasa backup & info jaringan.
 /// Untuk dompet legacy (tanpa frasa) halaman ini menampung tawaran
 /// membuat dompet baru berfrasa, lengkap dengan konfirmasi bahaya.
 class _ProfilePage extends StatelessWidget {
@@ -1018,6 +1047,61 @@ class _ProfilePage extends StatelessWidget {
             child: Text('Profil',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
           ),
+          // Baris Tema — toggle Gelap/Terang (tersimpan, sama
+          // seperti tombol di header dashboard).
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            decoration: BoxDecoration(
+              color: context.palette.card,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: context.palette.border),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: LinearGradient(colors: [
+                      const Color(0xFF10B981).withValues(alpha: 0.25),
+                      const Color(0xFF10B981).withValues(alpha: 0.08),
+                    ]),
+                  ),
+                  child: const Icon(Icons.brightness_6_rounded,
+                      color: Color(0xFF34D399), size: 20),
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Tema',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Gelap atau terang, sesuai selera',
+                        style: TextStyle(
+                            fontSize: 12, color: context.palette.muted),
+                      ),
+                    ],
+                  ),
+                ),
+                ValueListenableBuilder<ThemeMode>(
+                  valueListenable: ThemeController.mode,
+                  builder: (context, mode, _) => Switch(
+                    value: mode == ThemeMode.dark,
+                    onChanged: (dark) => ThemeController.setMode(
+                        dark ? ThemeMode.dark : ThemeMode.light),
+                    activeThumbColor: const Color(0xFF10B981),
+                  ),
+                ),
+              ],
+            ),
+          ),
           // Baris Backup Wallet
           GestureDetector(
             onTap: legacyWallet ? null : onViewBackup,
@@ -1025,9 +1109,9 @@ class _ProfilePage extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF101412),
+                color: context.palette.card,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.white.withOpacity(0.04)),
+                border: Border.all(color: context.palette.border),
               ),
               child: Row(
                 children: [
@@ -1057,15 +1141,15 @@ class _ProfilePage extends StatelessWidget {
                           legacyWallet
                               ? 'Dompet ini dibuat sebelum fitur frasa backup ada'
                               : 'Lihat frasa backup dompet Anda',
-                          style: const TextStyle(
-                              fontSize: 12, color: Color(0xFF7D8F86)),
+                          style: TextStyle(
+                              fontSize: 12, color: context.palette.muted),
                         ),
                       ],
                     ),
                   ),
                   if (!legacyWallet)
-                    const Icon(Icons.chevron_right_rounded,
-                        color: Color(0xFF7D8F86)),
+                    Icon(Icons.chevron_right_rounded,
+                        color: context.palette.muted),
                 ],
               ),
             ),
@@ -1084,13 +1168,13 @@ class _ProfilePage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('Dompet ini tidak punya frasa backup',
+                  Text('Dompet ini tidak punya frasa backup',
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFFFDE68A))),
+                          color: context.palette.warningText)),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                     'Dompet ini dibuat oleh versi aplikasi sebelumnya yang '
                     'menyimpan kunci tanpa frasa. Bila HP hilang atau rusak, '
                     'dana di dompet ini tidak bisa dipulihkan.\n\n'
@@ -1099,7 +1183,7 @@ class _ProfilePage extends StatelessWidget {
                     'sekarang:',
                     style: TextStyle(
                         fontSize: 12.5,
-                        color: Color(0xFFB8C8BF),
+                        color: context.palette.label,
                         height: 1.4),
                   ),
                   const SizedBox(height: 12),
@@ -1108,7 +1192,7 @@ class _ProfilePage extends StatelessWidget {
                       final ok = await showDialog<bool>(
                         context: context,
                         builder: (ctx) => AlertDialog(
-                          backgroundColor: const Color(0xFF101412),
+                          backgroundColor: ctx.palette.card,
                           title: const Text('Buat dompet baru?'),
                           content: const Text(
                               'Dompet lama akan DIHAPUS PERMANEN beserta '
@@ -1152,7 +1236,7 @@ class _ProfilePage extends StatelessWidget {
               isTestnet
                   ? 'Jaringan: Nusacoin Testnet'
                   : 'Jaringan: Nusacoin Mainnet',
-              style: const TextStyle(fontSize: 12.5, color: Color(0xFF7D8F86)),
+              style: TextStyle(fontSize: 12.5, color: context.palette.muted),
             ),
           ),
           const SizedBox(height: 80),
@@ -1172,7 +1256,7 @@ class _HistoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (payments.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
           padding: EdgeInsets.all(32),
           child: Column(
@@ -1186,7 +1270,7 @@ class _HistoryPage extends StatelessWidget {
               SizedBox(height: 6),
               Text(
                   'Belum ada transaksi. Pembayaran masuk dan keluar akan tampil di sini.',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF8A9A90)),
+                  style: TextStyle(fontSize: 13, color: context.palette.secondary),
                   textAlign: TextAlign.center),
             ],
           ),
@@ -1241,8 +1325,8 @@ class _ComingSoonPage extends StatelessWidget {
                     fontSize: 20, fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
             Text(message,
-                style: const TextStyle(
-                    fontSize: 13, color: Color(0xFF8A9A90)),
+                style: TextStyle(
+                    fontSize: 13, color: context.palette.secondary),
                 textAlign: TextAlign.center),
           ],
         ),

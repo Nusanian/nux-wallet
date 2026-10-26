@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme.dart';
 import 'package:flutter/services.dart';
 import '../services/lsp_service.dart';
 import '../utils/friendly_error.dart';
@@ -94,7 +95,7 @@ class _SendScreenState extends State<SendScreen> {
                   color: const Color(0xFF10B981).withOpacity(0.3),
                 ),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Text('\u26A1', style: TextStyle(fontSize: 24)),
                   SizedBox(width: 12),
@@ -102,7 +103,7 @@ class _SendScreenState extends State<SendScreen> {
                     child: Text(
                       'Tempel atau scan invoice Lightning dari penerima. '
                       'Pembayaran instan via channel.',
-                      style: TextStyle(fontSize: 13, color: Color(0xFFB8C8BF)),
+                      style: TextStyle(fontSize: 13, color: context.palette.label),
                     ),
                   ),
                 ],
@@ -121,9 +122,9 @@ class _SendScreenState extends State<SendScreen> {
               decoration: InputDecoration(
                 hintText: 'lnnu1... atau lntn1...',
                 hintStyle:
-                    TextStyle(color: Colors.white.withOpacity(0.2)),
+                    TextStyle(color: context.palette.hint),
                 filled: true,
-                fillColor: const Color(0xFF121715),
+                fillColor: context.palette.cardAlt,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
