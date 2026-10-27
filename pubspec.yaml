@@ -38,6 +38,14 @@ dependencies:
   # Direktori aplikasi untuk seed + storage node LDK.
   path_provider: ^2.1.5
 
+  # Pilihan tema Gelap/Terang tersimpan antar-buka aplikasi.
+  shared_preferences: ^2.5.3
+
+  # Lokalisasi (l10n): delegasi Material/Cupertino + format intl.
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+
   # Render QR code invoice Lightning di layar Terima.
   qr_flutter: ^4.1.0
 
@@ -77,6 +85,8 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  # Hasilkan kode lokalisasi dari lib/l10n/*.arb saat build.
+  generate: true
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

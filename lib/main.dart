@@ -9,6 +9,9 @@ import 'package:ldk_node/src/generated/api/types.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'config.dart';
+import 'locale_controller.dart';
+import 'l10n/app_localizations.dart';
+import 'theme.dart';
 import 'screens/backup_screen.dart';
 import 'screens/receive_screen.dart';
 import 'screens/send_screen.dart';
@@ -17,8 +20,12 @@ import 'utils/format.dart';
 import 'utils/coin_alert.dart';
 import 'utils/friendly_error.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Muat pilihan tema tersimpan (default gelap) sebelum aplikasi jalan.
+  await ThemeController.load();
+  // Muat pilihan bahasa tersimpan (default Indonesia) sebelum jalan.
+  await LocaleController.load();
   // Layar tetap menyala selama aplikasi hidup (permintaan NUX):
   // dompet harus siap menerima pembayaran, layar tidak boleh
   // mati sendiri. Diaktifkan lagi setiap aplikasi kembali ke depan.
@@ -34,17 +41,22 @@ class NuxWalletApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'NUX Wallet',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF0B0E0C),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF10B981),
-          surface: Color(0xFF101412),
-        ),
-      ),
-      home: const HomeScreen(),
+    return ListenableBuilder(
+      listenable:
+          Listenable.merge([ThemeController.mode, LocaleController.locale]),
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'NUX Wallet',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: ThemeController.mode.value,
+          locale: LocaleController.locale.value,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: LocaleController.supported,
+          home: const HomeScreen(),
+        );
+      },
     );
   }
 }
@@ -81,10 +93,10 @@ class _HomeScreenState extends State<HomeScreen>
   /// Sapaan mengikuti jam lokal HP user.
   String get _greeting {
     final h = DateTime.now().hour;
-    if (h >= 4 && h < 11) return 'Selamat pagi';
-    if (h >= 11 && h < 15) return 'Selamat siang';
-    if (h >= 15 && h < 18) return 'Selamat sore';
-    return 'Selamat malam';
+    if (h >= 4 && h < 11) return context.l10n.greetingMorning;
+    if (h >= 11 && h < 15) return context.l10n.greetingAfternoon;
+    if (h >= 15 && h < 18) return context.l10n.greetingEvening;
+    return context.l10n.greetingNight;
   }
 
   /// Saldo Lightning terakhir dari node (msat); null = belum terbaca.
@@ -186,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       if (!AppConfig.lspConfigured) {
         throw StateError(
-            'lspNodeId belum diisi di lib/config.dart — minta node id LSP ke operator.');
+            context.l10n.lspNodeIdMissing);
       }
       final dir = await getApplicationSupportDirectory();
       // Seed & storage dipisah per network: build mainnet memakai nama
@@ -210,9 +222,8 @@ class _HomeScreenState extends State<HomeScreen>
         if (existing.length == 64) {
           seedBytes = existing;
         } else if (existing.length != 32) {
-          throw StateError(
-              'File seed korup (panjang ${existing.length}, harus 64). '
-              'Hapus ${seedFile.path} untuk generate ulang (DANA LAMA HILANG).');
+          throw StateError(context.l10n.seedCorrupt(
+              existing.length, seedFile.path));
         }
         // Panjang 32 = berkas dari versi awal yang keliru (builder
         // mensyaratkan 64 byte dan selalu menolak 32, jadi node tidak
@@ -297,7 +308,9 @@ class _HomeScreenState extends State<HomeScreen>
         setState(() {
           _booting = false;
           _bootError =
-              friendlyError(e, fallback: 'Terjadi kendala saat memulai dompet.');
+              friendlyError(e,
+                  fallback: context.l10n.bootGenericError,
+                  l10n: context.l10n);
         });
       }
     }
@@ -336,29 +349,28 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   /// Dialog konfirmasi keluar aplikasi, desain selaras tema:
-  /// permukaan gelap, sudut membulat, aksen emerald.
+  /// permukaan mengikuti tema, sudut membulat, aksen emerald.
   Future<void> _confirmExit() async {
     final keluar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF101412),
+        backgroundColor: ctx.palette.card,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: Colors.white.withOpacity(0.06)),
+          side: BorderSide(color: ctx.palette.border),
         ),
-        title: const Text('Keluar dari ELNUX?',
+        title: Text(context.l10n.exitTitle,
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-        content: const Text(
-          'Aplikasi akan ditutup. Selama aplikasi tertutup, dompet tidak '
-          'dapat menerima pembayaran.',
+        content: Text(
+          context.l10n.exitBody,
           style: TextStyle(
-              fontSize: 13.5, color: Color(0xFF8A9A90), height: 1.4),
+              fontSize: 13.5, color: ctx.palette.secondary, height: 1.4),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal',
-                style: TextStyle(color: Color(0xFF8A9A90))),
+            child: Text(context.l10n.cancel,
+                style: TextStyle(color: ctx.palette.secondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -369,7 +381,7 @@ class _HomeScreenState extends State<HomeScreen>
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Keluar'),
+            child: Text(context.l10n.exitConfirm),
           ),
         ],
       ),
@@ -394,15 +406,15 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildBody(BuildContext context) {
     if (_booting) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               CircularProgressIndicator(color: Color(0xFF10B981)),
               SizedBox(height: 16),
-              Text('Menghubungkan ke LSP…',
-                  style: TextStyle(color: Color(0xFF8A9A90))),
+              Text(context.l10n.bootConnecting,
+                  style: TextStyle(color: context.palette.secondary)),
             ],
           ),
         ),
@@ -421,14 +433,14 @@ class _HomeScreenState extends State<HomeScreen>
                     style: TextStyle(fontSize: 40),
                     textAlign: TextAlign.center),
                 const SizedBox(height: 12),
-                const Text('Gagal menghubungkan node',
+                Text(context.l10n.bootFailedTitle,
                     style:
                         TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                     textAlign: TextAlign.center),
                 const SizedBox(height: 8),
                 Text(_bootError!,
-                    style: const TextStyle(
-                        fontSize: 13, color: Color(0xFF8A9A90)),
+                    style: TextStyle(
+                        fontSize: 13, color: context.palette.secondary),
                     textAlign: TextAlign.center),
                 const SizedBox(height: 20),
                 ElevatedButton(
@@ -447,7 +459,7 @@ class _HomeScreenState extends State<HomeScreen>
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text('Coba lagi'),
+                  child: Text(context.l10n.bootFailedRetry),
                 ),
               ],
             ),
@@ -477,9 +489,9 @@ class _HomeScreenState extends State<HomeScreen>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(_greeting,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 13,
-                                    color: Color(0xFF8A9A90))),
+                                    color: context.palette.secondary)),
                             const SizedBox(width: 7),
                             // Duplikat ikon live dari kartu saldo
                             // (permintaan NUX) — hijau emerald agar
@@ -499,23 +511,48 @@ class _HomeScreenState extends State<HomeScreen>
                                 letterSpacing: -0.3)),
                       ],
                     ),
-                    // Lencana ikon aplikasi — ketuk untuk ke tab Profil.
-                    GestureDetector(
-                      onTap: () => setState(() => _tabIndex = 3),
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                              color: Colors.white.withOpacity(0.08)),
+                    Row(
+                      children: [
+                        // Toggle tema Gelap/Terang — pilihan tersimpan
+                        // dan berlaku di semua layar.
+                        IconButton(
+                          onPressed: ThemeController.toggle,
+                          tooltip: context.l10n.changeThemeTooltip,
+                          icon: Icon(
+                            Theme.of(context).brightness == Brightness.dark
+                                ? Icons.light_mode_rounded
+                                : Icons.dark_mode_rounded,
+                            color: context.palette.muted,
+                          ),
+                          style: IconButton.styleFrom(
+                            backgroundColor: context.palette.card,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            side:
+                                BorderSide(color: context.palette.border),
+                          ),
                         ),
+                        const SizedBox(width: 10),
+                        // Lencana ikon aplikasi — ketuk untuk ke tab Profil.
+                        GestureDetector(
+                          onTap: () => setState(() => _tabIndex = 3),
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                  color: context.palette.border),
+                            ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(14),
                           child: Image.asset('assets/app_icon.png',
                               fit: BoxFit.cover),
                         ),
                       ),
+                    ),
+                      ],
                     ),
                   ],
                 ),
@@ -535,7 +572,7 @@ class _HomeScreenState extends State<HomeScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Total Saldo',
+                    Text(context.l10n.totalBalance,
                         style: TextStyle(fontSize: 13, color: Colors.white70)),
                     const SizedBox(height: 6),
                     Row(
@@ -560,8 +597,8 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                     Text(
                         AppConfig.isTestnet
-                            ? 'Lightning Network \u2022 Testnet'
-                            : 'Lightning Network \u2022 Mainnet',
+                            ? context.l10n.networkTestnet
+                            : context.l10n.networkMainnet,
                         style: const TextStyle(
                             fontSize: 13, color: Colors.white70)),
                     const SizedBox(height: 14),
@@ -579,8 +616,8 @@ class _HomeScreenState extends State<HomeScreen>
                           const SizedBox(width: 7),
                           Text(
                               lspService.isRunning
-                                  ? 'Lightning aktif \u2014 siap terima instan'
-                                  : 'Menghubungkan Lightning\u2026',
+                                  ? context.l10n.lightningActive
+                                  : context.l10n.lightningConnecting,
                               style: const TextStyle(
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w600)),
@@ -603,18 +640,17 @@ class _HomeScreenState extends State<HomeScreen>
                       border: Border.all(
                           color: const Color(0xFFF59E0B).withOpacity(0.35)),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
                         Icon(Icons.warning_amber_rounded,
-                            color: Color(0xFFFBBF24), size: 20),
+                            color: context.palette.warningIcon, size: 20),
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Dompet ini belum punya frasa backup. Buka tab Profil '
-                            'untuk membuat dompet baru dengan frasa sebelum menerima dana.',
+                            context.l10n.legacyStrip,
                             style: TextStyle(
                                 fontSize: 12.5,
-                                color: Color(0xFFFDE68A),
+                                color: context.palette.warningText,
                                 height: 1.35),
                           ),
                         ),
@@ -627,7 +663,9 @@ class _HomeScreenState extends State<HomeScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Row(
                   children: [
-                    _quickAction(Icons.arrow_outward_rounded, 'Kirim', true, () {
+                    _quickAction(
+                        const Icon(Icons.arrow_outward_rounded, size: 25),
+                        context.l10n.send, true, () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -642,8 +680,9 @@ class _HomeScreenState extends State<HomeScreen>
                     // dompet tanpa frasa tidak bisa dipulihkan bila HP
                     // hilang/rusak. Strip peringatan di atas menjelaskan
                     // cara mengaktifkannya (buat dompet berfrasa).
-                    _quickAction(Icons.south_west_rounded, 'Terima',
-                        !_legacyWallet, () {
+                    _quickAction(
+                        const Icon(Icons.south_west_rounded, size: 25),
+                        context.l10n.receive, !_legacyWallet, () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -653,9 +692,9 @@ class _HomeScreenState extends State<HomeScreen>
                       ).then((_) => _refreshDashboard());
                     }),
                     const SizedBox(width: 10),
-                    _quickAction(Icons.add_rounded, 'Beli', false, () {}),
+_quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, () {}),
                     const SizedBox(width: 10),
-                    _quickAction(Icons.swap_horiz_rounded, 'Tukar', false, () {}),
+                    _quickAction(const Icon(Icons.swap_horiz_rounded, size: 25), context.l10n.swap, false, () {})
                   ],
                 ),
               ),
@@ -666,7 +705,7 @@ class _HomeScreenState extends State<HomeScreen>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Aktivitas',
+                    Text(context.l10n.activity,
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w700)),
                     GestureDetector(
@@ -674,7 +713,7 @@ class _HomeScreenState extends State<HomeScreen>
                         setState(() => _tabIndex = 2);
                         _refreshDashboard();
                       },
-                      child: const Text('Lihat semua',
+                      child: Text(context.l10n.seeAll,
                           style: TextStyle(
                               fontSize: 13,
                               color: Color(0xFF34D399),
@@ -686,11 +725,11 @@ class _HomeScreenState extends State<HomeScreen>
               const SizedBox(height: 6),
               // Transaction list
               if (_payments.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-                  child: Text('Belum ada aktivitas',
+                  child: Text(context.l10n.noActivity,
                       style:
-                          TextStyle(fontSize: 13, color: Color(0xFF7D8F86))),
+                          TextStyle(fontSize: 13, color: context.palette.muted)),
                 )
               else
                 ..._payments.take(5).map(_paymentRow),
@@ -698,10 +737,10 @@ class _HomeScreenState extends State<HomeScreen>
             ],
           ),
             ),
-            const _ComingSoonPage(
+            _ComingSoonPage(
               icon: '\u25CD',
-              title: 'Pasar',
-              message: 'Info pasar NUX \u2014 segera hadir.',
+              title: context.l10n.market,
+              message: context.l10n.marketSoon,
             ),
             _HistoryPage(payments: _payments, rowBuilder: _paymentRow),
             _ProfilePage(
@@ -728,23 +767,23 @@ class _HomeScreenState extends State<HomeScreen>
         margin: const EdgeInsets.fromLTRB(18, 0, 18, 20),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFF101412),
+          color: context.palette.card,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: context.palette.border),
         ),
         child: Row(
           children: [
-            _tab(0, '\u25C9', 'Beranda'),
-            _tab(1, '\u25CD', 'Pasar'),
-            _tab(2, '\u21BA', 'Riwayat'),
-            _tab(3, '\u25CB', 'Profil'),
+            _tab(0, '\u25C9', context.l10n.home),
+            _tab(1, '\u25CD', context.l10n.market),
+            _tab(2, '\u21BA', context.l10n.history),
+            _tab(3, '\u25CB', context.l10n.profile),
           ],
         ),
       ),
     );
   }
 
-  Widget _quickAction(IconData icon, String label, bool enabled, VoidCallback onTap) {
+  Widget _quickAction(Widget icon, String label, bool enabled, VoidCallback onTap) {
     return Expanded(
       child: Opacity(
         opacity: enabled ? 1.0 : 0.3,
@@ -753,9 +792,9 @@ class _HomeScreenState extends State<HomeScreen>
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
-              color: const Color(0xFF121715),
+              color: context.palette.cardAlt,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(color: context.palette.border),
             ),
             child: Column(
               children: [
@@ -771,15 +810,13 @@ class _HomeScreenState extends State<HomeScreen>
                       ],
                     ),
                   ),
-                  child: Center(
-                      child: Icon(icon,
-                          size: 22, color: const Color(0xFF34D399))),
+                  child: Center(child: icon),
                 ),
                 const SizedBox(height: 8),
                 Text(label,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFFB8C8BF),
+                        color: context.palette.label,
                         fontWeight: FontWeight.w500)),
               ],
             ),
@@ -804,26 +841,30 @@ class _HomeScreenState extends State<HomeScreen>
     final amount = payment.amountMsat == null
         ? '\u2014'
         : '${isIn ? '+' : '\u2212'}${formatNusan(payment.amountMsat!)}';
-    final time = formatTxTime(DateTime.fromMillisecondsSinceEpoch(
-        payment.latestUpdateTimestamp.toInt() * 1000));
+    final time = formatTxTime(
+        DateTime.fromMillisecondsSinceEpoch(
+            payment.latestUpdateTimestamp.toInt() * 1000),
+        locale: context.l10n.localeName);
     return _txRow(
-      isIn ? '\u2193' : '\u2191',
-      isIn ? 'Diterima' : 'Terkirim',
+      isIn
+          ? const Icon(Icons.arrow_downward_rounded, size: 22)
+          : const Icon(Icons.arrow_upward_rounded, size: 22),
+      isIn ? context.l10n.received : context.l10n.sent,
       _shortPaymentId(payment.id),
       tag,
       isIn,
       amount,
       time,
       status: switch (payment.status) {
-        PaymentStatus.pending => 'Menunggu',
-        PaymentStatus.failed => 'Gagal',
+        PaymentStatus.pending => context.l10n.pending,
+        PaymentStatus.failed => context.l10n.failed,
         PaymentStatus.succeeded => null,
       },
       statusBad: payment.status == PaymentStatus.failed,
     );
   }
 
-  Widget _txRow(String icon, String title, String addr, String tag, bool isIn,
+  Widget _txRow(Widget icon, String title, String addr, String tag, bool isIn,
       String amount, String time,
       {String? status, bool statusBad = false}) {
     final isJit = tag.contains('JIT');
@@ -831,9 +872,9 @@ class _HomeScreenState extends State<HomeScreen>
       margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: const Color(0xFF101412),
+        color: context.palette.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: context.palette.border),
       ),
       child: Row(
         children: [
@@ -848,9 +889,9 @@ class _HomeScreenState extends State<HomeScreen>
                       const Color(0xFF10B981).withOpacity(0.08),
                     ])
                   : null,
-              color: isIn ? null : Colors.white.withOpacity(0.05),
+              color: isIn ? null : context.palette.softBg,
             ),
-            child: Center(child: Text(icon, style: const TextStyle(fontSize: 18))),
+            child: Center(child: icon),
           ),
           const SizedBox(width: 13),
           Expanded(
@@ -864,8 +905,8 @@ class _HomeScreenState extends State<HomeScreen>
                 Row(
                   children: [
                     Text(addr,
-                        style: const TextStyle(
-                            fontSize: 12, color: Color(0xFF7D8F86))),
+                        style: TextStyle(
+                            fontSize: 12, color: context.palette.muted)),
                     const SizedBox(width: 5),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -873,7 +914,7 @@ class _HomeScreenState extends State<HomeScreen>
                       decoration: BoxDecoration(
                         color: isJit
                             ? const Color(0xFF10B981).withOpacity(0.15)
-                            : Colors.white.withOpacity(0.08),
+                            : context.palette.softBg,
                         borderRadius: BorderRadius.circular(100),
                       ),
                       child: Text(tag,
@@ -882,7 +923,7 @@ class _HomeScreenState extends State<HomeScreen>
                               fontWeight: FontWeight.w700,
                               color: isJit
                                   ? const Color(0xFF34D399)
-                                  : const Color(0xFF9AA8A0))),
+                                  : context.palette.dim)),
                     ),
                     if (status != null) ...[
                       const SizedBox(width: 5),
@@ -901,8 +942,8 @@ class _HomeScreenState extends State<HomeScreen>
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                                 color: statusBad
-                                    ? const Color(0xFFF87171)
-                                    : const Color(0xFFFBBF24))),
+                                    ? context.palette.dangerSoft
+                                    : context.palette.warningIcon)),
                       ),
                     ],
                   ],
@@ -923,7 +964,7 @@ class _HomeScreenState extends State<HomeScreen>
               const SizedBox(height: 3),
               Text(time,
                   style:
-                      const TextStyle(fontSize: 11, color: Color(0xFF7D8F86))),
+                      TextStyle(fontSize: 11, color: context.palette.muted)),
             ],
           ),
         ],
@@ -963,13 +1004,13 @@ class _HomeScreenState extends State<HomeScreen>
               Text(icon,
                   style: TextStyle(
                       fontSize: 20,
-                      color: active ? Colors.white : const Color(0xFF6B7D73))),
+                      color: active ? Colors.white : context.palette.faint)),
               const SizedBox(height: 3),
               Text(label,
                   style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: active ? Colors.white : const Color(0xFF6B7D73))),
+                      color: active ? Colors.white : context.palette.faint)),
             ],
           ),
         ),
@@ -986,7 +1027,7 @@ String _shortPaymentId(PaymentId id) {
   return '${hex.substring(0, 5)}\u2026${hex.substring(hex.length - 4)}';
 }
 
-/// Tab Profil — pengaturan dompet: frasa backup & info jaringan.
+/// Tab Profil — pengaturan dompet: tema, frasa backup & info jaringan.
 /// Untuk dompet legacy (tanpa frasa) halaman ini menampung tawaran
 /// membuat dompet baru berfrasa, lengkap dengan konfirmasi bahaya.
 class _ProfilePage extends StatelessWidget {
@@ -1004,16 +1045,161 @@ class _ProfilePage extends StatelessWidget {
     required this.onResetWallet,
   });
 
+  /// Dialog pilih bahasa — dua opsi, yang aktif bertanda centang.
+  Future<void> _showLanguageDialog(BuildContext context) async {
+    final l10n = context.l10n;
+    final current = LocaleController.locale.value;
+    final picked = await showDialog<Locale>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ctx.palette.card,
+        title: Text(l10n.chooseLanguage),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _languageOption(ctx, const Locale('id'),
+                l10n.languageIndonesian, current.languageCode == 'id'),
+            _languageOption(ctx, const Locale('en'), l10n.languageEnglish,
+                current.languageCode == 'en'),
+          ],
+        ),
+      ),
+    );
+    if (picked != null) await LocaleController.setLocale(picked);
+  }
+
+  Widget _languageOption(
+      BuildContext ctx, Locale locale, String label, bool selected) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(label),
+      trailing: selected
+          ? const Icon(Icons.check_rounded, color: Color(0xFF34D399))
+          : null,
+      onTap: () => Navigator.pop(ctx, locale),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(22, 22, 22, 10),
-            child: Text('Profil',
+            child: Text(context.l10n.profile,
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          ),
+          // Baris Tema — toggle Gelap/Terang (tersimpan, sama
+          // seperti tombol di header dashboard).
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            decoration: BoxDecoration(
+              color: context.palette.card,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: context.palette.border),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: LinearGradient(colors: [
+                      const Color(0xFF10B981).withValues(alpha: 0.25),
+                      const Color(0xFF10B981).withValues(alpha: 0.08),
+                    ]),
+                  ),
+                  child: const Icon(Icons.brightness_6_rounded,
+                      color: Color(0xFF34D399), size: 20),
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(context.l10n.themeTitle,
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 3),
+                      Text(
+                        context.l10n.themeSubtitle,
+                        style: TextStyle(
+                            fontSize: 12, color: context.palette.muted),
+                      ),
+                    ],
+                  ),
+                ),
+                ValueListenableBuilder<ThemeMode>(
+                  valueListenable: ThemeController.mode,
+                  builder: (context, mode, _) => Switch(
+                    value: mode == ThemeMode.dark,
+                    onChanged: (dark) => ThemeController.setMode(
+                        dark ? ThemeMode.dark : ThemeMode.light),
+                    activeThumbColor: const Color(0xFF10B981),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Baris Bahasa — pilih Indonesia/English (tersimpan,
+          // berlaku di semua layar setelah dipilih).
+          GestureDetector(
+            onTap: () => _showLanguageDialog(context),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: context.palette.card,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: context.palette.border),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: LinearGradient(colors: [
+                        const Color(0xFF10B981).withValues(alpha: 0.25),
+                        const Color(0xFF10B981).withValues(alpha: 0.08),
+                      ]),
+                    ),
+                    child: const Icon(Icons.language_rounded,
+                        color: Color(0xFF34D399), size: 20),
+                  ),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(context.l10n.appLanguage,
+                            style: const TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 3),
+                        ValueListenableBuilder<Locale>(
+                          valueListenable: LocaleController.locale,
+                          builder: (context, locale, _) => Text(
+                            locale.languageCode == 'en'
+                                ? 'English'
+                                : 'Bahasa Indonesia',
+                            style: TextStyle(
+                                fontSize: 12, color: context.palette.muted),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded,
+                      color: context.palette.muted),
+                ],
+              ),
+            ),
           ),
           // Baris Backup Wallet
           GestureDetector(
@@ -1022,9 +1208,9 @@ class _ProfilePage extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF101412),
+                color: context.palette.card,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.white.withOpacity(0.04)),
+                border: Border.all(color: context.palette.border),
               ),
               child: Row(
                 children: [
@@ -1046,23 +1232,23 @@ class _ProfilePage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Backup Wallet',
+                        Text(context.l10n.backupWallet,
                             style: TextStyle(
                                 fontSize: 14, fontWeight: FontWeight.w600)),
                         const SizedBox(height: 3),
                         Text(
                           legacyWallet
-                              ? 'Dompet ini dibuat sebelum fitur frasa backup ada'
-                              : 'Lihat frasa backup dompet Anda',
-                          style: const TextStyle(
-                              fontSize: 12, color: Color(0xFF7D8F86)),
+                              ? context.l10n.legacyWalletSubtitle
+                              : context.l10n.backupSubtitle,
+                          style: TextStyle(
+                              fontSize: 12, color: context.palette.muted),
                         ),
                       ],
                     ),
                   ),
                   if (!legacyWallet)
-                    const Icon(Icons.chevron_right_rounded,
-                        color: Color(0xFF7D8F86)),
+                    Icon(Icons.chevron_right_rounded,
+                        color: context.palette.muted),
                 ],
               ),
             ),
@@ -1081,22 +1267,17 @@ class _ProfilePage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('Dompet ini tidak punya frasa backup',
+                  Text(context.l10n.noPhraseTitle,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFFFDE68A))),
+                          color: context.palette.warningText)),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Dompet ini dibuat oleh versi aplikasi sebelumnya yang '
-                    'menyimpan kunci tanpa frasa. Bila HP hilang atau rusak, '
-                    'dana di dompet ini tidak bisa dipulihkan.\n\n'
-                    'Bila dompet ini masih KOSONG (belum pernah menerima '
-                    'dana), buat dompet baru yang dilengkapi frasa backup '
-                    'sekarang:',
+                  Text(
+                    context.l10n.noPhraseBody,
                     style: TextStyle(
                         fontSize: 12.5,
-                        color: Color(0xFFB8C8BF),
+                        color: context.palette.label,
                         height: 1.4),
                   ),
                   const SizedBox(height: 12),
@@ -1105,21 +1286,18 @@ class _ProfilePage extends StatelessWidget {
                       final ok = await showDialog<bool>(
                         context: context,
                         builder: (ctx) => AlertDialog(
-                          backgroundColor: const Color(0xFF101412),
-                          title: const Text('Buat dompet baru?'),
-                          content: const Text(
-                              'Dompet lama akan DIHAPUS PERMANEN beserta '
-                              'seluruh datanya. Lanjutkan HANYA bila dompet '
-                              'lama masih kosong — dana apa pun di dalamnya '
-                              'hilang selamanya.'),
+                          backgroundColor: ctx.palette.card,
+                          title: Text(ctx.l10n.createNewWalletTitle),
+                          content: Text(
+                              ctx.l10n.deleteOldWalletBody),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Batal'),
+                              child: Text(ctx.l10n.cancel),
                             ),
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Hapus & buat baru',
+                              child: Text(ctx.l10n.deleteAndCreate,
                                   style:
                                       TextStyle(color: Color(0xFFEF4444))),
                             ),
@@ -1136,7 +1314,7 @@ class _ProfilePage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: const Text('Buat dompet baru dengan frasa'),
+                    child: Text(context.l10n.createNewWalletButton),
                   ),
                 ],
               ),
@@ -1147,9 +1325,9 @@ class _ProfilePage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 22),
             child: Text(
               isTestnet
-                  ? 'Jaringan: Nusacoin Testnet'
-                  : 'Jaringan: Nusacoin Mainnet',
-              style: const TextStyle(fontSize: 12.5, color: Color(0xFF7D8F86)),
+                  ? context.l10n.networkTestnetLabel
+                  : context.l10n.networkMainnetLabel,
+              style: TextStyle(fontSize: 12.5, color: context.palette.muted),
             ),
           ),
           const SizedBox(height: 80),
@@ -1169,7 +1347,7 @@ class _HistoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (payments.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
           padding: EdgeInsets.all(32),
           child: Column(
@@ -1178,12 +1356,12 @@ class _HistoryPage extends StatelessWidget {
               Text('\u21BA',
                   style: TextStyle(fontSize: 44, color: Color(0xFF34D399))),
               SizedBox(height: 14),
-              Text('Riwayat',
+              Text(context.l10n.history,
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
               SizedBox(height: 6),
               Text(
-                  'Belum ada transaksi. Pembayaran masuk dan keluar akan tampil di sini.',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF8A9A90)),
+                  context.l10n.noTransactions,
+                  style: TextStyle(fontSize: 13, color: context.palette.secondary),
                   textAlign: TextAlign.center),
             ],
           ),
@@ -1193,9 +1371,9 @@ class _HistoryPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.fromLTRB(22, 22, 22, 10),
-          child: Text('Riwayat',
+          child: Text(context.l10n.history,
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
         ),
         Expanded(
@@ -1238,8 +1416,8 @@ class _ComingSoonPage extends StatelessWidget {
                     fontSize: 20, fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
             Text(message,
-                style: const TextStyle(
-                    fontSize: 13, color: Color(0xFF8A9A90)),
+                style: TextStyle(
+                    fontSize: 13, color: context.palette.secondary),
                 textAlign: TextAlign.center),
           ],
         ),

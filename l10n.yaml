@@ -1,0 +1,13 @@
+# Konfigurasi lokalisasi ELNUX (flutter gen-l10n).
+#
+# - Bahasa: Indonesia (template) + English. Tambah bahasa = tambah
+#   satu file app_<kode>.arb, lalu jalankan flutter gen-l10n.
+# - synthetic-package: false agar hasil generate masuk lib/l10n dan
+#   ikut ter-commit (build CI tim tidak bergantung langkah generate).
+# - synthetic-package tidak lagi dipakai (diabaikan Flutter baru):
+#   hasil generate selalu masuk output-dir di bawah dan ikut ter-commit
+#   (build CI tim tidak bergantung langkah generate).
+arb-dir: lib/l10n
+template-arb-file: app_id.arb
+output-localization-file: app_localizations.dart
+output-dir: lib/l10n

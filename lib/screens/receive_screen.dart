@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../locale_controller.dart';
+import '../theme.dart';
 import 'package:flutter/services.dart';
 import 'package:ldk_node/src/generated/api/types.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -45,7 +47,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
     final text = _amountController.text.trim();
     final nusan = double.tryParse(text);
     if (nusan == null || nusan <= 0) {
-      setState(() => _error = 'Masukkan nominal yang valid');
+      setState(() => _error = context.l10n.invalidAmount);
       return;
     }
 
@@ -63,13 +65,13 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
       final amountMsat = BigInt.from((nusan * 1000).round());
       final invoice = await widget.lspService.createJitInvoice(
         amountMsat: amountMsat,
-        description: 'Terima $nusan nusan',
+        description: context.l10n.receiveInvoiceDesc(nusan.toString()),
       );
       setState(() => _invoice = invoice);
       _startWatching();
     } catch (e) {
-      setState(() => _error =
-          friendlyError(e, fallback: 'Gagal membuat invoice. Coba lagi.'));
+      setState(() => _error = friendlyError(e,
+          fallback: context.l10n.createInvoiceFailed, l10n: context.l10n));
     } finally {
       setState(() => _loading = false);
     }
@@ -131,7 +133,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Terima NUX'),
+        title: Text(context.l10n.receiveTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -150,15 +152,14 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                   color: const Color(0xFF10B981).withOpacity(0.3),
                 ),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Text('\u26A1', style: TextStyle(fontSize: 24)),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Invoice Lightning dengan channel instan (JIT). '
-                      'Tidak perlu tunggu konfirmasi block.',
-                      style: TextStyle(fontSize: 13, color: Color(0xFFB8C8BF)),
+                      context.l10n.jitInfo,
+                      style: TextStyle(fontSize: 13, color: context.palette.label),
                     ),
                   ),
                 ],
@@ -166,7 +167,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
             ),
             const SizedBox(height: 20),
             // Amount input
-            const Text('Nominal (nusan)',
+            Text(context.l10n.amountLabel,
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             TextField(
@@ -178,17 +179,17 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
               decoration: InputDecoration(
                 hintText: '0',
                 hintStyle: TextStyle(
-                    color: Colors.white.withOpacity(0.2)),
+                    color: context.palette.hint),
                 filled: true,
-                fillColor: const Color(0xFF121715),
+                fillColor: context.palette.cardAlt,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
                 ),
                 suffixText: 'nusan',
-                suffixStyle: const TextStyle(
+                suffixStyle: TextStyle(
                     fontSize: 16,
-                    color: Color(0xFF7D8F86),
+                    color: context.palette.muted,
                     fontWeight: FontWeight.w600),
               ),
             ),
@@ -211,7 +212,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white),
                     )
-                  : const Text('Buat Invoice',
+                  : Text(context.l10n.createInvoice,
                       style: TextStyle(
                           fontSize: 16, fontWeight: FontWeight.w700)),
             ),
@@ -237,21 +238,22 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                     const Icon(Icons.check_circle,
                         size: 72, color: Color(0xFF34D399)),
                     const SizedBox(height: 12),
-                    const Text('Pembayaran Diterima',
+                    Text(context.l10n.paymentReceived,
                         style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
                             color: Color(0xFF34D399))),
                     const SizedBox(height: 6),
                     Text(
-                        '+${formatNusan(_receivedMsat ?? BigInt.zero)} nusan',
+                        context.l10n.receivedAmount(
+                            formatNusan(_receivedMsat ?? BigInt.zero)),
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 6),
-                    const Text(
-                      'Dana sudah masuk ke channel Lightning kamu.',
+                    Text(
+                      context.l10n.fundsArrived,
                       style:
-                          TextStyle(fontSize: 12, color: Color(0xFF7D8F86)),
+                          TextStyle(fontSize: 12, color: context.palette.muted),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -259,7 +261,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
               ),
             ] else if (_invoice != null) ...[
               const SizedBox(height: 24),
-              const Text('Invoice Lightning',
+              Text(context.l10n.invoiceTitle,
                   style:
                       TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
@@ -283,7 +285,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF121715),
+                  color: context.palette.cardAlt,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -291,8 +293,8 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                     Expanded(
                       child: Text(
                         _invoice!,
-                        style: const TextStyle(
-                            fontSize: 12, color: Color(0xFFB8C8BF)),
+                        style: TextStyle(
+                            fontSize: 12, color: context.palette.label),
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -304,8 +306,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                         Clipboard.setData(
                             ClipboardData(text: _invoice!));
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Invoice disalin')),
+                          SnackBar(content: Text(context.l10n.invoiceCopied)),
                         );
                       },
                     ),
@@ -313,11 +314,10 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Bagikan invoice ini ke pengirim. '
-                'Channel akan dibuka otomatis saat pembayaran diterima.',
+              Text(
+                context.l10n.shareInvoiceHint,
                 style:
-                    TextStyle(fontSize: 12, color: Color(0xFF7D8F86)),
+                    TextStyle(fontSize: 12, color: context.palette.muted),
                 textAlign: TextAlign.center,
               ),
             ],

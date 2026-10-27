@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../locale_controller.dart';
+import '../theme.dart';
 import 'package:flutter/services.dart';
 
 /// Layar Backup Phrase — WAJIB untuk self-custodial.
@@ -22,7 +24,7 @@ class _BackupScreenState extends State<BackupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Backup Wallet'),
+        title: Text(context.l10n.backupWallet),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -41,15 +43,14 @@ class _BackupScreenState extends State<BackupScreen> {
                   color: Colors.orange.withOpacity(0.3),
                 ),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Text('\u26A0\uFE0F', style: TextStyle(fontSize: 24)),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Tulis kata-kata ini di kertas dan simpan di tempat aman. '
-                      'Siapa pun yang punya kata-kata ini bisa mengambil danamu.',
-                      style: TextStyle(fontSize: 13, color: Color(0xFFB8C8BF)),
+                      context.l10n.backupWarning,
+                      style: TextStyle(fontSize: 13, color: context.palette.label),
                     ),
                   ),
                 ],
@@ -67,7 +68,7 @@ class _BackupScreenState extends State<BackupScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Text('Tampilkan Kata Backup',
+                child: Text(context.l10n.showBackupWords,
                     style:
                         TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
               ),
@@ -87,19 +88,19 @@ class _BackupScreenState extends State<BackupScreen> {
                 itemBuilder: (context, i) {
                   return Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF121715),
+                      color: context.palette.cardAlt,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: Colors.white.withOpacity(0.05)),
+                          color: context.palette.border),
                     ),
                     child: Center(
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text('${i + 1}.',
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 11,
-                                  color: Color(0xFF7D8F86))),
+                                  color: context.palette.muted)),
                           const SizedBox(width: 4),
                           Text(widget.mnemonic[i],
                               style: const TextStyle(
@@ -117,13 +118,13 @@ class _BackupScreenState extends State<BackupScreen> {
                   Clipboard.setData(ClipboardData(
                       text: widget.mnemonic.join(' ')));
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Kata backup disalin')),
+                    SnackBar(
+                        content: Text(context.l10n.backupCopied)),
                   );
                 },
                 icon: const Icon(Icons.copy,
                     color: Color(0xFF34D399)),
-                label: const Text('Salin',
+                label: Text(context.l10n.copy,
                     style: TextStyle(color: Color(0xFF34D399))),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(
@@ -141,8 +142,8 @@ class _BackupScreenState extends State<BackupScreen> {
                 value: _confirmed,
                 onChanged: (v) =>
                     setState(() => _confirmed = v ?? false),
-                title: const Text(
-                  'Saya sudah menulis kata-kata ini di tempat aman',
+                title: Text(
+                  context.l10n.backupConfirmed,
                   style: TextStyle(fontSize: 14),
                 ),
                 controlAffinity:
@@ -163,7 +164,7 @@ class _BackupScreenState extends State<BackupScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Text('Selesai',
+                child: Text(context.l10n.done,
                     style: TextStyle(
                         fontSize: 16, fontWeight: FontWeight.w700)),
               ),
