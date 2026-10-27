@@ -1,8 +1,6 @@
 name: Build APK NUX Wallet
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -137,8 +135,7 @@ jobs:
       # file hasil decode tinggal di runner.temp — DI LUAR checkout — dan
       # tidak pernah di-upload (langkah unggah hanya mengambil *.apk dari
       # folder output Flutter); tidak ada langkah yang mencetak isi/nilai
-      # secrets; langkah ini hanya jalan pada trigger tepercaya (push ke
-      # main / dispatch manual — workflow ini memang tidak punya trigger
+      # secrets; langkah ini hanya jalan pada trigger tepercaya (dispatch manual — workflow ini memang tidak punya trigger
       # pull_request, jadi jalur PR fork tidak pernah menyentuh signing).
       - name: Siapkan keystore release dari Secrets
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
