@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config.dart';
 import '../locale_controller.dart';
 import '../theme.dart';
 import 'package:flutter/services.dart';
@@ -90,10 +91,10 @@ class _SendScreenState extends State<SendScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                color: const Color(0xFF10B981).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                  color: const Color(0xFF10B981).withOpacity(0.3),
                 ),
               ),
               child: Row(
@@ -120,7 +121,14 @@ class _SendScreenState extends State<SendScreen> {
               minLines: 3,
               style: const TextStyle(fontSize: 13),
               decoration: InputDecoration(
-                hintText: 'lnnu1... atau lntn1...',
+                // Hint hanya menampilkan SATU format: prefix HRP jaringan
+                // yang sedang dipakai (lntn di testnet, lnnu di mainnet).
+                // Sebelumnya hardcode 'lnnu1... atau lntn1...' sehingga
+                // user mainnet melihat format testnet dan bingung.
+                // Diambil dari AppConfig.isTestnet (sudah benar per branch
+                // lewat config kulit masing-masing) — tanpa mengubah
+                // config.dart, jadi sync ke mainnet aman.
+                hintText: AppConfig.isTestnet ? 'lntn1...' : 'lnnu1...',
                 hintStyle:
                     TextStyle(color: context.palette.hint),
                 filled: true,
@@ -149,7 +157,7 @@ class _SendScreenState extends State<SendScreen> {
                         style: TextStyle(color: Color(0xFF34D399))),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
-                          color: const Color(0xFF34D399).withValues(alpha: 0.3)),
+                          color: const Color(0xFF34D399).withOpacity(0.3)),
                       padding:
                           const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -181,7 +189,7 @@ class _SendScreenState extends State<SendScreen> {
                         style: TextStyle(color: Color(0xFF34D399))),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
-                          color: const Color(0xFF34D399).withValues(alpha: 0.3)),
+                          color: const Color(0xFF34D399).withOpacity(0.3)),
                       padding:
                           const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -227,10 +235,10 @@ class _SendScreenState extends State<SendScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                  color: const Color(0xFF10B981).withOpacity(0.15),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: const Color(0xFF10B981).withValues(alpha: 0.4),
+                    color: const Color(0xFF10B981).withOpacity(0.4),
                   ),
                 ),
                 child: Column(
