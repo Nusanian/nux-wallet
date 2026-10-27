@@ -91,10 +91,10 @@ class _SendScreenState extends State<SendScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF10B981).withOpacity(0.1),
+                color: const Color(0xFF10B981).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: const Color(0xFF10B981).withOpacity(0.3),
+                  color: const Color(0xFF10B981).withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -157,7 +157,7 @@ class _SendScreenState extends State<SendScreen> {
                         style: TextStyle(color: Color(0xFF34D399))),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
-                          color: const Color(0xFF34D399).withOpacity(0.3)),
+                          color: const Color(0xFF34D399).withValues(alpha: 0.3)),
                       padding:
                           const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -189,7 +189,7 @@ class _SendScreenState extends State<SendScreen> {
                         style: TextStyle(color: Color(0xFF34D399))),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
-                          color: const Color(0xFF34D399).withOpacity(0.3)),
+                          color: const Color(0xFF34D399).withValues(alpha: 0.3)),
                       padding:
                           const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -235,10 +235,10 @@ class _SendScreenState extends State<SendScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.15),
+                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: const Color(0xFF10B981).withOpacity(0.4),
+                    color: const Color(0xFF10B981).withValues(alpha: 0.4),
                   ),
                 ),
                 child: Column(
