@@ -2,7 +2,7 @@ name: Build APK NUX Wallet
 
 on:
   push:
-    branches: [main]
+    branches: [testnet]
   workflow_dispatch:
 
 jobs:
