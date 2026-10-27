@@ -46,6 +46,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bootConnecting => 'Connecting to LSP…';
 
   @override
+  String get splashTagline => 'Your money, your control.';
+
+  @override
   String get bootFailedTitle => 'Failed to connect node';
 
   @override
@@ -302,4 +305,53 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorWalletData =>
       'Wallet data is corrupted. Contact the operator for help.';
+
+  @override
+  String get restoreWallet => 'Restore Phrase';
+
+  @override
+  String get restoreSubtitle => 'Restore your wallet from a backup phrase';
+
+  @override
+  String get restoreIntro =>
+      'Enter the backup phrase of the wallet you want to restore. ELNUX phrases are in English, in the original order.';
+
+  @override
+  String get restoreHint =>
+      'Type or paste the phrase, separating each word with a space';
+
+  @override
+  String restoreWordCount(int count) {
+    return '$count words';
+  }
+
+  @override
+  String get restoreInvalidCount =>
+      'The phrase must have 12, 15, 18, 21, or 24 words (ELNUX phrases have 12 words).';
+
+  @override
+  String get restoreInvalidWords =>
+      'Invalid phrase — check the spelling and word order.';
+
+  @override
+  String get restoreButton => 'Restore Wallet';
+
+  @override
+  String get restoreConfirmTitle => 'Restore this wallet?';
+
+  @override
+  String get restoreConfirmBody =>
+      'The active wallet will be PERMANENTLY DELETED with all its data. Continue ONLY if the active wallet is still empty, or its phrase is already backed up. A phrase restores the wallet — Lightning channel states are not restored.';
+
+  @override
+  String get restoreConfirmAction => 'Delete & Restore';
+
+  @override
+  String get restoreWorking => 'Restoring wallet…';
+
+  @override
+  String get restoreSuccess => 'Wallet restored successfully';
+
+  @override
+  String get restoreFailed => 'Failed to restore the wallet. Try again.';
 }

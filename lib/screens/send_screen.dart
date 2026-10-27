@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config.dart';
 import '../locale_controller.dart';
 import '../theme.dart';
 import 'package:flutter/services.dart';
@@ -120,7 +121,14 @@ class _SendScreenState extends State<SendScreen> {
               minLines: 3,
               style: const TextStyle(fontSize: 13),
               decoration: InputDecoration(
-                hintText: 'lnnu1... atau lntn1...',
+                // Hint hanya menampilkan SATU format: prefix HRP jaringan
+                // yang sedang dipakai (lntn di testnet, lnnu di mainnet).
+                // Sebelumnya hardcode 'lnnu1... atau lntn1...' sehingga
+                // user mainnet melihat format testnet dan bingung.
+                // Diambil dari AppConfig.isTestnet (sudah benar per branch
+                // lewat config kulit masing-masing) — tanpa mengubah
+                // config.dart, jadi sync ke mainnet aman.
+                hintText: AppConfig.isTestnet ? 'lntn1...' : 'lnnu1...',
                 hintStyle:
                     TextStyle(color: context.palette.hint),
                 filled: true,

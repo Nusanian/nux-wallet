@@ -14,6 +14,8 @@ import 'l10n/app_localizations.dart';
 import 'theme.dart';
 import 'screens/backup_screen.dart';
 import 'screens/receive_screen.dart';
+import 'screens/restore_screen.dart';
+import 'screens/splash_screen.dart';
 import 'screens/send_screen.dart';
 import 'services/lsp_service.dart';
 import 'utils/format.dart';
@@ -348,6 +350,52 @@ class _HomeScreenState extends State<HomeScreen>
     await _boot();
   }
 
+  /// Pulihkan dompet dari frasa BIP39 yang sudah divalidasi layar
+  /// Restore (jumlah kata + checksum). Pola sama dengan
+  /// _resetWalletWithPhrase: hentikan node, hapus berkas dompet aktif
+  /// (seed + frasa + storage channel), tulis seed turunan frasa
+  /// (mnemonicToSeed, sama seperti _boot) + frasanya, lalu boot ulang.
+  /// _boot berikutnya membaca seed + frasa yang valid → dompet hasil
+  /// restore, bukan legacy, tanpa popup frasa paksa.
+  /// PERINGATAN: data dompet aktif hilang permanen; layar Restore sudah
+  /// meminta konfirmasi eksplisit. Frasa hanya memulihkan seed dompet —
+  /// status channel Lightning (di storage yang dihapus) TIDAK ikut
+  /// pulih, jadi restore hanya aman untuk dompet yang channelnya sudah
+  /// kosong/tertutup, atau yang frasanya memang cadangan satu-satunya.
+  Future<void> _restoreWalletWithPhrase(String mnemonic) async {
+    if (!bip39.validateMnemonic(mnemonic)) {
+      throw StateError(context.l10n.restoreInvalidWords);
+    }
+    if (_seedFile == null || _mnemonicFile == null || _storageDir == null) {
+      throw StateError(context.l10n.restoreFailed);
+    }
+    try {
+      await lspService.stop();
+    } catch (_) {
+      // Node mungkin belum sempat start penuh — abaikan.
+    }
+    final seedBytes = bip39.mnemonicToSeed(mnemonic);
+    await _seedFile!.writeAsBytes(seedBytes, flush: true);
+    await _mnemonicFile!.writeAsString(mnemonic, flush: true);
+    if (await _storageDir!.exists()) {
+      await _storageDir!.delete(recursive: true);
+    }
+    if (!mounted) return;
+    setState(() {
+      _mnemonicWords = null;
+      _legacyWallet = false;
+      _balanceMsat = null;
+      _payments = const [];
+      // Primer ulang: riwayat dompet hasil restore tidak boleh memicu
+      // bunyi koin masuk saat muat pertama.
+      _paymentsPrimed = false;
+      _tabIndex = 0;
+      _booting = true;
+      _bootError = null;
+    });
+    await _boot();
+  }
+
   /// Dialog konfirmasi keluar aplikasi, desain selaras tema:
   /// permukaan mengikuti tema, sudut membulat, aksen emerald.
   Future<void> _confirmExit() async {
@@ -406,19 +454,9 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildBody(BuildContext context) {
     if (_booting) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: Color(0xFF10B981)),
-              SizedBox(height: 16),
-              Text(context.l10n.bootConnecting,
-                  style: TextStyle(color: context.palette.secondary)),
-            ],
-          ),
-        ),
-      );
+      // Layar awal bergaya splash: logo + partikel + tagline,
+      // tampil selama node LDK + LSPS2 diinisialisasi.
+      return const SplashScreen();
     }
     if (_bootError != null) {
       return Scaffold(
@@ -760,6 +798,7 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
                 );
               },
               onResetWallet: _resetWalletWithPhrase,
+              onRestoreWallet: _restoreWalletWithPhrase,
             ),
           ],
         ),
@@ -1039,12 +1078,17 @@ class _ProfilePage extends StatelessWidget {
   final VoidCallback onViewBackup;
   final Future<void> Function() onResetWallet;
 
+  /// Dipanggil dengan frasa tervalidasi dari layar Restore; mengeksekusi
+  /// pergantian dompet (lihat _restoreWalletWithPhrase di HomeScreen).
+  final Future<void> Function(String mnemonic) onRestoreWallet;
+
   const _ProfilePage({
     required this.mnemonicWords,
     required this.legacyWallet,
     required this.isTestnet,
     required this.onViewBackup,
     required this.onResetWallet,
+    required this.onRestoreWallet,
   });
 
   /// Dialog pilih bahasa — dua opsi, yang aktif bertanda centang.
@@ -1251,6 +1295,69 @@ class _ProfilePage extends StatelessWidget {
                   if (!legacyWallet)
                     Icon(Icons.chevron_right_rounded,
                         color: context.palette.muted),
+                ],
+              ),
+            ),
+          ),
+          // Baris Restore Phrase — pulihkan dompet dari frasa backup.
+          // Tersedia untuk semua status dompet (termasuk legacy: restore
+          // juga menggantikan dompet tanpa frasa dengan dompet berfrasa).
+          GestureDetector(
+            onTap: () async {
+              final restored = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RestoreScreen(onRestore: onRestoreWallet),
+                ),
+              );
+              if (restored == true && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(context.l10n.restoreSuccess)),
+                );
+              }
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: context.palette.card,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: context.palette.border),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: LinearGradient(colors: [
+                        const Color(0xFF10B981).withValues(alpha: 0.25),
+                        const Color(0xFF10B981).withValues(alpha: 0.08),
+                      ]),
+                    ),
+                    child: const Icon(Icons.restore_rounded,
+                        color: Color(0xFF34D399), size: 20),
+                  ),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(context.l10n.restoreWallet,
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 3),
+                        Text(
+                          context.l10n.restoreSubtitle,
+                          style: TextStyle(
+                              fontSize: 12, color: context.palette.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded,
+                      color: context.palette.muted),
                 ],
               ),
             ),
