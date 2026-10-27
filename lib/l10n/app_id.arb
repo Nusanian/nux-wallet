@@ -12,6 +12,7 @@
   "greetingEvening": "Selamat sore",
   "greetingNight": "Selamat malam",
   "bootConnecting": "Menghubungkan ke LSP…",
+  "splashTagline": "Uangmu, Kendalimu.",
   "bootFailedTitle": "Gagal menghubungkan node",
   "bootFailedRetry": "Coba lagi",
   "bootGenericError": "Terjadi kendala saat memulai dompet.",

@@ -12,6 +12,7 @@
   "greetingEvening": "Good evening",
   "greetingNight": "Good night",
   "bootConnecting": "Connecting to LSP…",
+  "splashTagline": "Your money, your control.",
   "bootFailedTitle": "Failed to connect node",
   "bootFailedRetry": "Try again",
   "bootGenericError": "Something went wrong while starting the wallet.",

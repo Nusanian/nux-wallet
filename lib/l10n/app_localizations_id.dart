@@ -46,6 +46,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get bootConnecting => 'Menghubungkan ke LSP…';
 
   @override
+  String get splashTagline => 'Uangmu, Kendalimu.';
+
+  @override
   String get bootFailedTitle => 'Gagal menghubungkan node';
 
   @override

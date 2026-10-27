@@ -14,6 +14,7 @@ import 'l10n/app_localizations.dart';
 import 'theme.dart';
 import 'screens/backup_screen.dart';
 import 'screens/receive_screen.dart';
+import 'screens/splash_screen.dart';
 import 'screens/send_screen.dart';
 import 'services/lsp_service.dart';
 import 'utils/format.dart';
@@ -406,19 +407,9 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildBody(BuildContext context) {
     if (_booting) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: Color(0xFF10B981)),
-              SizedBox(height: 16),
-              Text(context.l10n.bootConnecting,
-                  style: TextStyle(color: context.palette.secondary)),
-            ],
-          ),
-        ),
-      );
+      // Layar awal bergaya splash: logo + partikel + tagline,
+      // tampil selama node LDK + LSPS2 diinisialisasi.
+      return const SplashScreen();
     }
     if (_bootError != null) {
       return Scaffold(

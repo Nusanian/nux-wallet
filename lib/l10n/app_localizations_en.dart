@@ -46,6 +46,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bootConnecting => 'Connecting to LSP…';
 
   @override
+  String get splashTagline => 'Your money, your control.';
+
+  @override
   String get bootFailedTitle => 'Failed to connect node';
 
   @override

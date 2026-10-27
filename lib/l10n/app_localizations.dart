@@ -170,6 +170,12 @@ abstract class AppLocalizations {
   /// **'Menghubungkan ke LSP…'**
   String get bootConnecting;
 
+  /// No description provided for @splashTagline.
+  ///
+  /// In id, this message translates to:
+  /// **'Uangmu, Kendalimu.'**
+  String get splashTagline;
+
   /// No description provided for @bootFailedTitle.
   ///
   /// In id, this message translates to:
