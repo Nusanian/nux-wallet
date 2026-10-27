@@ -586,7 +586,8 @@ class _HomeScreenState extends State<HomeScreen>
                             style: const TextStyle(
                                 fontSize: 44,
                                 fontWeight: FontWeight.w800,
-                                letterSpacing: -1)),
+                                letterSpacing: -1,
+                                color: Colors.white)),
                         const SizedBox(width: 6),
                         const Text('nusan',
                             style: TextStyle(
@@ -620,7 +621,8 @@ class _HomeScreenState extends State<HomeScreen>
                                   : context.l10n.lightningConnecting,
                               style: const TextStyle(
                                   fontSize: 12.5,
-                                  fontWeight: FontWeight.w600)),
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white)),
                         ],
                       ),
                     ),
