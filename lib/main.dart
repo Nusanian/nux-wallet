@@ -586,7 +586,8 @@ class _HomeScreenState extends State<HomeScreen>
                             style: const TextStyle(
                                 fontSize: 44,
                                 fontWeight: FontWeight.w800,
-                                letterSpacing: -1)),
+                                letterSpacing: -1,
+                                color: Colors.white)),
                         const SizedBox(width: 6),
                         const Text('nusan',
                             style: TextStyle(
@@ -606,7 +607,7 @@ class _HomeScreenState extends State<HomeScreen>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.25),
+                        color: Colors.black.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(100),
                       ),
                       child: Row(
@@ -620,7 +621,8 @@ class _HomeScreenState extends State<HomeScreen>
                                   : context.l10n.lightningConnecting,
                               style: const TextStyle(
                                   fontSize: 12.5,
-                                  fontWeight: FontWeight.w600)),
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white)),
                         ],
                       ),
                     ),
@@ -635,10 +637,10 @@ class _HomeScreenState extends State<HomeScreen>
                     margin: const EdgeInsets.fromLTRB(18, 0, 18, 4),
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF59E0B).withOpacity(0.12),
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                          color: const Color(0xFFF59E0B).withOpacity(0.35)),
+                          color: const Color(0xFFF59E0B).withValues(alpha: 0.35)),
                     ),
                     child: Row(
                       children: [
@@ -805,8 +807,8 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
                     borderRadius: BorderRadius.circular(16),
                     gradient: LinearGradient(
                       colors: [
-                        const Color(0xFF10B981).withOpacity(0.2),
-                        const Color(0xFF10B981).withOpacity(0.05),
+                        const Color(0xFF10B981).withValues(alpha: 0.2),
+                        const Color(0xFF10B981).withValues(alpha: 0.05),
                       ],
                     ),
                   ),
@@ -885,8 +887,8 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
               borderRadius: BorderRadius.circular(14),
               gradient: isIn
                   ? LinearGradient(colors: [
-                      const Color(0xFF10B981).withOpacity(0.25),
-                      const Color(0xFF10B981).withOpacity(0.08),
+                      const Color(0xFF10B981).withValues(alpha: 0.25),
+                      const Color(0xFF10B981).withValues(alpha: 0.08),
                     ])
                   : null,
               color: isIn ? null : context.palette.softBg,
@@ -913,7 +915,7 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
                           horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: isJit
-                            ? const Color(0xFF10B981).withOpacity(0.15)
+                            ? const Color(0xFF10B981).withValues(alpha: 0.15)
                             : context.palette.softBg,
                         borderRadius: BorderRadius.circular(100),
                       ),
@@ -991,7 +993,7 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
             boxShadow: active
                 ? [
                     BoxShadow(
-                      color: const Color(0xFF10B981).withOpacity(0.35),
+                      color: const Color(0xFF10B981).withValues(alpha: 0.35),
                       blurRadius: 18,
                       offset: const Offset(0, 6),
                     )
@@ -1220,8 +1222,8 @@ class _ProfilePage extends StatelessWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
                       gradient: LinearGradient(colors: [
-                        const Color(0xFF10B981).withOpacity(0.25),
-                        const Color(0xFF10B981).withOpacity(0.08),
+                        const Color(0xFF10B981).withValues(alpha: 0.25),
+                        const Color(0xFF10B981).withValues(alpha: 0.08),
                       ]),
                     ),
                     child: const Icon(Icons.key_rounded,
@@ -1259,10 +1261,10 @@ class _ProfilePage extends StatelessWidget {
               margin: const EdgeInsets.fromLTRB(18, 10, 18, 4),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF59E0B).withOpacity(0.10),
+                color: const Color(0xFFF59E0B).withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                    color: const Color(0xFFF59E0B).withOpacity(0.30)),
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.30)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1470,7 +1472,7 @@ class _PulseDotState extends State<_PulseDot>
           color: widget.color,
           boxShadow: [
             BoxShadow(
-                color: widget.color.withOpacity(0.8), blurRadius: 10)
+                color: widget.color.withValues(alpha: 0.8), blurRadius: 10)
           ],
         ),
       ),
