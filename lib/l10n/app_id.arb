@@ -115,5 +115,26 @@
   "errorConnection": "Tidak dapat terhubung. Periksa koneksi internet Anda, lalu coba lagi.",
   "errorBalance": "Saldo tidak mencukupi.",
   "errorInvoice": "Invoice tidak valid atau sudah kedaluwarsa.",
-  "errorWalletData": "Data dompet bermasalah. Hubungi operator untuk bantuan."
+  "errorWalletData": "Data dompet bermasalah. Hubungi operator untuk bantuan.",
+  "restoreWallet": "Restore Phrase",
+  "restoreSubtitle": "Pulihkan dompet dari frasa backup",
+  "restoreIntro": "Masukkan frasa backup dompet yang ingin dipulihkan. Frasa ELNUX berbahasa Inggris, sesuai urutan saat pertama dibuat.",
+  "restoreHint": "Ketik atau tempel frasa, pisahkan tiap kata dengan spasi",
+  "restoreWordCount": "{count} kata",
+  "restoreInvalidCount": "Jumlah kata harus 12, 15, 18, 21, atau 24 (frasa ELNUX 12 kata).",
+  "restoreInvalidWords": "Frasa tidak valid — periksa ejaan dan urutan kata.",
+  "restoreButton": "Pulihkan Dompet",
+  "restoreConfirmTitle": "Pulihkan dompet ini?",
+  "restoreConfirmBody": "Dompet yang sedang aktif akan DIHAPUS PERMANEN beserta seluruh datanya. Lanjutkan HANYA bila dompet aktif masih kosong, atau frasanya sudah dicadangkan. Frasa hanya memulihkan dompet — status channel Lightning tidak ikut pulih.",
+  "restoreConfirmAction": "Hapus & Pulihkan",
+  "restoreWorking": "Memulihkan dompet…",
+  "restoreSuccess": "Dompet berhasil dipulihkan",
+  "restoreFailed": "Gagal memulihkan dompet. Coba lagi.",
+  "@restoreWordCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

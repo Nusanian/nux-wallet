@@ -649,6 +649,90 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Data dompet bermasalah. Hubungi operator untuk bantuan.'**
   String get errorWalletData;
+
+  /// No description provided for @restoreWallet.
+  ///
+  /// In id, this message translates to:
+  /// **'Restore Phrase'**
+  String get restoreWallet;
+
+  /// No description provided for @restoreSubtitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Pulihkan dompet dari frasa backup'**
+  String get restoreSubtitle;
+
+  /// No description provided for @restoreIntro.
+  ///
+  /// In id, this message translates to:
+  /// **'Masukkan frasa backup dompet yang ingin dipulihkan. Frasa ELNUX berbahasa Inggris, sesuai urutan saat pertama dibuat.'**
+  String get restoreIntro;
+
+  /// No description provided for @restoreHint.
+  ///
+  /// In id, this message translates to:
+  /// **'Ketik atau tempel frasa, pisahkan tiap kata dengan spasi'**
+  String get restoreHint;
+
+  /// No description provided for @restoreWordCount.
+  ///
+  /// In id, this message translates to:
+  /// **'{count} kata'**
+  String restoreWordCount(int count);
+
+  /// No description provided for @restoreInvalidCount.
+  ///
+  /// In id, this message translates to:
+  /// **'Jumlah kata harus 12, 15, 18, 21, atau 24 (frasa ELNUX 12 kata).'**
+  String get restoreInvalidCount;
+
+  /// No description provided for @restoreInvalidWords.
+  ///
+  /// In id, this message translates to:
+  /// **'Frasa tidak valid — periksa ejaan dan urutan kata.'**
+  String get restoreInvalidWords;
+
+  /// No description provided for @restoreButton.
+  ///
+  /// In id, this message translates to:
+  /// **'Pulihkan Dompet'**
+  String get restoreButton;
+
+  /// No description provided for @restoreConfirmTitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Pulihkan dompet ini?'**
+  String get restoreConfirmTitle;
+
+  /// No description provided for @restoreConfirmBody.
+  ///
+  /// In id, this message translates to:
+  /// **'Dompet yang sedang aktif akan DIHAPUS PERMANEN beserta seluruh datanya. Lanjutkan HANYA bila dompet aktif masih kosong, atau frasanya sudah dicadangkan. Frasa hanya memulihkan dompet — status channel Lightning tidak ikut pulih.'**
+  String get restoreConfirmBody;
+
+  /// No description provided for @restoreConfirmAction.
+  ///
+  /// In id, this message translates to:
+  /// **'Hapus & Pulihkan'**
+  String get restoreConfirmAction;
+
+  /// No description provided for @restoreWorking.
+  ///
+  /// In id, this message translates to:
+  /// **'Memulihkan dompet…'**
+  String get restoreWorking;
+
+  /// No description provided for @restoreSuccess.
+  ///
+  /// In id, this message translates to:
+  /// **'Dompet berhasil dipulihkan'**
+  String get restoreSuccess;
+
+  /// No description provided for @restoreFailed.
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memulihkan dompet. Coba lagi.'**
+  String get restoreFailed;
 }
 
 class _AppLocalizationsDelegate

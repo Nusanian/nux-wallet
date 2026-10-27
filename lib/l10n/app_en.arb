@@ -115,5 +115,26 @@
   "errorConnection": "Cannot connect. Check your internet connection, then try again.",
   "errorBalance": "Insufficient balance.",
   "errorInvoice": "Invoice is invalid or has expired.",
-  "errorWalletData": "Wallet data is corrupted. Contact the operator for help."
+  "errorWalletData": "Wallet data is corrupted. Contact the operator for help.",
+  "restoreWallet": "Restore Phrase",
+  "restoreSubtitle": "Restore your wallet from a backup phrase",
+  "restoreIntro": "Enter the backup phrase of the wallet you want to restore. ELNUX phrases are in English, in the original order.",
+  "restoreHint": "Type or paste the phrase, separating each word with a space",
+  "restoreWordCount": "{count} words",
+  "restoreInvalidCount": "The phrase must have 12, 15, 18, 21, or 24 words (ELNUX phrases have 12 words).",
+  "restoreInvalidWords": "Invalid phrase — check the spelling and word order.",
+  "restoreButton": "Restore Wallet",
+  "restoreConfirmTitle": "Restore this wallet?",
+  "restoreConfirmBody": "The active wallet will be PERMANENTLY DELETED with all its data. Continue ONLY if the active wallet is still empty, or its phrase is already backed up. A phrase restores the wallet — Lightning channel states are not restored.",
+  "restoreConfirmAction": "Delete & Restore",
+  "restoreWorking": "Restoring wallet…",
+  "restoreSuccess": "Wallet restored successfully",
+  "restoreFailed": "Failed to restore the wallet. Try again.",
+  "@restoreWordCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

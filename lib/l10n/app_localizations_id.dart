@@ -305,4 +305,53 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get errorWalletData =>
       'Data dompet bermasalah. Hubungi operator untuk bantuan.';
+
+  @override
+  String get restoreWallet => 'Restore Phrase';
+
+  @override
+  String get restoreSubtitle => 'Pulihkan dompet dari frasa backup';
+
+  @override
+  String get restoreIntro =>
+      'Masukkan frasa backup dompet yang ingin dipulihkan. Frasa ELNUX berbahasa Inggris, sesuai urutan saat pertama dibuat.';
+
+  @override
+  String get restoreHint =>
+      'Ketik atau tempel frasa, pisahkan tiap kata dengan spasi';
+
+  @override
+  String restoreWordCount(int count) {
+    return '$count kata';
+  }
+
+  @override
+  String get restoreInvalidCount =>
+      'Jumlah kata harus 12, 15, 18, 21, atau 24 (frasa ELNUX 12 kata).';
+
+  @override
+  String get restoreInvalidWords =>
+      'Frasa tidak valid — periksa ejaan dan urutan kata.';
+
+  @override
+  String get restoreButton => 'Pulihkan Dompet';
+
+  @override
+  String get restoreConfirmTitle => 'Pulihkan dompet ini?';
+
+  @override
+  String get restoreConfirmBody =>
+      'Dompet yang sedang aktif akan DIHAPUS PERMANEN beserta seluruh datanya. Lanjutkan HANYA bila dompet aktif masih kosong, atau frasanya sudah dicadangkan. Frasa hanya memulihkan dompet — status channel Lightning tidak ikut pulih.';
+
+  @override
+  String get restoreConfirmAction => 'Hapus & Pulihkan';
+
+  @override
+  String get restoreWorking => 'Memulihkan dompet…';
+
+  @override
+  String get restoreSuccess => 'Dompet berhasil dipulihkan';
+
+  @override
+  String get restoreFailed => 'Gagal memulihkan dompet. Coba lagi.';
 }
