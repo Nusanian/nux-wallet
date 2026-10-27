@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:ldk_node/ldk_node.dart';
 import 'package:ldk_node/src/generated/api/builder.dart';
 import 'package:ldk_node/src/generated/api/node.dart';
-import 'package:ldk_node/src/generated/api/bolt11.dart' as bolt11_api;
 import 'package:ldk_node/src/utils/frb.dart';
 
 /// Service untuk koneksi ke LSP Nusacoin via LSPS2 (bLIP-52).

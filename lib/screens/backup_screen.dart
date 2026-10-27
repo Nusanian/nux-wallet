@@ -37,10 +37,10 @@ class _BackupScreenState extends State<BackupScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Colors.orange.withOpacity(0.3),
+                  color: Colors.orange.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -128,7 +128,7 @@ class _BackupScreenState extends State<BackupScreen> {
                     style: TextStyle(color: Color(0xFF34D399))),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(
-                      color: const Color(0xFF34D399).withOpacity(0.3)),
+                      color: const Color(0xFF34D399).withValues(alpha: 0.3)),
                   padding:
                       const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
