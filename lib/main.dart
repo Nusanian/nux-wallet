@@ -23,6 +23,7 @@ import 'services/saved_invoices.dart';
 import 'services/lsp_service.dart';
 import 'utils/format.dart';
 import 'utils/coin_alert.dart';
+import 'widgets/lightning_status_pill.dart';
 import 'utils/friendly_error.dart';
 
 void main() async {
@@ -542,7 +543,7 @@ class _HomeScreenState extends State<HomeScreen>
                             // Duplikat ikon live dari kartu saldo
                             // (permintaan NUX) — hijau emerald agar
                             // lebih terlihat di header.
-                            _PulseDot(
+                            PulseDot(
                               active: lspService.isRunning,
                               color: const Color(0xFF34D399),
                               size: 9,
@@ -621,26 +622,34 @@ class _HomeScreenState extends State<HomeScreen>
                     Text(context.l10n.totalBalance,
                         style: TextStyle(fontSize: 13, color: Colors.white70)),
                     const SizedBox(height: 6),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                            _balanceMsat == null
-                                ? '\u2014'
-                                : formatNusan(_balanceMsat!),
-                            style: const TextStyle(
-                                fontSize: 44,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -1,
-                                color: Colors.white)),
-                        const SizedBox(width: 6),
-                        const Text('nusan',
-                            style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white70)),
-                      ],
+                    // FittedBox scaleDown: saldo besar (banyak digit)
+                    // menyusut mengikuti lebar kartu, tidak meluap
+                    // di layar sempit — pola aman yang sama seperti
+                    // pil status di bawah.
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                              _balanceMsat == null
+                                  ? '\u2014'
+                                  : formatNusan(_balanceMsat!),
+                              style: const TextStyle(
+                                  fontSize: 44,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -1,
+                                  color: Colors.white)),
+                          const SizedBox(width: 6),
+                          const Text('nusan',
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white70)),
+                        ],
+                      ),
                     ),
                     Text(
                         AppConfig.isTestnet
@@ -649,28 +658,16 @@ class _HomeScreenState extends State<HomeScreen>
                         style: const TextStyle(
                             fontSize: 13, color: Colors.white70)),
                     const SizedBox(height: 14),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.25),
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _PulseDot(active: lspService.isRunning),
-                          const SizedBox(width: 7),
-                          Text(
-                              lspService.isRunning
-                                  ? context.l10n.lightningActive
-                                  : context.l10n.lightningConnecting,
-                              style: const TextStyle(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white)),
-                        ],
-                      ),
+                    // Pil status: widget khusus yang isinya
+                    // menyusut mengikuti lebar kartu (lihat
+                    // LightningStatusPill) — teks status tidak
+                    // bisa mendorong bingkai di ukuran layar atau
+                    // skala font berapa pun.
+                    LightningStatusPill(
+                      active: lspService.isRunning,
+                      label: lspService.isRunning
+                          ? context.l10n.lightningActive
+                          : context.l10n.lightningConnecting,
                     ),
                   ],
                 ),
@@ -1574,58 +1571,6 @@ class _ComingSoonPage extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 13, color: context.palette.secondary),
                 textAlign: TextAlign.center),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PulseDot extends StatefulWidget {
-  final bool active;
-  final Color color;
-  final double size;
-  const _PulseDot({
-    this.active = true,
-    this.color = const Color(0xFFA7F3D0),
-    this.size = 8,
-  });
-
-  @override
-  State<_PulseDot> createState() => _PulseDotState();
-}
-
-class _PulseDotState extends State<_PulseDot>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-        vsync: this, duration: const Duration(seconds: 2))
-      ..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: Tween(begin: 1.0, end: 0.4).animate(_ctrl),
-      child: Container(
-        width: widget.size,
-        height: widget.size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: widget.color,
-          boxShadow: [
-            BoxShadow(
-                color: widget.color.withValues(alpha: 0.8), blurRadius: 10)
           ],
         ),
       ),
