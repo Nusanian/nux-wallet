@@ -17,6 +17,7 @@ import 'screens/receive_screen.dart';
 import 'screens/restore_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/send_screen.dart';
+import 'services/lsp_profile.dart';
 import 'services/lsp_service.dart';
 import 'utils/format.dart';
 import 'utils/coin_alert.dart';
@@ -198,7 +199,12 @@ class _HomeScreenState extends State<HomeScreen>
   /// pindah ke flutter_secure_storage (Keychain/Keystore).
   Future<void> _boot() async {
     try {
-      if (!AppConfig.lspConfigured) {
+      // Profil LSP aktif: pilihan user yang tersimpan bila sah dan
+      // jaringannya cocok, selain itu profil bawaan dari AppConfig.
+      // Tanpa pilihan tersimpan, perilaku boot PERSIS seperti
+      // sebelumnya — persiapan ini belum mengubah endpoint apa pun.
+      final lspProfile = await LspProfileStore.load();
+      if (!lspProfile.isConfigured) {
         throw StateError(
             context.l10n.lspNodeIdMissing);
       }
@@ -276,11 +282,11 @@ class _HomeScreenState extends State<HomeScreen>
       await lspService.init(
         seedBytes: seedBytes,
         storagePath: storageDir.path,
-        lspAddress: AppConfig.lspAddress,
-        lspNodeId: AppConfig.lspNodeId,
-        lspToken: AppConfig.lspToken,
-        electrumUrl: AppConfig.electrumUrl,
-        isTestnet: AppConfig.isTestnet,
+        lspAddress: lspProfile.lspAddress,
+        lspNodeId: lspProfile.lspNodeId,
+        lspToken: lspProfile.lspToken,
+        electrumUrl: lspProfile.electrumUrl,
+        isTestnet: lspProfile.isTestnet,
       );
       await _refreshDashboard();
       if (mounted) setState(() => _booting = false);
