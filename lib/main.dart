@@ -17,7 +17,9 @@ import 'screens/receive_screen.dart';
 import 'screens/restore_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/send_screen.dart';
+import 'screens/transaction_detail_screen.dart';
 import 'services/lsp_profile.dart';
+import 'services/saved_invoices.dart';
 import 'services/lsp_service.dart';
 import 'utils/format.dart';
 import 'utils/coin_alert.dart';
@@ -892,7 +894,10 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
         DateTime.fromMillisecondsSinceEpoch(
             payment.latestUpdateTimestamp.toInt() * 1000),
         locale: context.l10n.localeName);
-    return _txRow(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _openPaymentDetail(payment),
+      child: _txRow(
       isIn
           ? const Icon(Icons.arrow_downward_rounded, size: 22)
           : const Icon(Icons.arrow_upward_rounded, size: 22),
@@ -908,8 +913,43 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
         PaymentStatus.succeeded => null,
       },
       statusBad: payment.status == PaymentStatus.failed,
+      ),
     );
   }
+
+  /// Buka layar detail untuk satu catatan pembayaran.
+  ///
+  /// Untuk pembayaran Lightning, hash dari jenis pembayaran dipakai
+  /// mencari invoice tersimpan lokal (lihat SavedInvoiceStore) —
+  /// ketemu berarti layar detail bisa menampilkan kembali invoice
+  /// pending-nya (QR + Salin); tidak ketemu berarti detail tampil
+  /// tanpa invoice, bukan error.
+  Future<void> _openPaymentDetail(PaymentDetails payment) async {
+    String? hashHex;
+    final kind = payment.kind;
+    if (kind is PaymentKind_Bolt11) {
+      hashHex = _hashHex(kind.hash.data);
+    } else if (kind is PaymentKind_Bolt11Jit) {
+      hashHex = _hashHex(kind.hash.data);
+    } else if (kind is PaymentKind_Spontaneous) {
+      hashHex = _hashHex(kind.hash.data);
+    }
+    SavedInvoice? saved;
+    if (hashHex != null) {
+      saved = await SavedInvoiceStore().findByHash(hashHex);
+    }
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            TransactionDetailScreen(payment: payment, savedInvoice: saved),
+      ),
+    );
+  }
+
+  String _hashHex(Iterable<int> bytes) =>
+      bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
 
   Widget _txRow(Widget icon, String title, String addr, String tag, bool isIn,
       String amount, String time,

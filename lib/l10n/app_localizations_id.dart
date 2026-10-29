@@ -151,6 +151,45 @@ class AppLocalizationsId extends AppLocalizations {
       'Belum ada transaksi. Pembayaran masuk dan keluar akan tampil di sini.';
 
   @override
+  String get txDetailTitle => 'Detail Transaksi';
+
+  @override
+  String get txType => 'Jenis';
+
+  @override
+  String get txStatus => 'Status';
+
+  @override
+  String get txTime => 'Waktu';
+
+  @override
+  String get txPaymentId => 'ID Pembayaran';
+
+  @override
+  String get txPaymentHash => 'Hash Pembayaran';
+
+  @override
+  String get txSucceeded => 'Berhasil';
+
+  @override
+  String get txExpiredBadge => 'Kedaluwarsa';
+
+  @override
+  String get txInvoiceExpiredNote =>
+      'Invoice ini sudah kedaluwarsa dan tidak bisa dibayar lagi. Buat invoice baru untuk menerima pembayaran.';
+
+  @override
+  String get txInvoiceNotSavedNote =>
+      'Invoice ini dibuat sebelum fitur simpan invoice tersedia, jadi string invoice-nya tidak tersimpan di aplikasi dan tidak bisa ditampilkan kembali.';
+
+  @override
+  String get txCopied => 'Disalin';
+
+  @override
+  String get receiveRestoredHint =>
+      'Invoice terakhir yang belum dibayar dipulihkan dari simpanan.';
+
+  @override
   String get backupWallet => 'Backup Wallet';
 
   @override
