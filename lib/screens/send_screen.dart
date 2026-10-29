@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ldk_node/src/generated/api/types.dart';
 import 'package:vibration/vibration.dart';
 import '../config.dart';
 import '../locale_controller.dart';
@@ -26,11 +27,21 @@ String normalizeInvoice(String raw) {
 
 /// Layar Kirim — bayar invoice Lightning.
 ///
-/// Alur: tempel/scan invoice → konfirmasi (dialog + getar) → bayar.
-/// Tombol Bayar TIDAK langsung membayar: user harus menekan Bayar
-/// sekali lagi di dialog konfirmasi. Ini sengaja, karena pembayaran
-/// Lightning bersifat instan dan tidak bisa dibatalkan — ketukan
-/// Bayar yang tidak sengaja sebelumnya langsung mengirim dana.
+/// Alur: tempel/scan invoice → konfirmasi (dialog + getar) → bayar →
+/// TUNGGU hasil akhir. Tombol Bayar TIDAK langsung membayar: user
+/// harus menekan Bayar sekali lagi di dialog konfirmasi. Ini
+/// sengaja, karena pembayaran Lightning bersifat instan dan tidak
+/// bisa dibatalkan — ketukan Bayar yang tidak sengaja sebelumnya
+/// langsung mengirim dana.
+///
+/// Centang berhasil hanya tampil setelah pembayaran benar-benar
+/// berstatus sukses di catatan node (lihat
+/// LspService.waitForPaymentOutcome): perintah kirim yang diterima
+/// node bukan bukti pembayaran sampai — pembayaran bisa gagal di
+/// jalan, misalnya penerima sedang tidak terhubung. Bila hasil
+/// akhir tidak kunjung jelas sampai batas tunggu, layar menyatakan
+/// "masih diproses" apa adanya dan mengarahkan ke Riwayat, bukan
+/// mengklaim sukses atau gagal.
 class SendScreen extends StatefulWidget {
   final LspService lspService;
 
@@ -45,6 +56,16 @@ class _SendScreenState extends State<SendScreen> {
   bool _loading = false;
   String? _error;
   bool _paid = false;
+
+  /// True selama perintah kirim sudah diterima node dan aplikasi
+  /// sedang menunggu status final pembayaran.
+  bool _waitingOutcome = false;
+
+  /// True bila batas tunggu habis dan status masih pending:
+  /// pembayaran belum jelas hasil akhirnya (bukan sukses, bukan
+  /// gagal) — user diarahkan memeriksa Riwayat dan dilarang
+  /// membayar ulang invoice yang sama.
+  bool _stillPending = false;
 
   @override
   void dispose() {
@@ -139,16 +160,41 @@ class _SendScreenState extends State<SendScreen> {
       _loading = true;
       _error = null;
       _paid = false;
+      _stillPending = false;
+      _waitingOutcome = false;
     });
 
     try {
-      await widget.lspService.payInvoice(invoice);
-      setState(() => _paid = true);
+      final paymentId = await widget.lspService.payInvoice(invoice);
+      if (!mounted) return;
+      // Perintah kirim diterima node — mulai tunggu hasil AKHIR.
+      // Tanpa penungguan ini centang berhasil tampil prematur dan
+      // kegagalan susulan (mis. penerima offline) tidak pernah
+      // diperlihatkan ke pengirim.
+      setState(() => _waitingOutcome = true);
+      final outcome =
+          await widget.lspService.waitForPaymentOutcome(paymentId);
+      if (!mounted) return;
+      if (outcome == PaymentStatus.succeeded) {
+        setState(() => _paid = true);
+      } else if (outcome == PaymentStatus.failed) {
+        setState(() => _error = context.l10n.payFailedFinal);
+      } else {
+        // Lewat batas tunggu dan masih pending: nyatakan apa
+        // adanya, jangan klaim sukses maupun gagal.
+        setState(() => _stillPending = true);
+      }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = friendlyError(e,
           fallback: context.l10n.payFailed, l10n: context.l10n));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _waitingOutcome = false;
+        });
+      }
     }
   }
 
@@ -307,6 +353,32 @@ class _SendScreenState extends State<SendScreen> {
                   style:
                       const TextStyle(color: Colors.redAccent, fontSize: 13),
                   textAlign: TextAlign.center),
+            ],
+            if (_waitingOutcome) ...[
+              const SizedBox(height: 12),
+              Text(context.l10n.payWaitingOutcome,
+                  style:
+                      TextStyle(fontSize: 13, color: context.palette.muted),
+                  textAlign: TextAlign.center),
+            ],
+            if (_stillPending) ...[
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Text(
+                  context.l10n.payStillPending,
+                  style: TextStyle(
+                      fontSize: 13, color: context.palette.label),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ],
             if (_paid) ...[
               const SizedBox(height: 20),

@@ -300,6 +300,17 @@ class AppLocalizationsId extends AppLocalizations {
   String get payFailed => 'Pembayaran gagal. Coba lagi.';
 
   @override
+  String get payWaitingOutcome => 'Menunggu hasil akhir pembayaran…';
+
+  @override
+  String get payFailedFinal =>
+      'Pembayaran gagal. Dana tidak terkirim dan saldo Anda tetap utuh.';
+
+  @override
+  String get payStillPending =>
+      'Pembayaran masih diproses melewati batas tunggu. Hasil akhirnya akan tampil di Riwayat — jangan bayar ulang invoice yang sama sebelum statusnya jelas.';
+
+  @override
   String get sendTitle => 'Kirim NUX';
 
   @override

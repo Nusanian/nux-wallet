@@ -638,6 +638,24 @@ abstract class AppLocalizations {
   /// **'Pembayaran gagal. Coba lagi.'**
   String get payFailed;
 
+  /// No description provided for @payWaitingOutcome.
+  ///
+  /// In id, this message translates to:
+  /// **'Menunggu hasil akhir pembayaran…'**
+  String get payWaitingOutcome;
+
+  /// No description provided for @payFailedFinal.
+  ///
+  /// In id, this message translates to:
+  /// **'Pembayaran gagal. Dana tidak terkirim dan saldo Anda tetap utuh.'**
+  String get payFailedFinal;
+
+  /// No description provided for @payStillPending.
+  ///
+  /// In id, this message translates to:
+  /// **'Pembayaran masih diproses melewati batas tunggu. Hasil akhirnya akan tampil di Riwayat — jangan bayar ulang invoice yang sama sebelum statusnya jelas.'**
+  String get payStillPending;
+
   /// No description provided for @sendTitle.
   ///
   /// In id, this message translates to:

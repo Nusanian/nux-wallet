@@ -300,6 +300,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get payFailed => 'Payment failed. Try again.';
 
   @override
+  String get payWaitingOutcome => 'Waiting for the final payment result…';
+
+  @override
+  String get payFailedFinal =>
+      'Payment failed. No funds were sent and your balance is unchanged.';
+
+  @override
+  String get payStillPending =>
+      'The payment is still being processed past the wait limit. Its final result will appear in History — do not pay the same invoice again until its status is clear.';
+
+  @override
   String get sendTitle => 'Send NUX';
 
   @override
