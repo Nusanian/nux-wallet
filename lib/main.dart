@@ -186,6 +186,20 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  /// Daftar pembayaran untuk DITAMPILKAN di Aktivitas/Riwayat:
+  /// pembayaran MASUK yang masih pending (invoice belum dibayar)
+  /// disaring keluar — belum ada uang yang bergerak, jadi belum
+  /// pantas tampil sebagai baris "Diterima" (keputusan NUX
+  /// 30 Okt 2026: layar tidak boleh menimbulkan kesan ada uang
+  /// yang menggantung). Invoice-invoice itu tempatnya di layar
+  /// Terima sebagai invoice tersimpan. Catatan node (_payments)
+  /// sendiri TIDAK diubah: deteksi koin masuk dan logika lain
+  /// tetap membaca daftar utuh dari node.
+  List<PaymentDetails> get _displayPayments => _payments
+      .where((p) => !(p.direction == PaymentDirection.inbound &&
+          p.status == PaymentStatus.pending))
+      .toList();
+
   /// Segarkan saldo + riwayat sekaligus. Dipakai di titik-titik
   /// refresh yang sebelumnya hanya menyegarkan saldo.
   Future<void> _refreshDashboard() async {
@@ -770,7 +784,7 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
               ),
               const SizedBox(height: 6),
               // Transaction list
-              if (_payments.isEmpty)
+              if (_displayPayments.isEmpty)
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 22, vertical: 10),
                   child: Text(context.l10n.noActivity,
@@ -778,7 +792,7 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
                           TextStyle(fontSize: 13, color: context.palette.muted)),
                 )
               else
-                ..._payments.take(5).map(_paymentRow),
+                ..._displayPayments.take(5).map(_paymentRow),
               const SizedBox(height: 80),
             ],
           ),
@@ -788,7 +802,7 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
               title: context.l10n.market,
               message: context.l10n.marketSoon,
             ),
-            _HistoryPage(payments: _payments, rowBuilder: _paymentRow),
+            _HistoryPage(payments: _displayPayments, rowBuilder: _paymentRow),
             _ProfilePage(
               mnemonicWords: _mnemonicWords,
               legacyWallet: _legacyWallet,
@@ -876,7 +890,10 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
   /// Ubah satu catatan pembayaran node menjadi baris daftar
   /// aktivitas/riwayat. Nominal ditampilkan bertanda (+ masuk,
   /// − keluar) dalam nusan; label status hanya muncul untuk
-  /// pembayaran yang belum sukses (Menunggu/Gagal).
+  /// pembayaran yang belum sukses. Pending KELUAR berlabel
+  /// "Sedang diproses" (dananya sungguh terkunci); "Menunggu"
+  /// hanya tersisa untuk pending masuk, yang oleh penyaring
+  /// _displayPayments tidak lagi ditampilkan di daftar.
   Widget _paymentRow(PaymentDetails payment) {
     final isIn = payment.direction == PaymentDirection.inbound;
     final kind = payment.kind;
@@ -903,7 +920,8 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
       amount: amount,
       time: time,
       status: switch (payment.status) {
-        PaymentStatus.pending => context.l10n.pending,
+        PaymentStatus.pending =>
+          isIn ? context.l10n.pending : context.l10n.processing,
         PaymentStatus.failed => context.l10n.failed,
         PaymentStatus.succeeded => null,
       },

@@ -145,6 +145,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pending => 'Pending';
 
   @override
+  String get processing => 'Processing';
+
+  @override
   String get failed => 'Failed';
 
   @override
@@ -182,6 +185,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get txInvoiceNotSavedNote =>
       'This invoice was created before the saved-invoice feature existed, so its invoice string was not stored in the app and cannot be shown again.';
+
+  @override
+  String get txProcessingNote =>
+      'Your money is safe and is waiting for its turn to be recorded on the network. It will complete on its own.';
 
   @override
   String get txCopied => 'Copied';

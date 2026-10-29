@@ -356,6 +356,12 @@ abstract class AppLocalizations {
   /// **'Menunggu'**
   String get pending;
 
+  /// No description provided for @processing.
+  ///
+  /// In id, this message translates to:
+  /// **'Sedang diproses'**
+  String get processing;
+
   /// No description provided for @failed.
   ///
   /// In id, this message translates to:
@@ -427,6 +433,12 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Invoice ini dibuat sebelum fitur simpan invoice tersedia, jadi string invoice-nya tidak tersimpan di aplikasi dan tidak bisa ditampilkan kembali.'**
   String get txInvoiceNotSavedNote;
+
+  /// No description provided for @txProcessingNote.
+  ///
+  /// In id, this message translates to:
+  /// **'Uangmu aman dan sedang menunggu giliran tercatat di jaringan. Akan selesai sendiri.'**
+  String get txProcessingNote;
 
   /// No description provided for @txCopied.
   ///

@@ -29,8 +29,9 @@ class TransactionRow extends StatelessWidget {
   final String amount;
   final String time;
 
-  /// Teks status untuk baris ke-3 ('Menunggu'/'Gagal'); null untuk
-  /// pembayaran sukses — baris ke-3 tidak dibuat sama sekali.
+  /// Teks status untuk baris ke-3 ('Sedang diproses'/'Menunggu'/
+  /// 'Gagal'); null untuk pembayaran sukses — baris ke-3 tidak
+  /// dibuat sama sekali.
   final String? status;
 
   /// True bila statusnya kegagalan (chip merah); false = menunggu

@@ -144,6 +144,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get pending => 'Menunggu';
 
   @override
+  String get processing => 'Sedang diproses';
+
+  @override
   String get failed => 'Gagal';
 
   @override
@@ -181,6 +184,10 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get txInvoiceNotSavedNote =>
       'Invoice ini dibuat sebelum fitur simpan invoice tersedia, jadi string invoice-nya tidak tersimpan di aplikasi dan tidak bisa ditampilkan kembali.';
+
+  @override
+  String get txProcessingNote =>
+      'Uangmu aman dan sedang menunggu giliran tercatat di jaringan. Akan selesai sendiri.';
 
   @override
   String get txCopied => 'Disalin';
