@@ -74,7 +74,13 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   }
 
   Future<void> _createInvoice() async {
-    final text = _amountController.text.trim();
+    // Kolom nominal menampilkan pemisah gaya id ('.' ribuan, ','
+    // desimal — lihat _ThousandsSeparatorFormatter): buang pemisah
+    // tampilan supaya yang terbaca tetap angka murninya.
+    final text = _amountController.text
+        .trim()
+        .replaceAll('.', '')
+        .replaceAll(',', '.');
     final nusan = double.tryParse(text);
     if (nusan == null || nusan <= 0) {
       setState(() => _error = context.l10n.invalidAmount);
@@ -227,6 +233,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _amountController,
+              inputFormatters: [_ThousandsSeparatorFormatter()],
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               style: const TextStyle(
@@ -387,6 +394,52 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Pemformat kolom nominal Terima: terapkan pemisah ribuan '.'
+/// gaya id secara langsung saat user mengetik, supaya tampilan
+/// selalu rapi — bukan hanya saat nilai diisi program (mis. pulihan
+/// invoice pending yang terisi "1.000", lalu rusak formatnya begitu
+/// user mengedit). Pecahan memakai koma desimal, sama seperti
+/// [formatNusan]. Format hanya tampilan: nilai angka murninya
+/// dipulihkan saat parsing di _ReceiveScreenState._createInvoice.
+class _ThousandsSeparatorFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final raw = newValue.text;
+    if (raw.isEmpty) return newValue;
+
+    // Pisah bagian bulat dan pecahan pada koma desimal pertama;
+    // selain digit dibuang (termasuk '.' pemisah ribuan lama).
+    final comma = raw.indexOf(',');
+    var intDigits = (comma >= 0 ? raw.substring(0, comma) : raw)
+        .replaceAll(RegExp(r'[^0-9]'), '');
+    final fracDigits = comma >= 0
+        ? raw.substring(comma + 1).replaceAll(RegExp(r'[^0-9]'), '')
+        : null;
+
+    // Buang nol di depan yang berlebih: "05" -> "5", "00" -> "0".
+    intDigits = intDigits.replaceFirst(RegExp(r'^0+(?=\d)'), '');
+
+    // Kelompokkan ribuan dengan '.', pola yang sama seperti
+    // formatNusan di utils/format.dart.
+    final buf = StringBuffer();
+    for (var i = 0; i < intDigits.length; i++) {
+      if (i > 0 && (intDigits.length - i) % 3 == 0) buf.write('.');
+      buf.write(intDigits[i]);
+    }
+    var text = buf.toString();
+    if (fracDigits != null) text = '$text,$fracDigits';
+
+    // Kursor selalu di akhir teks hasil format.
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
     );
   }
 }
