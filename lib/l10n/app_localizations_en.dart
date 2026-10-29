@@ -152,6 +152,45 @@ class AppLocalizationsEn extends AppLocalizations {
       'No transactions yet. Incoming and outgoing payments will appear here.';
 
   @override
+  String get txDetailTitle => 'Transaction Details';
+
+  @override
+  String get txType => 'Type';
+
+  @override
+  String get txStatus => 'Status';
+
+  @override
+  String get txTime => 'Time';
+
+  @override
+  String get txPaymentId => 'Payment ID';
+
+  @override
+  String get txPaymentHash => 'Payment Hash';
+
+  @override
+  String get txSucceeded => 'Succeeded';
+
+  @override
+  String get txExpiredBadge => 'Expired';
+
+  @override
+  String get txInvoiceExpiredNote =>
+      'This invoice has expired and can no longer be paid. Create a new invoice to receive a payment.';
+
+  @override
+  String get txInvoiceNotSavedNote =>
+      'This invoice was created before the saved-invoice feature existed, so its invoice string was not stored in the app and cannot be shown again.';
+
+  @override
+  String get txCopied => 'Copied';
+
+  @override
+  String get receiveRestoredHint =>
+      'Your last unpaid invoice was restored from storage.';
+
+  @override
   String get backupWallet => 'Backup Wallet';
 
   @override
@@ -261,6 +300,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get payFailed => 'Payment failed. Try again.';
 
   @override
+  String get payWaitingOutcome => 'Waiting for the final payment result…';
+
+  @override
+  String get payFailedFinal =>
+      'Payment failed. No funds were sent and your balance is unchanged.';
+
+  @override
+  String get payStillPending =>
+      'The payment is still being processed past the wait limit. Its final result will appear in History — do not pay the same invoice again until its status is clear.';
+
+  @override
   String get sendTitle => 'Send NUX';
 
   @override
@@ -275,6 +325,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pay => 'Pay';
+
+  @override
+  String get confirmPayTitle => 'Pay this invoice?';
+
+  @override
+  String get confirmPayBody =>
+      'Lightning payments are instant and cannot be cancelled. Double-check the invoice below before continuing.';
 
   @override
   String get paymentSuccess => 'Payment Successful!';

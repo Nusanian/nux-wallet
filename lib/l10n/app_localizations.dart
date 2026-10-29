@@ -368,6 +368,78 @@ abstract class AppLocalizations {
   /// **'Belum ada transaksi. Pembayaran masuk dan keluar akan tampil di sini.'**
   String get noTransactions;
 
+  /// No description provided for @txDetailTitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Detail Transaksi'**
+  String get txDetailTitle;
+
+  /// No description provided for @txType.
+  ///
+  /// In id, this message translates to:
+  /// **'Jenis'**
+  String get txType;
+
+  /// No description provided for @txStatus.
+  ///
+  /// In id, this message translates to:
+  /// **'Status'**
+  String get txStatus;
+
+  /// No description provided for @txTime.
+  ///
+  /// In id, this message translates to:
+  /// **'Waktu'**
+  String get txTime;
+
+  /// No description provided for @txPaymentId.
+  ///
+  /// In id, this message translates to:
+  /// **'ID Pembayaran'**
+  String get txPaymentId;
+
+  /// No description provided for @txPaymentHash.
+  ///
+  /// In id, this message translates to:
+  /// **'Hash Pembayaran'**
+  String get txPaymentHash;
+
+  /// No description provided for @txSucceeded.
+  ///
+  /// In id, this message translates to:
+  /// **'Berhasil'**
+  String get txSucceeded;
+
+  /// No description provided for @txExpiredBadge.
+  ///
+  /// In id, this message translates to:
+  /// **'Kedaluwarsa'**
+  String get txExpiredBadge;
+
+  /// No description provided for @txInvoiceExpiredNote.
+  ///
+  /// In id, this message translates to:
+  /// **'Invoice ini sudah kedaluwarsa dan tidak bisa dibayar lagi. Buat invoice baru untuk menerima pembayaran.'**
+  String get txInvoiceExpiredNote;
+
+  /// No description provided for @txInvoiceNotSavedNote.
+  ///
+  /// In id, this message translates to:
+  /// **'Invoice ini dibuat sebelum fitur simpan invoice tersedia, jadi string invoice-nya tidak tersimpan di aplikasi dan tidak bisa ditampilkan kembali.'**
+  String get txInvoiceNotSavedNote;
+
+  /// No description provided for @txCopied.
+  ///
+  /// In id, this message translates to:
+  /// **'Disalin'**
+  String get txCopied;
+
+  /// No description provided for @receiveRestoredHint.
+  ///
+  /// In id, this message translates to:
+  /// **'Invoice terakhir yang belum dibayar dipulihkan dari simpanan.'**
+  String get receiveRestoredHint;
+
   /// No description provided for @backupWallet.
   ///
   /// In id, this message translates to:
@@ -566,6 +638,24 @@ abstract class AppLocalizations {
   /// **'Pembayaran gagal. Coba lagi.'**
   String get payFailed;
 
+  /// No description provided for @payWaitingOutcome.
+  ///
+  /// In id, this message translates to:
+  /// **'Menunggu hasil akhir pembayaran…'**
+  String get payWaitingOutcome;
+
+  /// No description provided for @payFailedFinal.
+  ///
+  /// In id, this message translates to:
+  /// **'Pembayaran gagal. Dana tidak terkirim dan saldo Anda tetap utuh.'**
+  String get payFailedFinal;
+
+  /// No description provided for @payStillPending.
+  ///
+  /// In id, this message translates to:
+  /// **'Pembayaran masih diproses melewati batas tunggu. Hasil akhirnya akan tampil di Riwayat — jangan bayar ulang invoice yang sama sebelum statusnya jelas.'**
+  String get payStillPending;
+
   /// No description provided for @sendTitle.
   ///
   /// In id, this message translates to:
@@ -595,6 +685,18 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Bayar'**
   String get pay;
+
+  /// No description provided for @confirmPayTitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Bayar invoice ini?'**
+  String get confirmPayTitle;
+
+  /// No description provided for @confirmPayBody.
+  ///
+  /// In id, this message translates to:
+  /// **'Pembayaran Lightning bersifat instan dan tidak bisa dibatalkan. Periksa lagi invoice di bawah sebelum lanjut.'**
+  String get confirmPayBody;
 
   /// No description provided for @paymentSuccess.
   ///

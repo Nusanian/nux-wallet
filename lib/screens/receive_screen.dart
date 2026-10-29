@@ -7,6 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:ldk_node/src/generated/api/types.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../services/lsp_service.dart';
+import '../services/saved_invoices.dart';
+import '../utils/animated_checkmark.dart';
+import '../utils/bolt11_info.dart';
 import '../utils/format.dart';
 import '../utils/friendly_error.dart';
 
@@ -35,6 +38,33 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   bool _received = false;
   BigInt? _receivedMsat;
 
+  /// True bila [_invoice] berasal dari simpanan lokal (invoice
+  /// pending terakhir dipulihkan saat layar dibuka), bukan baru
+  /// dibuat di sesi ini — ditandai dengan petunjuk di bawah QR.
+  bool _restored = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreLastInvoice();
+  }
+
+  /// Pulihkan invoice pending terakhir yang belum kedaluwarsa dari
+  /// simpanan lokal, supaya user yang aplikasinya sempat tertutup
+  /// tidak kehilangan invoice yang sudah ia bagikan. Invoice yang
+  /// dipulihkan diawasi event pembayarannya sama seperti invoice
+  /// yang baru dibuat.
+  Future<void> _restoreLastInvoice() async {
+    final saved = await SavedInvoiceStore().latestUnexpired();
+    if (saved == null || !mounted || _invoice != null) return;
+    setState(() {
+      _invoice = saved.invoice;
+      _restored = true;
+      _amountController.text = formatNusan(saved.amountMsat);
+    });
+    _startWatching();
+  }
+
   @override
   void dispose() {
     _eventTimer?.cancel();
@@ -58,6 +88,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
       _invoice = null;
       _received = false;
       _receivedMsat = null;
+      _restored = false;
     });
 
     try {
@@ -68,6 +99,21 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
         description: context.l10n.receiveInvoiceDesc(nusan.toString()),
       );
       setState(() => _invoice = invoice);
+      // Simpan invoice di HP (string + hash + kedaluwarsa) supaya
+      // tetap bisa dilihat/disalin kembali dari Riwayat atau saat
+      // aplikasi dibuka lagi, selama belum kedaluwarsa. Catatan
+      // node sendiri tidak menyimpan string invoice. Kegagalan
+      // parse/simpan tidak menggagalkan invoice yang sudah jadi.
+      final info = parseBolt11Info(invoice);
+      if (info != null) {
+        await SavedInvoiceStore().save(SavedInvoice(
+          invoice: invoice,
+          paymentHashHex: info.paymentHashHex,
+          amountMsat: amountMsat,
+          createdAt: DateTime.now(),
+          expiresAt: info.expiresAt.toLocal(),
+        ));
+      }
       _startWatching();
     } catch (e) {
       setState(() => _error = friendlyError(e,
@@ -115,6 +161,15 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
         if (e == null) break;
         if (e is Event_PaymentReceived) {
           _eventTimer?.cancel();
+          // Invoice ini sudah lunas: hapus dari simpanan supaya
+          // tidak dipulihkan lagi sebagai pending di sesi berikut.
+          final currentInvoice = _invoice;
+          if (currentInvoice != null) {
+            final info = parseBolt11Info(currentInvoice);
+            if (info != null) {
+              SavedInvoiceStore().removeByHash(info.paymentHashHex);
+            }
+          }
           if (mounted && gen == _watchGen) {
             setState(() {
               _received = true;
@@ -235,8 +290,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                 ),
                 child: Column(
                   children: [
-                    const Icon(Icons.check_circle,
-                        size: 72, color: Color(0xFF34D399)),
+                    const AnimatedCheckmark(),
                     const SizedBox(height: 12),
                     Text(context.l10n.paymentReceived,
                         style: TextStyle(
@@ -261,6 +315,15 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
               ),
             ] else if (_invoice != null) ...[
               const SizedBox(height: 24),
+              if (_restored) ...[
+                Text(
+                  context.l10n.receiveRestoredHint,
+                  style: TextStyle(
+                      fontSize: 12, color: context.palette.warningIcon),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+              ],
               Text(context.l10n.invoiceTitle,
                   style:
                       TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),

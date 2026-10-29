@@ -151,6 +151,45 @@ class AppLocalizationsId extends AppLocalizations {
       'Belum ada transaksi. Pembayaran masuk dan keluar akan tampil di sini.';
 
   @override
+  String get txDetailTitle => 'Detail Transaksi';
+
+  @override
+  String get txType => 'Jenis';
+
+  @override
+  String get txStatus => 'Status';
+
+  @override
+  String get txTime => 'Waktu';
+
+  @override
+  String get txPaymentId => 'ID Pembayaran';
+
+  @override
+  String get txPaymentHash => 'Hash Pembayaran';
+
+  @override
+  String get txSucceeded => 'Berhasil';
+
+  @override
+  String get txExpiredBadge => 'Kedaluwarsa';
+
+  @override
+  String get txInvoiceExpiredNote =>
+      'Invoice ini sudah kedaluwarsa dan tidak bisa dibayar lagi. Buat invoice baru untuk menerima pembayaran.';
+
+  @override
+  String get txInvoiceNotSavedNote =>
+      'Invoice ini dibuat sebelum fitur simpan invoice tersedia, jadi string invoice-nya tidak tersimpan di aplikasi dan tidak bisa ditampilkan kembali.';
+
+  @override
+  String get txCopied => 'Disalin';
+
+  @override
+  String get receiveRestoredHint =>
+      'Invoice terakhir yang belum dibayar dipulihkan dari simpanan.';
+
+  @override
   String get backupWallet => 'Backup Wallet';
 
   @override
@@ -261,6 +300,17 @@ class AppLocalizationsId extends AppLocalizations {
   String get payFailed => 'Pembayaran gagal. Coba lagi.';
 
   @override
+  String get payWaitingOutcome => 'Menunggu hasil akhir pembayaran…';
+
+  @override
+  String get payFailedFinal =>
+      'Pembayaran gagal. Dana tidak terkirim dan saldo Anda tetap utuh.';
+
+  @override
+  String get payStillPending =>
+      'Pembayaran masih diproses melewati batas tunggu. Hasil akhirnya akan tampil di Riwayat — jangan bayar ulang invoice yang sama sebelum statusnya jelas.';
+
+  @override
   String get sendTitle => 'Kirim NUX';
 
   @override
@@ -275,6 +325,13 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get pay => 'Bayar';
+
+  @override
+  String get confirmPayTitle => 'Bayar invoice ini?';
+
+  @override
+  String get confirmPayBody =>
+      'Pembayaran Lightning bersifat instan dan tidak bisa dibatalkan. Periksa lagi invoice di bawah sebelum lanjut.';
 
   @override
   String get paymentSuccess => 'Pembayaran Berhasil!';

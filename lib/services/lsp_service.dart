@@ -103,11 +103,44 @@ class LspService {
     return invoice.signedRawInvoice;
   }
 
-  Future<void> payInvoice(String invoiceStr) async {
+  /// Kirim pembayaran invoice dan kembalikan ID pembayaran-nya.
+  ///
+  /// PERHATIAN: kembalian send() hanya berarti perintah kirim
+  /// DITERIMA node — pembayaran belum tentu sampai. Hasil akhir
+  /// (sukses/gagal) baru diketahui belakangan di catatan pembayaran;
+  /// pantau lewat [waitForPaymentOutcome]. Menampilkan "berhasil"
+  /// hanya dari send() adalah centang prematur.
+  Future<PaymentId> payInvoice(String invoiceStr) async {
     _ensureRunning();
     final payment = await FfiNode.bolt11Payment(ptr: _node!);
     final invoice = Bolt11Invoice(signedRawInvoice: invoiceStr);
-    await payment.send(invoice: invoice);
+    return await payment.send(invoice: invoice);
+  }
+
+  /// Tunggu hasil akhir pembayaran [paymentId] dengan memeriksa
+  /// catatan pembayaran node berkala.
+  ///
+  /// Mengembalikan status final (succeeded/failed) begitu terlihat,
+  /// atau null bila sampai [timeout] statusnya masih pending —
+  /// null BUKAN berarti gagal: pembayaran masih berjalan dan hasil
+  /// akhirnya akan muncul di Riwayat. Polling catatan pembayaran
+  /// (bukan antrean event) dipilih supaya tidak merebut event yang
+  /// dibutuhkan layar Terima.
+  Future<PaymentStatus?> waitForPaymentOutcome(
+    PaymentId paymentId, {
+    Duration timeout = const Duration(seconds: 60),
+    Duration interval = const Duration(seconds: 2),
+  }) async {
+    _ensureRunning();
+    final idHex = paymentIdHex(paymentId);
+    final deadline = DateTime.now().add(timeout);
+    while (true) {
+      final payments = await listPayments();
+      final status = findPaymentStatus(payments, idHex);
+      if (status != null && status != PaymentStatus.pending) return status;
+      if (!DateTime.now().add(interval).isBefore(deadline)) return null;
+      await Future<void>.delayed(interval);
+    }
   }
 
   Future<BigInt> getLightningBalance() async {
@@ -162,4 +195,20 @@ class LspService {
       throw StateError('Node belum diinisialisasi. Panggil init() dulu.');
     }
   }
+}
+
+/// Bentuk hex ID pembayaran. Pencocokan pembayaran antar-panggilan
+/// memakai hex ini, bukan equality objek PaymentId, supaya tidak
+/// bergantung pada identitas objek data di binding.
+String paymentIdHex(PaymentId id) =>
+    id.data.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+
+/// Status pembayaran ber-ID [idHex] dalam daftar [payments];
+/// null bila catatannya belum muncul.
+PaymentStatus? findPaymentStatus(
+    List<PaymentDetails> payments, String idHex) {
+  for (final p in payments) {
+    if (paymentIdHex(p.id) == idHex) return p.status;
+  }
+  return null;
 }
