@@ -277,6 +277,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pay => 'Pay';
 
   @override
+  String get confirmPayTitle => 'Pay this invoice?';
+
+  @override
+  String get confirmPayBody =>
+      'Lightning payments are instant and cannot be cancelled. Double-check the invoice below before continuing.';
+
+  @override
   String get paymentSuccess => 'Payment Successful!';
 
   @override

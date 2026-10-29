@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vibration/vibration.dart';
 import '../config.dart';
 import '../locale_controller.dart';
 import '../theme.dart';
@@ -24,7 +25,11 @@ String normalizeInvoice(String raw) {
 
 /// Layar Kirim — bayar invoice Lightning.
 ///
-/// Alur: tempel/scan invoice → konfirmasi nominal → bayar.
+/// Alur: tempel/scan invoice → konfirmasi (dialog + getar) → bayar.
+/// Tombol Bayar TIDAK langsung membayar: user harus menekan Bayar
+/// sekali lagi di dialog konfirmasi. Ini sengaja, karena pembayaran
+/// Lightning bersifat instan dan tidak bisa dibatalkan — ketukan
+/// Bayar yang tidak sengaja sebelumnya langsung mengirim dana.
 class SendScreen extends StatefulWidget {
   final LspService lspService;
 
@@ -44,6 +49,78 @@ class _SendScreenState extends State<SendScreen> {
   void dispose() {
     _invoiceController.dispose();
     super.dispose();
+  }
+
+  /// Getar singkat saat dialog konfirmasi muncul — penanda fisik
+  /// bahwa ketukan Bayar belum mengirim apa-apa, masih bisa dibatalkan.
+  /// Kegagalan getar (perangkat tanpa vibrator, izin, dll.) ditelan
+  /// diam-diam, sama seperti CoinAlert: tidak boleh mengganggu alur.
+  Future<void> _vibrateConfirm() async {
+    try {
+      if (await Vibration.hasVibrator()) {
+        await Vibration.vibrate(duration: 150);
+      }
+    } catch (_) {
+      // Tanpa getar pun konfirmasi tetap jalan.
+    }
+  }
+
+  /// Potongan invoice untuk dialog konfirmasi: cukup untuk
+  /// membedakan invoice ini dari invoice lain, tanpa memenuhi dialog.
+  String _invoicePreview(String invoice) {
+    if (invoice.length <= 40) return invoice;
+    return '${invoice.substring(0, 24)}…${invoice.substring(invoice.length - 12)}';
+  }
+
+  /// Ketukan Bayar pertama: validasi, getar, lalu minta konfirmasi.
+  /// Pembayaran baru jalan bila user menekan Bayar di dialog.
+  Future<void> _onPayPressed() async {
+    final invoice = _invoiceController.text.trim();
+    if (invoice.isEmpty) {
+      setState(() => _error = context.l10n.pasteInvoiceFirst);
+      return;
+    }
+    if (!invoice.startsWith('ln')) {
+      setState(() => _error = context.l10n.invalidInvoice);
+      return;
+    }
+    await _vibrateConfirm();
+    if (!mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.l10n.confirmPayTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(context.l10n.confirmPayBody),
+            const SizedBox(height: 12),
+            Text(
+              _invoicePreview(invoice),
+              style: const TextStyle(fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(context.l10n.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+            ),
+            child: Text(context.l10n.pay),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await _pay();
+    }
   }
 
   Future<void> _pay() async {
@@ -203,7 +280,7 @@ class _SendScreenState extends State<SendScreen> {
             const SizedBox(height: 20),
             // Pay button
             ElevatedButton(
-              onPressed: _loading ? null : _pay,
+              onPressed: _loading ? null : _onPayPressed,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF10B981),
                 foregroundColor: Colors.white,

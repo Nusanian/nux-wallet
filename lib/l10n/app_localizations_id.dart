@@ -277,6 +277,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get pay => 'Bayar';
 
   @override
+  String get confirmPayTitle => 'Bayar invoice ini?';
+
+  @override
+  String get confirmPayBody =>
+      'Pembayaran Lightning bersifat instan dan tidak bisa dibatalkan. Periksa lagi invoice di bawah sebelum lanjut.';
+
+  @override
   String get paymentSuccess => 'Pembayaran Berhasil!';
 
   @override

@@ -596,6 +596,18 @@ abstract class AppLocalizations {
   /// **'Bayar'**
   String get pay;
 
+  /// No description provided for @confirmPayTitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Bayar invoice ini?'**
+  String get confirmPayTitle;
+
+  /// No description provided for @confirmPayBody.
+  ///
+  /// In id, this message translates to:
+  /// **'Pembayaran Lightning bersifat instan dan tidak bisa dibatalkan. Periksa lagi invoice di bawah sebelum lanjut.'**
+  String get confirmPayBody;
+
   /// No description provided for @paymentSuccess.
   ///
   /// In id, this message translates to:

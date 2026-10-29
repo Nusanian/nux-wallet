@@ -107,6 +107,8 @@
   "paste": "Paste",
   "scanQr": "Scan QR",
   "pay": "Pay",
+  "confirmPayTitle": "Pay this invoice?",
+  "confirmPayBody": "Lightning payments are instant and cannot be cancelled. Double-check the invoice below before continuing.",
   "paymentSuccess": "Payment Successful!",
   "scanTitle": "Scan QR Invoice",
   "cameraDenied": "Camera permission denied. Enable camera permission for ELNUX in phone Settings, then try again.",

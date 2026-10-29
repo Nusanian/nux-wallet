@@ -107,6 +107,8 @@
   "paste": "Tempel",
   "scanQr": "Scan QR",
   "pay": "Bayar",
+  "confirmPayTitle": "Bayar invoice ini?",
+  "confirmPayBody": "Pembayaran Lightning bersifat instan dan tidak bisa dibatalkan. Periksa lagi invoice di bawah sebelum lanjut.",
   "paymentSuccess": "Pembayaran Berhasil!",
   "scanTitle": "Scan QR Invoice",
   "cameraDenied": "Izin kamera ditolak. Aktifkan izin kamera untuk ELNUX di Pengaturan HP, lalu coba lagi.",
