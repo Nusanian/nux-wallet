@@ -5,6 +5,7 @@ import '../locale_controller.dart';
 import '../theme.dart';
 import 'package:flutter/services.dart';
 import '../services/lsp_service.dart';
+import '../utils/animated_checkmark.dart';
 import '../utils/friendly_error.dart';
 import 'scan_screen.dart';
 
@@ -320,8 +321,7 @@ class _SendScreenState extends State<SendScreen> {
                 ),
                 child: Column(
                   children: [
-                    Text('\u2705',
-                        style: TextStyle(fontSize: 40)),
+                    const AnimatedCheckmark(),
                     SizedBox(height: 8),
                     Text(context.l10n.paymentSuccess,
                         style: TextStyle(

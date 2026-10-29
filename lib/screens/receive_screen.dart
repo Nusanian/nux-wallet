@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:ldk_node/src/generated/api/types.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../services/lsp_service.dart';
+import '../utils/animated_checkmark.dart';
 import '../utils/format.dart';
 import '../utils/friendly_error.dart';
 
@@ -235,8 +236,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                 ),
                 child: Column(
                   children: [
-                    const Icon(Icons.check_circle,
-                        size: 72, color: Color(0xFF34D399)),
+                    const AnimatedCheckmark(),
                     const SizedBox(height: 12),
                     Text(context.l10n.paymentReceived,
                         style: TextStyle(
