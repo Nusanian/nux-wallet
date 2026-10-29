@@ -17,6 +17,16 @@ import '../utils/friendly_error.dart';
 ///
 /// Alur: user isi nominal → tekan Buat Invoice → QR + invoice muncul →
 /// pembayar scan → LSP buka channel 0-conf → dana masuk.
+///
+/// Invoice yang melahirkan channel punya jumlah minimum dari
+/// parameter LSP (min_payment_size_msat = 1.000.000, yaitu 1.000
+/// nusan), yang ditegakkan sisi klien SEBELUM invoice dibuat —
+/// error node untuk pelanggaran ini generik (LiquidityRequestFailed,
+/// sama seperti kegagalan likuiditas lain), jadi layar membedakan
+/// kasusnya dari nominal yang diminta: pembuatan gagal + nominal
+/// di bawah minimum → pesan khusus yang menjelaskan minimumnya,
+/// bukan error umum "Gagal membuat invoice" (keputusan NUX
+/// 30 Okt 2026 — info minimum ini wajib sampai ke pengguna).
 class ReceiveScreen extends StatefulWidget {
   final LspService lspService;
 
@@ -97,9 +107,9 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
       _restored = false;
     });
 
+    // 1 nusan = 1000 msat
+    final amountMsat = BigInt.from((nusan * 1000).round());
     try {
-      // 1 nusan = 1000 msat
-      final amountMsat = BigInt.from((nusan * 1000).round());
       final invoice = await widget.lspService.createJitInvoice(
         amountMsat: amountMsat,
         description: context.l10n.receiveInvoiceDesc(nusan.toString()),
@@ -122,8 +132,15 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
       }
       _startWatching();
     } catch (e) {
-      setState(() => _error = friendlyError(e,
-          fallback: context.l10n.createInvoiceFailed, l10n: context.l10n));
+      // Di bawah minimum kelahiran (1.000 nusan = 1.000.000 msat,
+      // parameter LSP) invoice JIT memang tidak bisa dibuat —
+      // sampaikan alasannya dengan jelas, bukan error umum.
+      // Kegagalan lain pada nominal berapa pun tetap pesan biasa.
+      setState(() => _error = amountMsat < BigInt.from(1000000)
+          ? context.l10n.receiveJitMinimumNote
+          : friendlyError(e,
+              fallback: context.l10n.createInvoiceFailed,
+              l10n: context.l10n));
     } finally {
       setState(() => _loading = false);
     }

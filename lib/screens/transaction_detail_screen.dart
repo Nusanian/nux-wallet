@@ -27,6 +27,14 @@ import '../utils/format.dart';
 /// terkunci di jalan: statusnya berlabel "Sedang diproses" dan
 /// layar menampilkan kalimat penenang bahwa uangnya aman dan
 /// akan selesai sendiri (keputusan NUX 30 Okt 2026).
+///
+/// Khusus pembayaran JIT yang SUDAH lunas — pembayaran inilah
+/// yang melahirkan channel penerima dan dikenai potongan biaya
+/// pembuatan 0,5%: layar menampilkan kalimat penjelasan supaya
+/// user paham kenapa jumlah yang diterimanya berkurang, dan
+/// bahwa potongan itu hanya sekali (keputusan NUX 30 Okt 2026).
+/// Pembayaran berikutnya lewat channel yang sama tercatat
+/// sebagai Bolt11 biasa, jadi catatan ini tidak muncul lagi.
 class TransactionDetailScreen extends StatelessWidget {
   final PaymentDetails payment;
 
@@ -112,6 +120,8 @@ class TransactionDetailScreen extends StatelessWidget {
         !_isOnchain;
     final showProcessingNote =
         !isIn && payment.status == PaymentStatus.pending;
+    final showJitNote =
+        _isJit && payment.status == PaymentStatus.succeeded;
 
     return Scaffold(
       appBar: AppBar(
@@ -163,6 +173,14 @@ class TransactionDetailScreen extends StatelessWidget {
               const SizedBox(height: 20),
               Text(
                 context.l10n.txProcessingNote,
+                style:
+                    TextStyle(fontSize: 13, color: context.palette.muted),
+              ),
+            ],
+            if (showJitNote) ...[
+              const SizedBox(height: 20),
+              Text(
+                context.l10n.txJitNote,
                 style:
                     TextStyle(fontSize: 13, color: context.palette.muted),
               ),

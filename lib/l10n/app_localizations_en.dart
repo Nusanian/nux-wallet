@@ -191,6 +191,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your money is safe and is waiting for its turn to be recorded on the network. It will complete on its own.';
 
   @override
+  String get txJitNote =>
+      'This payment also created a new receiving channel for you, so a 0.5% creation fee was deducted. Payments that follow through this channel won\'t be charged this fee.';
+
+  @override
   String get txCopied => 'Copied';
 
   @override
@@ -262,6 +266,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get createInvoiceFailed => 'Failed to create invoice. Try again.';
+
+  @override
+  String get receiveJitMinimumNote =>
+      'For your first receive (which also creates your receiving channel), the smallest amount is 1,000 nusan. Once your channel is ready, you can receive any amount, including less than 1,000 nusan.';
 
   @override
   String get receiveTitle => 'Receive NUX';
