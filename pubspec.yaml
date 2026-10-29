@@ -97,6 +97,7 @@ flutter:
   # ketuk lencana menuju tab Profil.
   assets:
     - assets/app_icon.png
+    - assets/splash_logo.png
     - assets/sounds/cling.wav
 
   # To add assets to your application, add an assets section, like this:

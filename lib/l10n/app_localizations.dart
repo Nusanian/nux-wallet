@@ -170,6 +170,12 @@ abstract class AppLocalizations {
   /// **'Menghubungkan ke LSP…'**
   String get bootConnecting;
 
+  /// No description provided for @splashTagline.
+  ///
+  /// In id, this message translates to:
+  /// **'Uangmu, Kendalimu.'**
+  String get splashTagline;
+
   /// No description provided for @bootFailedTitle.
   ///
   /// In id, this message translates to:
@@ -361,6 +367,78 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Belum ada transaksi. Pembayaran masuk dan keluar akan tampil di sini.'**
   String get noTransactions;
+
+  /// No description provided for @txDetailTitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Detail Transaksi'**
+  String get txDetailTitle;
+
+  /// No description provided for @txType.
+  ///
+  /// In id, this message translates to:
+  /// **'Jenis'**
+  String get txType;
+
+  /// No description provided for @txStatus.
+  ///
+  /// In id, this message translates to:
+  /// **'Status'**
+  String get txStatus;
+
+  /// No description provided for @txTime.
+  ///
+  /// In id, this message translates to:
+  /// **'Waktu'**
+  String get txTime;
+
+  /// No description provided for @txPaymentId.
+  ///
+  /// In id, this message translates to:
+  /// **'ID Pembayaran'**
+  String get txPaymentId;
+
+  /// No description provided for @txPaymentHash.
+  ///
+  /// In id, this message translates to:
+  /// **'Hash Pembayaran'**
+  String get txPaymentHash;
+
+  /// No description provided for @txSucceeded.
+  ///
+  /// In id, this message translates to:
+  /// **'Berhasil'**
+  String get txSucceeded;
+
+  /// No description provided for @txExpiredBadge.
+  ///
+  /// In id, this message translates to:
+  /// **'Kedaluwarsa'**
+  String get txExpiredBadge;
+
+  /// No description provided for @txInvoiceExpiredNote.
+  ///
+  /// In id, this message translates to:
+  /// **'Invoice ini sudah kedaluwarsa dan tidak bisa dibayar lagi. Buat invoice baru untuk menerima pembayaran.'**
+  String get txInvoiceExpiredNote;
+
+  /// No description provided for @txInvoiceNotSavedNote.
+  ///
+  /// In id, this message translates to:
+  /// **'Invoice ini dibuat sebelum fitur simpan invoice tersedia, jadi string invoice-nya tidak tersimpan di aplikasi dan tidak bisa ditampilkan kembali.'**
+  String get txInvoiceNotSavedNote;
+
+  /// No description provided for @txCopied.
+  ///
+  /// In id, this message translates to:
+  /// **'Disalin'**
+  String get txCopied;
+
+  /// No description provided for @receiveRestoredHint.
+  ///
+  /// In id, this message translates to:
+  /// **'Invoice terakhir yang belum dibayar dipulihkan dari simpanan.'**
+  String get receiveRestoredHint;
 
   /// No description provided for @backupWallet.
   ///
@@ -560,6 +638,24 @@ abstract class AppLocalizations {
   /// **'Pembayaran gagal. Coba lagi.'**
   String get payFailed;
 
+  /// No description provided for @payWaitingOutcome.
+  ///
+  /// In id, this message translates to:
+  /// **'Menunggu hasil akhir pembayaran…'**
+  String get payWaitingOutcome;
+
+  /// No description provided for @payFailedFinal.
+  ///
+  /// In id, this message translates to:
+  /// **'Pembayaran gagal. Dana tidak terkirim dan saldo Anda tetap utuh.'**
+  String get payFailedFinal;
+
+  /// No description provided for @payStillPending.
+  ///
+  /// In id, this message translates to:
+  /// **'Pembayaran masih diproses melewati batas tunggu. Hasil akhirnya akan tampil di Riwayat — jangan bayar ulang invoice yang sama sebelum statusnya jelas.'**
+  String get payStillPending;
+
   /// No description provided for @sendTitle.
   ///
   /// In id, this message translates to:
@@ -589,6 +685,18 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Bayar'**
   String get pay;
+
+  /// No description provided for @confirmPayTitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Bayar invoice ini?'**
+  String get confirmPayTitle;
+
+  /// No description provided for @confirmPayBody.
+  ///
+  /// In id, this message translates to:
+  /// **'Pembayaran Lightning bersifat instan dan tidak bisa dibatalkan. Periksa lagi invoice di bawah sebelum lanjut.'**
+  String get confirmPayBody;
 
   /// No description provided for @paymentSuccess.
   ///
@@ -643,6 +751,90 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Data dompet bermasalah. Hubungi operator untuk bantuan.'**
   String get errorWalletData;
+
+  /// No description provided for @restoreWallet.
+  ///
+  /// In id, this message translates to:
+  /// **'Restore Phrase'**
+  String get restoreWallet;
+
+  /// No description provided for @restoreSubtitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Pulihkan dompet dari frasa backup'**
+  String get restoreSubtitle;
+
+  /// No description provided for @restoreIntro.
+  ///
+  /// In id, this message translates to:
+  /// **'Masukkan frasa backup dompet yang ingin dipulihkan. Frasa ELNUX berbahasa Inggris, sesuai urutan saat pertama dibuat.'**
+  String get restoreIntro;
+
+  /// No description provided for @restoreHint.
+  ///
+  /// In id, this message translates to:
+  /// **'Ketik atau tempel frasa, pisahkan tiap kata dengan spasi'**
+  String get restoreHint;
+
+  /// No description provided for @restoreWordCount.
+  ///
+  /// In id, this message translates to:
+  /// **'{count} kata'**
+  String restoreWordCount(int count);
+
+  /// No description provided for @restoreInvalidCount.
+  ///
+  /// In id, this message translates to:
+  /// **'Jumlah kata harus 12, 15, 18, 21, atau 24 (frasa ELNUX 12 kata).'**
+  String get restoreInvalidCount;
+
+  /// No description provided for @restoreInvalidWords.
+  ///
+  /// In id, this message translates to:
+  /// **'Frasa tidak valid — periksa ejaan dan urutan kata.'**
+  String get restoreInvalidWords;
+
+  /// No description provided for @restoreButton.
+  ///
+  /// In id, this message translates to:
+  /// **'Pulihkan Dompet'**
+  String get restoreButton;
+
+  /// No description provided for @restoreConfirmTitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Pulihkan dompet ini?'**
+  String get restoreConfirmTitle;
+
+  /// No description provided for @restoreConfirmBody.
+  ///
+  /// In id, this message translates to:
+  /// **'Dompet yang sedang aktif akan DIHAPUS PERMANEN beserta seluruh datanya. Lanjutkan HANYA bila dompet aktif masih kosong, atau frasanya sudah dicadangkan. Frasa hanya memulihkan dompet — status channel Lightning tidak ikut pulih.'**
+  String get restoreConfirmBody;
+
+  /// No description provided for @restoreConfirmAction.
+  ///
+  /// In id, this message translates to:
+  /// **'Hapus & Pulihkan'**
+  String get restoreConfirmAction;
+
+  /// No description provided for @restoreWorking.
+  ///
+  /// In id, this message translates to:
+  /// **'Memulihkan dompet…'**
+  String get restoreWorking;
+
+  /// No description provided for @restoreSuccess.
+  ///
+  /// In id, this message translates to:
+  /// **'Dompet berhasil dipulihkan'**
+  String get restoreSuccess;
+
+  /// No description provided for @restoreFailed.
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memulihkan dompet. Coba lagi.'**
+  String get restoreFailed;
 }
 
 class _AppLocalizationsDelegate

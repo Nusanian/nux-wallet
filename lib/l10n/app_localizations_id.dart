@@ -46,6 +46,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get bootConnecting => 'Menghubungkan ke LSP…';
 
   @override
+  String get splashTagline => 'Uangmu, Kendalimu.';
+
+  @override
   String get bootFailedTitle => 'Gagal menghubungkan node';
 
   @override
@@ -146,6 +149,45 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get noTransactions =>
       'Belum ada transaksi. Pembayaran masuk dan keluar akan tampil di sini.';
+
+  @override
+  String get txDetailTitle => 'Detail Transaksi';
+
+  @override
+  String get txType => 'Jenis';
+
+  @override
+  String get txStatus => 'Status';
+
+  @override
+  String get txTime => 'Waktu';
+
+  @override
+  String get txPaymentId => 'ID Pembayaran';
+
+  @override
+  String get txPaymentHash => 'Hash Pembayaran';
+
+  @override
+  String get txSucceeded => 'Berhasil';
+
+  @override
+  String get txExpiredBadge => 'Kedaluwarsa';
+
+  @override
+  String get txInvoiceExpiredNote =>
+      'Invoice ini sudah kedaluwarsa dan tidak bisa dibayar lagi. Buat invoice baru untuk menerima pembayaran.';
+
+  @override
+  String get txInvoiceNotSavedNote =>
+      'Invoice ini dibuat sebelum fitur simpan invoice tersedia, jadi string invoice-nya tidak tersimpan di aplikasi dan tidak bisa ditampilkan kembali.';
+
+  @override
+  String get txCopied => 'Disalin';
+
+  @override
+  String get receiveRestoredHint =>
+      'Invoice terakhir yang belum dibayar dipulihkan dari simpanan.';
 
   @override
   String get backupWallet => 'Backup Wallet';
@@ -258,6 +300,17 @@ class AppLocalizationsId extends AppLocalizations {
   String get payFailed => 'Pembayaran gagal. Coba lagi.';
 
   @override
+  String get payWaitingOutcome => 'Menunggu hasil akhir pembayaran…';
+
+  @override
+  String get payFailedFinal =>
+      'Pembayaran gagal. Dana tidak terkirim dan saldo Anda tetap utuh.';
+
+  @override
+  String get payStillPending =>
+      'Pembayaran masih diproses melewati batas tunggu. Hasil akhirnya akan tampil di Riwayat — jangan bayar ulang invoice yang sama sebelum statusnya jelas.';
+
+  @override
   String get sendTitle => 'Kirim NUX';
 
   @override
@@ -272,6 +325,13 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get pay => 'Bayar';
+
+  @override
+  String get confirmPayTitle => 'Bayar invoice ini?';
+
+  @override
+  String get confirmPayBody =>
+      'Pembayaran Lightning bersifat instan dan tidak bisa dibatalkan. Periksa lagi invoice di bawah sebelum lanjut.';
 
   @override
   String get paymentSuccess => 'Pembayaran Berhasil!';
@@ -302,4 +362,53 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get errorWalletData =>
       'Data dompet bermasalah. Hubungi operator untuk bantuan.';
+
+  @override
+  String get restoreWallet => 'Restore Phrase';
+
+  @override
+  String get restoreSubtitle => 'Pulihkan dompet dari frasa backup';
+
+  @override
+  String get restoreIntro =>
+      'Masukkan frasa backup dompet yang ingin dipulihkan. Frasa ELNUX berbahasa Inggris, sesuai urutan saat pertama dibuat.';
+
+  @override
+  String get restoreHint =>
+      'Ketik atau tempel frasa, pisahkan tiap kata dengan spasi';
+
+  @override
+  String restoreWordCount(int count) {
+    return '$count kata';
+  }
+
+  @override
+  String get restoreInvalidCount =>
+      'Jumlah kata harus 12, 15, 18, 21, atau 24 (frasa ELNUX 12 kata).';
+
+  @override
+  String get restoreInvalidWords =>
+      'Frasa tidak valid — periksa ejaan dan urutan kata.';
+
+  @override
+  String get restoreButton => 'Pulihkan Dompet';
+
+  @override
+  String get restoreConfirmTitle => 'Pulihkan dompet ini?';
+
+  @override
+  String get restoreConfirmBody =>
+      'Dompet yang sedang aktif akan DIHAPUS PERMANEN beserta seluruh datanya. Lanjutkan HANYA bila dompet aktif masih kosong, atau frasanya sudah dicadangkan. Frasa hanya memulihkan dompet — status channel Lightning tidak ikut pulih.';
+
+  @override
+  String get restoreConfirmAction => 'Hapus & Pulihkan';
+
+  @override
+  String get restoreWorking => 'Memulihkan dompet…';
+
+  @override
+  String get restoreSuccess => 'Dompet berhasil dipulihkan';
+
+  @override
+  String get restoreFailed => 'Gagal memulihkan dompet. Coba lagi.';
 }
