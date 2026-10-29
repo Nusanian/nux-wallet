@@ -24,6 +24,7 @@ import 'services/lsp_service.dart';
 import 'utils/format.dart';
 import 'utils/coin_alert.dart';
 import 'widgets/lightning_status_pill.dart';
+import 'widgets/transaction_row.dart';
 import 'utils/friendly_error.dart';
 
 void main() async {
@@ -891,26 +892,23 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
         DateTime.fromMillisecondsSinceEpoch(
             payment.latestUpdateTimestamp.toInt() * 1000),
         locale: context.l10n.localeName);
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => _openPaymentDetail(payment),
-      child: _txRow(
-      isIn
+    return TransactionRow(
+      icon: isIn
           ? const Icon(Icons.arrow_downward_rounded, size: 22)
           : const Icon(Icons.arrow_upward_rounded, size: 22),
-      isIn ? context.l10n.received : context.l10n.sent,
-      _shortPaymentId(payment.id),
-      tag,
-      isIn,
-      amount,
-      time,
+      title: isIn ? context.l10n.received : context.l10n.sent,
+      addr: _shortPaymentId(payment.id),
+      tag: tag,
+      isIn: isIn,
+      amount: amount,
+      time: time,
       status: switch (payment.status) {
         PaymentStatus.pending => context.l10n.pending,
         PaymentStatus.failed => context.l10n.failed,
         PaymentStatus.succeeded => null,
       },
       statusBad: payment.status == PaymentStatus.failed,
-      ),
+      onTap: () => _openPaymentDetail(payment),
     );
   }
 
@@ -947,114 +945,6 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
 
   String _hashHex(Iterable<int> bytes) =>
       bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-
-  Widget _txRow(Widget icon, String title, String addr, String tag, bool isIn,
-      String amount, String time,
-      {String? status, bool statusBad = false}) {
-    final isJit = tag.contains('JIT');
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: context.palette.card,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: context.palette.border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              gradient: isIn
-                  ? LinearGradient(colors: [
-                      const Color(0xFF10B981).withValues(alpha: 0.25),
-                      const Color(0xFF10B981).withValues(alpha: 0.08),
-                    ])
-                  : null,
-              color: isIn ? null : context.palette.softBg,
-            ),
-            child: Center(child: icon),
-          ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 3),
-                Row(
-                  children: [
-                    Text(addr,
-                        style: TextStyle(
-                            fontSize: 12, color: context.palette.muted)),
-                    const SizedBox(width: 5),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isJit
-                            ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                            : context.palette.softBg,
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: Text(tag,
-                          style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: isJit
-                                  ? const Color(0xFF34D399)
-                                  : context.palette.dim)),
-                    ),
-                    if (status != null) ...[
-                      const SizedBox(width: 5),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: (statusBad
-                                  ? const Color(0xFFEF4444)
-                                  : const Color(0xFFF59E0B))
-                              .withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                        child: Text(status,
-                            style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: statusBad
-                                    ? context.palette.dangerSoft
-                                    : context.palette.warningIcon)),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(amount,
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: isIn
-                          ? const Color(0xFF34D399)
-                          : Colors.white)),
-              const SizedBox(height: 3),
-              Text(time,
-                  style:
-                      TextStyle(fontSize: 11, color: context.palette.muted)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _tab(int index, String icon, String label) {
     final active = _tabIndex == index;
