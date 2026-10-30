@@ -7,6 +7,7 @@ import '../theme.dart';
 import 'package:flutter/services.dart';
 import '../services/lsp_service.dart';
 import '../utils/animated_checkmark.dart';
+import '../utils/coin_alert.dart';
 import '../utils/friendly_error.dart';
 import 'scan_screen.dart';
 
@@ -176,6 +177,9 @@ class _SendScreenState extends State<SendScreen> {
           await widget.lspService.waitForPaymentOutcome(paymentId);
       if (!mounted) return;
       if (outcome == PaymentStatus.succeeded) {
+        // Getar sukses tiga denyut — penanda fisik hasil akhir,
+        // sama seperti peringatan koin masuk di sisi penerima.
+        CoinAlert.vibrateSuccess();
         setState(() => _paid = true);
       } else if (outcome == PaymentStatus.failed) {
         setState(() => _error = context.l10n.payFailedFinal);
