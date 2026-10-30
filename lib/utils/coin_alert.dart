@@ -22,13 +22,21 @@ class CoinAlert {
     } catch (_) {
       // Audio gagal tidak masalah — getar tetap dicoba.
     }
+    await vibrateSuccess();
+  }
+
+  /// Getar sukses tiga denyut dengan intensitas menanjak — penanda
+  /// fisik bahwa sebuah pembayaran BENAR-BENAR berhasil (dipakai
+  /// peringatan koin masuk maupun layar Kirim saat hasil akhir
+  /// pembayaran keluar sukses). Kegagalan ditelan diam-diam.
+  static Future<void> vibrateSuccess() async {
     try {
       if (await Vibration.hasVibrator()) {
-        // Pola dua denyut: pendek lalu lebih panjang (seperti
-        // denting koin) dengan intensitas menanjak.
+        // Pola tiga denyut: pendek, sedang, lalu terpanjang
+        // (seperti denting koin) dengan intensitas menanjak.
         Vibration.vibrate(
-          pattern: [0, 90, 60, 170],
-          intensities: [0, 200, 0, 255],
+          pattern: [0, 90, 60, 140, 60, 190],
+          intensities: [0, 180, 0, 220, 0, 255],
         );
       }
     } catch (_) {
