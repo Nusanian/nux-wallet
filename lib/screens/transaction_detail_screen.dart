@@ -21,6 +21,20 @@ import '../utils/format.dart';
 /// supaya user yang aplikasinya sempat tertutup tetap bisa
 /// membagikan invoice yang sama. Invoice kedaluwarsa hanya diberi
 /// lencana + penjelasan, tanpa QR — invoice mati tidak bisa dibayar.
+///
+/// Khusus pembayaran KELUAR yang masih pending — satu-satunya
+/// keadaan "uang menggantung" yang sungguhan, karena dananya
+/// terkunci di jalan: statusnya berlabel "Sedang diproses" dan
+/// layar menampilkan kalimat penenang bahwa uangnya aman dan
+/// akan selesai sendiri (keputusan NUX 30 Okt 2026).
+///
+/// Khusus pembayaran JIT yang SUDAH lunas — pembayaran inilah
+/// yang melahirkan channel penerima dan dikenai potongan biaya
+/// pembuatan 0,5%: layar menampilkan kalimat penjelasan supaya
+/// user paham kenapa jumlah yang diterimanya berkurang, dan
+/// bahwa potongan itu hanya sekali (keputusan NUX 30 Okt 2026).
+/// Pembayaran berikutnya lewat channel yang sama tercatat
+/// sebagai Bolt11 biasa, jadi catatan ini tidak muncul lagi.
 class TransactionDetailScreen extends StatelessWidget {
   final PaymentDetails payment;
 
@@ -79,7 +93,8 @@ class TransactionDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isIn = payment.direction == PaymentDirection.inbound;
     final statusText = switch (payment.status) {
-      PaymentStatus.pending => context.l10n.pending,
+      PaymentStatus.pending =>
+        isIn ? context.l10n.pending : context.l10n.processing,
       PaymentStatus.failed => context.l10n.failed,
       PaymentStatus.succeeded => context.l10n.txSucceeded,
     };
@@ -103,6 +118,10 @@ class TransactionDetailScreen extends StatelessWidget {
         isIn &&
         payment.status == PaymentStatus.pending &&
         !_isOnchain;
+    final showProcessingNote =
+        !isIn && payment.status == PaymentStatus.pending;
+    final showJitNote =
+        _isJit && payment.status == PaymentStatus.succeeded;
 
     return Scaffold(
       appBar: AppBar(
@@ -150,6 +169,22 @@ class TransactionDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
+            if (showProcessingNote) ...[
+              const SizedBox(height: 20),
+              Text(
+                context.l10n.txProcessingNote,
+                style:
+                    TextStyle(fontSize: 13, color: context.palette.muted),
+              ),
+            ],
+            if (showJitNote) ...[
+              const SizedBox(height: 20),
+              Text(
+                context.l10n.txJitNote,
+                style:
+                    TextStyle(fontSize: 13, color: context.palette.muted),
+              ),
+            ],
             if (showSaved && !savedExpired) ...[
               const SizedBox(height: 20),
               Text(context.l10n.invoiceTitle,

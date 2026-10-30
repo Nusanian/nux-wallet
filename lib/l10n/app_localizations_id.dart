@@ -144,6 +144,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get pending => 'Menunggu';
 
   @override
+  String get processing => 'Sedang diproses';
+
+  @override
   String get failed => 'Gagal';
 
   @override
@@ -181,6 +184,14 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get txInvoiceNotSavedNote =>
       'Invoice ini dibuat sebelum fitur simpan invoice tersedia, jadi string invoice-nya tidak tersimpan di aplikasi dan tidak bisa ditampilkan kembali.';
+
+  @override
+  String get txProcessingNote =>
+      'Uangmu aman dan sedang menunggu giliran tercatat di jaringan. Akan selesai sendiri.';
+
+  @override
+  String get txJitNote =>
+      'Pembayaran ini sekaligus membuatkan jalur penerimaan baru untukmu, jadi ada potongan biaya pembuatan 0,5%. Pembayaran berikutnya lewat jalur ini tidak dipotong lagi.';
 
   @override
   String get txCopied => 'Disalin';
@@ -255,6 +266,10 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get createInvoiceFailed => 'Gagal membuat invoice. Coba lagi.';
+
+  @override
+  String get receiveJitMinimumNote =>
+      'Untuk penerimaan pertama (sekaligus membuatkan jalur penerimaanmu), jumlah terkecilnya 1.000 nusan. Setelah jalurmu jadi, kamu bisa menerima berapa pun, termasuk di bawah 1.000 nusan.';
 
   @override
   String get receiveTitle => 'Terima NUX';
