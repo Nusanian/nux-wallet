@@ -177,8 +177,8 @@ class _SendScreenState extends State<SendScreen> {
           await widget.lspService.waitForPaymentOutcome(paymentId);
       if (!mounted) return;
       if (outcome == PaymentStatus.succeeded) {
-        // Getar sukses tiga denyut — penanda fisik hasil akhir,
-        // sama seperti peringatan koin masuk di sisi penerima.
+        // Getar sukses — penanda fisik hasil akhir, sama seperti
+        // peringatan koin masuk di sisi penerima.
         CoinAlert.vibrateSuccess();
         setState(() => _paid = true);
       } else if (outcome == PaymentStatus.failed) {

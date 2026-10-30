@@ -25,19 +25,16 @@ class CoinAlert {
     await vibrateSuccess();
   }
 
-  /// Getar sukses tiga denyut dengan intensitas menanjak — penanda
-  /// fisik bahwa sebuah pembayaran BENAR-BENAR berhasil (dipakai
-  /// peringatan koin masuk maupun layar Kirim saat hasil akhir
-  /// pembayaran keluar sukses). Kegagalan ditelan diam-diam.
+  /// Getar sukses — penanda fisik bahwa sebuah pembayaran
+  /// BENAR-BENAR berhasil (dipakai peringatan koin masuk maupun
+  /// layar Kirim saat hasil akhir pembayaran keluar sukses).
+  /// Pola persis seperti ditentukan NUX (31 Okt 2026):
+  /// [500, 500, 500, 500] ms (tunggu, getar, jeda, getar).
+  /// Kegagalan ditelan diam-diam.
   static Future<void> vibrateSuccess() async {
     try {
       if (await Vibration.hasVibrator()) {
-        // Pola tiga denyut: pendek, sedang, lalu terpanjang
-        // (seperti denting koin) dengan intensitas menanjak.
-        Vibration.vibrate(
-          pattern: [0, 90, 60, 140, 60, 190],
-          intensities: [0, 180, 0, 220, 0, 255],
-        );
+        Vibration.vibrate(pattern: [500, 500, 500, 500]);
       }
     } catch (_) {
       // Tanpa vibrator pun tidak masalah.

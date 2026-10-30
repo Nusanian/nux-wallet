@@ -61,7 +61,7 @@ dependencies:
   mobile_scanner: ^7.4.2
 
   # Peringatan koin masuk: bunyi "cling" (assets/sounds/cling.wav)
-  # + getar (package vibration, pola tiga denyut).
+  # + getar (package vibration, pola sukses [500, 500, 500, 500]).
   audioplayers: ^6.8.1
   vibration: ^3.2.1
 

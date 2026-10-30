@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:ldk_node/ldk_node.dart';
+import 'package:ldk_node/src/generated/api/types.dart';
 import 'package:ldk_node/src/generated/api/builder.dart';
 import 'package:ldk_node/src/generated/api/node.dart';
 import 'package:ldk_node/src/utils/frb.dart';
@@ -235,6 +236,11 @@ class LspService {
 String paymentIdHex(PaymentId id) =>
     id.data.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
 
+/// Bentuk hex payment hash — kunci tautan catatan pembayaran node
+/// ke invoice tersimpan lokal (SavedInvoice.paymentHashHex).
+String paymentHashHex(PaymentHash hash) =>
+    hash.data.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+
 /// Status pembayaran ber-ID [idHex] dalam daftar [payments];
 /// null bila catatannya belum muncul.
 PaymentStatus? findPaymentStatus(
@@ -243,6 +249,36 @@ PaymentStatus? findPaymentStatus(
     if (paymentIdHex(p.id) == idHex) return p.status;
   }
   return null;
+}
+
+/// Apakah invoice ber-payment-hash [hashHex] sudah LUNAS
+/// menurut catatan pembayaran node: ada pembayaran MASUK berstatus
+/// succeeded yang hash-nya sama.
+///
+/// Catatan node adalah sumber kebenaran yang sama dengan yang
+/// dibaca daftar Riwayat, dan simpanan lokal invoice harus tunduk
+/// padanya — bukan hanya pada jam kedaluwarsa lokal. Pembayaran
+/// bisa tiba saat pengguna berada di layar lain, sehingga
+/// penghapusan simpanan oleh pengawas event layar Terima (satu-
+/// satunya pemicu penghapusan) tidak sempat berjalan; tanpa
+/// rekonsiliasi ini invoice yang sudah lunas dipulihkan lagi
+/// sebagai "belum dibayar" dan bertentangan dengan Riwayat.
+bool invoiceAlreadyPaid(List<PaymentDetails> payments, String hashHex) {
+  for (final p in payments) {
+    if (p.direction != PaymentDirection.inbound) continue;
+    if (p.status != PaymentStatus.succeeded) continue;
+    final kind = p.kind;
+    final String kindHashHex;
+    if (kind is PaymentKind_Bolt11) {
+      kindHashHex = paymentHashHex(kind.hash);
+    } else if (kind is PaymentKind_Bolt11Jit) {
+      kindHashHex = paymentHashHex(kind.hash);
+    } else {
+      continue;
+    }
+    if (kindHashHex == hashHex) return true;
+  }
+  return false;
 }
 
 /// Jalur pembuatan invoice untuk layar Terima.
