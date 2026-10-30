@@ -103,6 +103,38 @@ class LspService {
     return invoice.signedRawInvoice;
   }
 
+  /// Buat invoice Bolt11 biasa (tanpa kelahiran channel) untuk
+  /// nominal [amountMsat], lewat channel yang sudah ada. Layak
+  /// dipanggil hanya bila kapasitas terima channel usable
+  /// mencukupi — pemilihan jalurnya di [chooseReceiveInvoiceRoute].
+  Future<String> createRegularInvoice({
+    required BigInt amountMsat,
+    required String description,
+    int expirySecs = 3600,
+  }) async {
+    _ensureRunning();
+    final payment = await FfiNode.bolt11Payment(ptr: _node!);
+    final invoice = await payment.receiveUnsafe(
+      amountMsat: amountMsat,
+      description: description,
+      expirySecs: expirySecs,
+    );
+    return invoice.signedRawInvoice;
+  }
+
+  /// Daftar channel node saat ini, apa adanya dari binding.
+  Future<List<ChannelDetails>> listChannels() async {
+    _ensureRunning();
+    return await _node!.listChannels();
+  }
+
+  /// Total kapasitas terima (msat) dari channel yang usable saat
+  /// ini — plafon nominal yang masih bisa diterima lewat invoice
+  /// biasa tanpa melahirkan channel baru.
+  Future<BigInt> usableInboundCapacityMsat() async {
+    return totalUsableInboundCapacityMsat(await listChannels());
+  }
+
   /// Kirim pembayaran invoice dan kembalikan ID pembayaran-nya.
   ///
   /// PERHATIAN: kembalian send() hanya berarti perintah kirim
@@ -211,4 +243,44 @@ PaymentStatus? findPaymentStatus(
     if (paymentIdHex(p.id) == idHex) return p.status;
   }
   return null;
+}
+
+/// Jalur pembuatan invoice untuk layar Terima.
+enum ReceiveInvoiceRoute {
+  /// Invoice Bolt11 biasa lewat channel yang sudah ada.
+  regular,
+
+  /// Invoice JIT: pembayaran yang datang sekaligus melahirkan
+  /// channel baru.
+  jit,
+}
+
+/// Total kapasitas terima (msat) dari channel yang usable.
+///
+/// Channel yang belum usable (belum channel-ready atau peer sedang
+/// tidak tersambung) tidak dihitung: pembayaran tidak bisa
+/// mendarat lewat channel seperti itu.
+BigInt totalUsableInboundCapacityMsat(List<ChannelDetails> channels) {
+  var total = BigInt.zero;
+  for (final c in channels) {
+    if (c.isUsable) total += c.inboundCapacityMsat;
+  }
+  return total;
+}
+
+/// Pilih jalur pembuatan invoice Terima ("Jalur 1", keputusan NUX
+/// 30 Okt 2026): nominal konkret yang muat dalam kapasitas terima
+/// channel yang sudah ada memakai invoice biasa — dompet yang
+/// jalurnya sudah jadi bisa menerima berapa pun, termasuk di bawah
+/// minimum kelahiran JIT (1.000 nusan). Invoice JIT hanya bila
+/// kapasitas tidak cukup (jalur memang harus lahir) atau nominal
+/// tidak ditentukan (amountless mempertahankan perilaku lama).
+ReceiveInvoiceRoute chooseReceiveInvoiceRoute({
+  required BigInt? amountMsat,
+  required BigInt usableInboundCapacityMsat,
+}) {
+  if (amountMsat == null) return ReceiveInvoiceRoute.jit;
+  return usableInboundCapacityMsat >= amountMsat
+      ? ReceiveInvoiceRoute.regular
+      : ReceiveInvoiceRoute.jit;
 }

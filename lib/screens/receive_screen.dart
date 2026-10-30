@@ -13,10 +13,19 @@ import '../utils/bolt11_info.dart';
 import '../utils/format.dart';
 import '../utils/friendly_error.dart';
 
-/// Layar Terima — buat invoice Lightning via JIT channel.
+/// Layar Terima — buat invoice Lightning.
 ///
 /// Alur: user isi nominal → tekan Buat Invoice → QR + invoice muncul →
-/// pembayar scan → LSP buka channel 0-conf → dana masuk.
+/// pembayar scan → dana masuk.
+///
+/// Jalur pembuatan invoice dipilih dari kapasitas terima yang
+/// sudah ada ("Jalur 1", keputusan NUX 30 Okt 2026): bila total
+/// kapasitas terima channel yang usable mencukupi nominal, invoice
+/// yang dibuat adalah invoice Bolt11 biasa lewat channel itu —
+/// tanpa potongan kelahiran dan tanpa minimum JIT, jadi penerimaan
+/// kecil pun bisa. Invoice JIT (pembayaran pertama sekaligus
+/// melahirkan channel 0-conf dari LSP) hanya dipakai bila
+/// kapasitas belum cukup, yaitu saat jalur memang harus lahir.
 ///
 /// Invoice yang melahirkan channel punya jumlah minimum dari
 /// parameter LSP (min_payment_size_msat = 1.000.000, yaitu 1.000
@@ -109,11 +118,34 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
 
     // 1 nusan = 1000 msat
     final amountMsat = BigInt.from((nusan * 1000).round());
+    final description =
+        context.l10n.receiveInvoiceDesc(nusan.toString());
+
+    // Pilih jalur dari kapasitas terima yang sudah ada. Gagal
+    // membaca kapasitas (node sesaat tidak siap) tidak boleh
+    // menggagalkan pembuatan invoice: pilihannya jatuh ke JIT —
+    // perilaku lama yang sudah terbukti.
+    var route = ReceiveInvoiceRoute.jit;
     try {
-      final invoice = await widget.lspService.createJitInvoice(
+      final inbound = await widget.lspService.usableInboundCapacityMsat();
+      route = chooseReceiveInvoiceRoute(
         amountMsat: amountMsat,
-        description: context.l10n.receiveInvoiceDesc(nusan.toString()),
+        usableInboundCapacityMsat: inbound,
       );
+    } catch (_) {
+      route = ReceiveInvoiceRoute.jit;
+    }
+
+    try {
+      final invoice = route == ReceiveInvoiceRoute.regular
+          ? await widget.lspService.createRegularInvoice(
+              amountMsat: amountMsat,
+              description: description,
+            )
+          : await widget.lspService.createJitInvoice(
+              amountMsat: amountMsat,
+              description: description,
+            );
       setState(() => _invoice = invoice);
       // Simpan invoice di HP (string + hash + kedaluwarsa) supaya
       // tetap bisa dilihat/disalin kembali dari Riwayat atau saat
@@ -134,9 +166,13 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
     } catch (e) {
       // Di bawah minimum kelahiran (1.000 nusan = 1.000.000 msat,
       // parameter LSP) invoice JIT memang tidak bisa dibuat —
-      // sampaikan alasannya dengan jelas, bukan error umum.
+      // sampaikan alasannya dengan jelas, bukan error umum. Pesan
+      // minimum ini khusus kegagalan di jalur JIT: kegagalan jalur
+      // biasa (kapasitas sebenarnya cukup) sebabnya lain, jadi
+      // tetap pesan umum walau nominalnya di bawah 1.000.
       // Kegagalan lain pada nominal berapa pun tetap pesan biasa.
-      setState(() => _error = amountMsat < BigInt.from(1000000)
+      setState(() => _error = route == ReceiveInvoiceRoute.jit &&
+              amountMsat < BigInt.from(1000000)
           ? context.l10n.receiveJitMinimumNote
           : friendlyError(e,
               fallback: context.l10n.createInvoiceFailed,
