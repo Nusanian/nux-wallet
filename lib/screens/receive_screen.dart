@@ -73,13 +73,39 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   /// tidak kehilangan invoice yang sudah ia bagikan. Invoice yang
   /// dipulihkan diawasi event pembayarannya sama seperti invoice
   /// yang baru dibuat.
+  ///
+  /// Sebelum dipulihkan, simpanan direkonsiliasi dulu dengan
+  /// catatan pembayaran node: pembayaran invoice ini bisa saja
+  /// tiba saat pengguna berada di layar lain, sehingga penghapusan
+  /// simpanan oleh pengawas event di layar ini (satu-satunya pemicu
+  /// penghapusan) tidak sempat berjalan. Bila node sudah
+  /// mencatatnya lunas, simpanan itu basi — buang dan lanjut ke
+  /// simpanan berikutnya, jangan pulihkan sebagai "belum dibayar"
+  /// (Riwayat, yang membaca catatan yang sama, sudah menampilkan
+  /// pembayaran itu sebagai diterima). Gagal membaca catatan (node
+  /// sesaat tidak siap) TIDAK membuang apa pun: jatuh ke perilaku
+  /// lama, supaya simpanan yang sah tidak hilang hanya karena
+  /// baca status gagal sesaat.
   Future<void> _restoreLastInvoice() async {
-    final saved = await SavedInvoiceStore().latestUnexpired();
+    final store = SavedInvoiceStore();
+    var saved = await store.latestUnexpired();
     if (saved == null || !mounted || _invoice != null) return;
+    try {
+      final payments = await widget.lspService.listPayments();
+      while (saved != null &&
+          invoiceAlreadyPaid(payments, saved.paymentHashHex)) {
+        await store.removeByHash(saved.paymentHashHex);
+        saved = await store.latestUnexpired();
+      }
+    } catch (_) {
+      // Abaikan — pulihkan apa adanya seperti perilaku lama.
+    }
+    if (saved == null || !mounted || _invoice != null) return;
+    final restored = saved;
     setState(() {
-      _invoice = saved.invoice;
+      _invoice = restored.invoice;
       _restored = true;
-      _amountController.text = formatNusan(saved.amountMsat);
+      _amountController.text = formatNusan(restored.amountMsat);
     });
     _startWatching();
   }
