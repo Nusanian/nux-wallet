@@ -356,6 +356,12 @@ abstract class AppLocalizations {
   /// **'Menunggu'**
   String get pending;
 
+  /// No description provided for @processing.
+  ///
+  /// In id, this message translates to:
+  /// **'Sedang diproses'**
+  String get processing;
+
   /// No description provided for @failed.
   ///
   /// In id, this message translates to:
@@ -427,6 +433,18 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Invoice ini dibuat sebelum fitur simpan invoice tersedia, jadi string invoice-nya tidak tersimpan di aplikasi dan tidak bisa ditampilkan kembali.'**
   String get txInvoiceNotSavedNote;
+
+  /// No description provided for @txProcessingNote.
+  ///
+  /// In id, this message translates to:
+  /// **'Uangmu aman dan sedang menunggu giliran tercatat di jaringan. Akan selesai sendiri.'**
+  String get txProcessingNote;
+
+  /// No description provided for @txJitNote.
+  ///
+  /// In id, this message translates to:
+  /// **'Pembayaran ini sekaligus membuatkan jalur penerimaan baru untukmu, jadi ada potongan biaya pembuatan 0,5%. Pembayaran berikutnya lewat jalur ini tidak dipotong lagi.'**
+  String get txJitNote;
 
   /// No description provided for @txCopied.
   ///
@@ -559,6 +577,12 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Gagal membuat invoice. Coba lagi.'**
   String get createInvoiceFailed;
+
+  /// No description provided for @receiveJitMinimumNote.
+  ///
+  /// In id, this message translates to:
+  /// **'Untuk penerimaan pertama (sekaligus membuatkan jalur penerimaanmu), jumlah terkecilnya 1.000 nusan. Setelah jalurmu jadi, kamu bisa menerima berapa pun, termasuk di bawah 1.000 nusan.'**
+  String get receiveJitMinimumNote;
 
   /// No description provided for @receiveTitle.
   ///

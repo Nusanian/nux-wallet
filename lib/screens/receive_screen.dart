@@ -13,10 +13,29 @@ import '../utils/bolt11_info.dart';
 import '../utils/format.dart';
 import '../utils/friendly_error.dart';
 
-/// Layar Terima — buat invoice Lightning via JIT channel.
+/// Layar Terima — buat invoice Lightning.
 ///
 /// Alur: user isi nominal → tekan Buat Invoice → QR + invoice muncul →
-/// pembayar scan → LSP buka channel 0-conf → dana masuk.
+/// pembayar scan → dana masuk.
+///
+/// Jalur pembuatan invoice dipilih dari kapasitas terima yang
+/// sudah ada ("Jalur 1", keputusan NUX 30 Okt 2026): bila total
+/// kapasitas terima channel yang usable mencukupi nominal, invoice
+/// yang dibuat adalah invoice Bolt11 biasa lewat channel itu —
+/// tanpa potongan kelahiran dan tanpa minimum JIT, jadi penerimaan
+/// kecil pun bisa. Invoice JIT (pembayaran pertama sekaligus
+/// melahirkan channel 0-conf dari LSP) hanya dipakai bila
+/// kapasitas belum cukup, yaitu saat jalur memang harus lahir.
+///
+/// Invoice yang melahirkan channel punya jumlah minimum dari
+/// parameter LSP (min_payment_size_msat = 1.000.000, yaitu 1.000
+/// nusan), yang ditegakkan sisi klien SEBELUM invoice dibuat —
+/// error node untuk pelanggaran ini generik (LiquidityRequestFailed,
+/// sama seperti kegagalan likuiditas lain), jadi layar membedakan
+/// kasusnya dari nominal yang diminta: pembuatan gagal + nominal
+/// di bawah minimum → pesan khusus yang menjelaskan minimumnya,
+/// bukan error umum "Gagal membuat invoice" (keputusan NUX
+/// 30 Okt 2026 — info minimum ini wajib sampai ke pengguna).
 class ReceiveScreen extends StatefulWidget {
   final LspService lspService;
 
@@ -74,7 +93,13 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   }
 
   Future<void> _createInvoice() async {
-    final text = _amountController.text.trim();
+    // Kolom nominal menampilkan pemisah gaya id ('.' ribuan, ','
+    // desimal — lihat _ThousandsSeparatorFormatter): buang pemisah
+    // tampilan supaya yang terbaca tetap angka murninya.
+    final text = _amountController.text
+        .trim()
+        .replaceAll('.', '')
+        .replaceAll(',', '.');
     final nusan = double.tryParse(text);
     if (nusan == null || nusan <= 0) {
       setState(() => _error = context.l10n.invalidAmount);
@@ -91,13 +116,36 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
       _restored = false;
     });
 
+    // 1 nusan = 1000 msat
+    final amountMsat = BigInt.from((nusan * 1000).round());
+    final description =
+        context.l10n.receiveInvoiceDesc(nusan.toString());
+
+    // Pilih jalur dari kapasitas terima yang sudah ada. Gagal
+    // membaca kapasitas (node sesaat tidak siap) tidak boleh
+    // menggagalkan pembuatan invoice: pilihannya jatuh ke JIT —
+    // perilaku lama yang sudah terbukti.
+    var route = ReceiveInvoiceRoute.jit;
     try {
-      // 1 nusan = 1000 msat
-      final amountMsat = BigInt.from((nusan * 1000).round());
-      final invoice = await widget.lspService.createJitInvoice(
+      final inbound = await widget.lspService.usableInboundCapacityMsat();
+      route = chooseReceiveInvoiceRoute(
         amountMsat: amountMsat,
-        description: context.l10n.receiveInvoiceDesc(nusan.toString()),
+        usableInboundCapacityMsat: inbound,
       );
+    } catch (_) {
+      route = ReceiveInvoiceRoute.jit;
+    }
+
+    try {
+      final invoice = route == ReceiveInvoiceRoute.regular
+          ? await widget.lspService.createRegularInvoice(
+              amountMsat: amountMsat,
+              description: description,
+            )
+          : await widget.lspService.createJitInvoice(
+              amountMsat: amountMsat,
+              description: description,
+            );
       setState(() => _invoice = invoice);
       // Simpan invoice di HP (string + hash + kedaluwarsa) supaya
       // tetap bisa dilihat/disalin kembali dari Riwayat atau saat
@@ -116,8 +164,19 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
       }
       _startWatching();
     } catch (e) {
-      setState(() => _error = friendlyError(e,
-          fallback: context.l10n.createInvoiceFailed, l10n: context.l10n));
+      // Di bawah minimum kelahiran (1.000 nusan = 1.000.000 msat,
+      // parameter LSP) invoice JIT memang tidak bisa dibuat —
+      // sampaikan alasannya dengan jelas, bukan error umum. Pesan
+      // minimum ini khusus kegagalan di jalur JIT: kegagalan jalur
+      // biasa (kapasitas sebenarnya cukup) sebabnya lain, jadi
+      // tetap pesan umum walau nominalnya di bawah 1.000.
+      // Kegagalan lain pada nominal berapa pun tetap pesan biasa.
+      setState(() => _error = route == ReceiveInvoiceRoute.jit &&
+              amountMsat < BigInt.from(1000000)
+          ? context.l10n.receiveJitMinimumNote
+          : friendlyError(e,
+              fallback: context.l10n.createInvoiceFailed,
+              l10n: context.l10n));
     } finally {
       setState(() => _loading = false);
     }
@@ -227,6 +286,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _amountController,
+              inputFormatters: [_ThousandsSeparatorFormatter()],
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               style: const TextStyle(
@@ -387,6 +447,52 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Pemformat kolom nominal Terima: terapkan pemisah ribuan '.'
+/// gaya id secara langsung saat user mengetik, supaya tampilan
+/// selalu rapi — bukan hanya saat nilai diisi program (mis. pulihan
+/// invoice pending yang terisi "1.000", lalu rusak formatnya begitu
+/// user mengedit). Pecahan memakai koma desimal, sama seperti
+/// [formatNusan]. Format hanya tampilan: nilai angka murninya
+/// dipulihkan saat parsing di _ReceiveScreenState._createInvoice.
+class _ThousandsSeparatorFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final raw = newValue.text;
+    if (raw.isEmpty) return newValue;
+
+    // Pisah bagian bulat dan pecahan pada koma desimal pertama;
+    // selain digit dibuang (termasuk '.' pemisah ribuan lama).
+    final comma = raw.indexOf(',');
+    var intDigits = (comma >= 0 ? raw.substring(0, comma) : raw)
+        .replaceAll(RegExp(r'[^0-9]'), '');
+    final fracDigits = comma >= 0
+        ? raw.substring(comma + 1).replaceAll(RegExp(r'[^0-9]'), '')
+        : null;
+
+    // Buang nol di depan yang berlebih: "05" -> "5", "00" -> "0".
+    intDigits = intDigits.replaceFirst(RegExp(r'^0+(?=\d)'), '');
+
+    // Kelompokkan ribuan dengan '.', pola yang sama seperti
+    // formatNusan di utils/format.dart.
+    final buf = StringBuffer();
+    for (var i = 0; i < intDigits.length; i++) {
+      if (i > 0 && (intDigits.length - i) % 3 == 0) buf.write('.');
+      buf.write(intDigits[i]);
+    }
+    var text = buf.toString();
+    if (fracDigits != null) text = '$text,$fracDigits';
+
+    // Kursor selalu di akhir teks hasil format.
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
     );
   }
 }
