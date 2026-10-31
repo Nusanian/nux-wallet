@@ -7,7 +7,9 @@ import '../theme.dart';
 import 'package:flutter/services.dart';
 import '../services/lsp_service.dart';
 import '../utils/animated_checkmark.dart';
+import '../utils/bolt11_info.dart';
 import '../utils/coin_alert.dart';
+import '../utils/format.dart';
 import '../utils/friendly_error.dart';
 import 'scan_screen.dart';
 
@@ -43,6 +45,16 @@ String normalizeInvoice(String raw) {
 /// akhir tidak kunjung jelas sampai batas tunggu, layar menyatakan
 /// "masih diproses" apa adanya dan mengarahkan ke Riwayat, bukan
 /// mengklaim sukses atau gagal.
+///
+/// Layar juga menampilkan angka yang benar-benar bisa dikirim
+/// (kapasitas keluar channel menurut node — sudah bersih dari
+/// cadangan pengaman channel) dan memeriksanya SEBELUM dialog
+/// konfirmasi: nominal yang melewati saldo ditolak sebagai saldo
+/// tidak cukup; nominal yang muat di saldo tetapi tidak di
+/// kapasitas kirim ditolak dengan penjelasan cadangan, bukan
+/// dibiarkan gagal di node sesudah dicoba (keputusan NUX
+/// 31 Okt 2026, turunan temuan RouteNotFound: saldo 995 yang
+/// batas kirimnya 0 gagal berulang tanpa penjelasan).
 class SendScreen extends StatefulWidget {
   final LspService lspService;
 
@@ -68,11 +80,73 @@ class _SendScreenState extends State<SendScreen> {
   /// membayar ulang invoice yang sama.
   bool _stillPending = false;
 
+  /// Saldo Lightning total (msat) menurut node — angka yang sama
+  /// dengan yang tampil di Beranda. Null selama belum terbaca.
+  BigInt? _balanceMsat;
+
+  /// Kapasitas kirim (msat) dari channel yang usable — batas
+  /// kirim sesungguhnya sesudah cadangan pengaman dikeluarkan
+  /// node. Null selama belum terbaca.
+  BigInt? _sendableMsat;
+
+  /// True bila ada channel usable; tanpa itu kapasitas kirim
+  /// tidak bisa dinilai (bisa jadi sebabnya koneksi, bukan
+  /// cadangan) dan penjelasan cadangan tidak ditampilkan.
+  bool _hasUsableChannel = false;
+
+  /// Selisih saldo − kapasitas kirim (msat) saat sebuah percobaan
+  /// bayar tertahan cadangan; mengisi kotak penjelasan cadangan.
+  /// Null = kotak tidak tampil.
+  BigInt? _reserveHeldMsat;
+
+  /// Kapasitas kirim (msat) pada saat yang sama dengan
+  /// [_reserveHeldMsat] — pasangan angkanya di kotak yang sama,
+  /// ditangkap bersama supaya kotaknya konsisten walau angka
+  /// layar disegarkan sesudahnya.
+  BigInt? _reserveSendableMsat;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshSendable();
+  }
+
   @override
   void dispose() {
     _invoiceController.dispose();
     super.dispose();
   }
+
+  /// Muat/segarkan saldo + kapasitas kirim dari node.
+  ///
+  /// Kegagalan baca ditelan diam-diam: angka kirim hanya tambahan
+  /// kejujuran tampilan & bahan pemeriksaan pra-bayar — layar
+  /// Kirim harus tetap berfungsi persis seperti sebelumnya bila
+  /// angka ini tidak tersedia.
+  Future<void> _refreshSendable() async {
+    try {
+      final channels = await widget.lspService.listChannels();
+      final balance = await widget.lspService.getLightningBalance();
+      if (!mounted) return;
+      setState(() {
+        _balanceMsat = balance;
+        _sendableMsat = totalUsableOutboundCapacityMsat(channels);
+        _hasUsableChannel = channels.any((c) => c.isUsable);
+      });
+    } catch (_) {
+      // Abaikan — lihat keterangan di atas.
+    }
+  }
+
+  /// Keadaan "saldo ada tetapi yang bisa dikirim nol karena
+  /// cadangan" — satu-satunya keadaan yang selalu menampilkan
+  /// penjelasan cadangan tanpa menunggu percobaan bayar.
+  bool get _zeroSendable =>
+      _hasUsableChannel &&
+      _sendableMsat != null &&
+      _sendableMsat == BigInt.zero &&
+      _balanceMsat != null &&
+      _balanceMsat! > BigInt.zero;
 
   /// Getar singkat saat dialog konfirmasi muncul — penanda fisik
   /// bahwa ketukan Bayar belum mengirim apa-apa, masih bisa dibatalkan.
@@ -106,6 +180,48 @@ class _SendScreenState extends State<SendScreen> {
     if (!invoice.startsWith('ln')) {
       setState(() => _error = context.l10n.invalidInvoice);
       return;
+    }
+    // Pemeriksaan pra-bayar: nominal dibaca dari awalan invoice,
+    // lalu dinilai terhadap saldo & kapasitas kirim terbaru.
+    // Nominal yang memang tidak bisa dikirim ditolak DI SINI
+    // dengan alasannya — bukan dibiarkan gagal di node sesudah
+    // dicoba. Invoice tanpa nominal terbaca (amountless / tidak
+    // terurai) melewati pemeriksaan ini dan mengalir seperti
+    // sebelumnya; node tetap penentu akhirnya.
+    final amountMsat = parseBolt11AmountMsat(invoice);
+    if (amountMsat != null) {
+      await _refreshSendable();
+      if (!mounted) return;
+      final balance = _balanceMsat;
+      final sendable = _sendableMsat;
+      if (balance != null && sendable != null) {
+        final check = evaluateSend(
+          amountMsat: amountMsat,
+          balanceMsat: balance,
+          usableOutboundMsat: sendable,
+          hasUsableChannel: _hasUsableChannel,
+        );
+        if (check == SendCheck.insufficientBalance) {
+          setState(() {
+            _error = context.l10n.sendInsufficientBalance;
+            _reserveHeldMsat = null;
+            _reserveSendableMsat = null;
+          });
+          return;
+        }
+        if (check == SendCheck.reserveHeld) {
+          // Bila kotak nol-bisa-kirim sudah tampil, penjelasan
+          // yang sama sudah ada di layar — cukup jangan lanjut.
+          if (!_zeroSendable) {
+            setState(() {
+              _error = null;
+              _reserveHeldMsat = balance - sendable;
+              _reserveSendableMsat = sendable;
+            });
+          }
+          return;
+        }
+      }
     }
     await _vibrateConfirm();
     if (!mounted) return;
@@ -163,6 +279,8 @@ class _SendScreenState extends State<SendScreen> {
       _paid = false;
       _stillPending = false;
       _waitingOutcome = false;
+      _reserveHeldMsat = null;
+      _reserveSendableMsat = null;
     });
 
     try {
@@ -198,8 +316,61 @@ class _SendScreenState extends State<SendScreen> {
           _loading = false;
           _waitingOutcome = false;
         });
+        // Saldo & kapasitas kirim berubah sesudah pembayaran —
+        // segarkan angkanya supaya baris "Bisa dikirim" tidak basi.
+        _refreshSendable();
       }
     }
+  }
+
+  /// Kotak penjelasan cadangan pengaman channel (amber, pola yang
+  /// sama dengan kotak "masih diproses"): dipakai kotak
+  /// nol-bisa-kirim yang selalu tampil dan kotak tertahan-cadangan
+  /// sesudah percobaan bayar. [hint] + tombol Beranda hanya untuk
+  /// keadaan nol-bisa-kirim.
+  Widget _reserveBox({
+    required BigInt reserveMsat,
+    required BigInt sendableMsat,
+    bool zeroState = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            context.l10n.sendReserveNote(
+                formatNusan(reserveMsat), formatNusan(sendableMsat)),
+            style:
+                TextStyle(fontSize: 13, color: context.palette.label),
+            textAlign: TextAlign.center,
+          ),
+          if (zeroState) ...[
+            const SizedBox(height: 8),
+            Text(
+              context.l10n.sendZeroSendableHint,
+              style:
+                  TextStyle(fontSize: 13, color: context.palette.label),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(context.l10n.backToHome,
+                  style: const TextStyle(
+                      color: Color(0xFF34D399),
+                      fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   @override
@@ -238,6 +409,29 @@ class _SendScreenState extends State<SendScreen> {
                 ],
               ),
             ),
+            // Angka yang benar-benar bisa dikirim saat ini —
+            // kapasitas keluar menurut node, bukan saldo penuh.
+            if (_sendableMsat != null) ...[
+              const SizedBox(height: 14),
+              Text(
+                context.l10n.sendableLine(formatNusan(_sendableMsat!)),
+                style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: context.palette.label),
+              ),
+            ],
+            // Saldo ada tetapi nol yang bisa dikirim (seluruhnya
+            // tertahan cadangan): jelaskan + beri jalan keluar,
+            // jangan biarkan formulir jadi jalan buntu.
+            if (_zeroSendable) ...[
+              const SizedBox(height: 14),
+              _reserveBox(
+                reserveMsat: _balanceMsat!,
+                sendableMsat: BigInt.zero,
+                zeroState: true,
+              ),
+            ],
             const SizedBox(height: 20),
             // Invoice input
             Text(context.l10n.invoiceTitle,
@@ -245,6 +439,16 @@ class _SendScreenState extends State<SendScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _invoiceController,
+              onChanged: (_) {
+                // Kotak cadangan menunjuk invoice sebelumnya —
+                // invoice berubah, kotaknya gugur.
+                if (_reserveHeldMsat != null) {
+                  setState(() {
+                    _reserveHeldMsat = null;
+                    _reserveSendableMsat = null;
+                  });
+                }
+              },
               maxLines: 4,
               minLines: 3,
               style: const TextStyle(fontSize: 13),
@@ -308,7 +512,11 @@ class _SendScreenState extends State<SendScreen> {
                       if (scanned != null) {
                         _invoiceController.text =
                             normalizeInvoice(scanned);
-                        setState(() => _error = null);
+                        setState(() {
+                          _error = null;
+                          _reserveHeldMsat = null;
+                          _reserveSendableMsat = null;
+                        });
                       }
                     },
                     icon: const Icon(Icons.qr_code_scanner,
@@ -382,6 +590,13 @@ class _SendScreenState extends State<SendScreen> {
                       fontSize: 13, color: context.palette.label),
                   textAlign: TextAlign.center,
                 ),
+              ),
+            ],
+            if (_reserveHeldMsat != null && _reserveSendableMsat != null) ...[
+              const SizedBox(height: 20),
+              _reserveBox(
+                reserveMsat: _reserveHeldMsat!,
+                sendableMsat: _reserveSendableMsat!,
               ),
             ],
             if (_paid) ...[

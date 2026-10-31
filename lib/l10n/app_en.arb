@@ -123,6 +123,28 @@
   "payStillPending": "The payment is still being processed past the wait limit. Its final result will appear in History — do not pay the same invoice again until its status is clear.",
   "sendTitle": "Send NUX",
   "sendInfo": "Paste or scan a Lightning invoice from the recipient. Instant payment via channel.",
+  "sendableLine": "Available to send: {amount} nusan",
+  "@sendableLine": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "sendInsufficientBalance": "Your balance is not enough to pay this invoice.",
+  "sendReserveNote": "This amount can't be sent yet. Of your balance, {reserve} nusan is always kept aside as a safety reserve for your payment channel — it stays yours, it is not a fee, and it returns in full if the channel is closed. You can currently send: {sendable} nusan.",
+  "@sendReserveNote": {
+    "placeholders": {
+      "reserve": {
+        "type": "String"
+      },
+      "sendable": {
+        "type": "String"
+      }
+    }
+  },
+  "sendZeroSendableHint": "Receive a payment first so your balance rises above the reserve — after that you can send again.",
+  "backToHome": "Back to Home",
   "paste": "Paste",
   "scanQr": "Scan QR",
   "pay": "Pay",
