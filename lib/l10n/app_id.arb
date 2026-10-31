@@ -81,6 +81,17 @@
   "createNewWalletButton": "Buat dompet baru dengan frasa",
   "networkTestnetLabel": "Jaringan: Nusacoin Testnet",
   "networkMainnetLabel": "Jaringan: Nusacoin Mainnet",
+  "appVersionLabel": "Versi {version} • Build {build}",
+  "@appVersionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "build": {
+        "type": "String"
+      }
+    }
+  },
   "backupWarning": "Tulis kata-kata ini di kertas dan simpan di tempat aman. Siapa pun yang punya kata-kata ini bisa mengambil danamu.",
   "showBackupWords": "Tampilkan Kata Backup",
   "backupCopied": "Kata backup disalin",

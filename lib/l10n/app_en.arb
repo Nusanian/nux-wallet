@@ -81,6 +81,17 @@
   "createNewWalletButton": "Create a new wallet with a phrase",
   "networkTestnetLabel": "Network: Nusacoin Testnet",
   "networkMainnetLabel": "Network: Nusacoin Mainnet",
+  "appVersionLabel": "Version {version} • Build {build}",
+  "@appVersionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "build": {
+        "type": "String"
+      }
+    }
+  },
   "backupWarning": "Write these words on paper and store them somewhere safe. Anyone who has these words can take your funds.",
   "showBackupWords": "Show Backup Words",
   "backupCopied": "Backup words copied",

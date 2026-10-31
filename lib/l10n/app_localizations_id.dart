@@ -237,6 +237,11 @@ class AppLocalizationsId extends AppLocalizations {
   String get networkMainnetLabel => 'Jaringan: Nusacoin Mainnet';
 
   @override
+  String appVersionLabel(String version, String build) {
+    return 'Versi $version • Build $build';
+  }
+
+  @override
   String get backupWarning =>
       'Tulis kata-kata ini di kertas dan simpan di tempat aman. Siapa pun yang punya kata-kata ini bisa mengambil danamu.';
 
