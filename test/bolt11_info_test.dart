@@ -39,4 +39,55 @@ void main() {
       expect(parseBolt11Info('lntn1qqqqqq'), isNull);
     });
   });
+
+  group('parseBolt11AmountMsat', () {
+    test('invoice asli 50u: 5.000.000 msat', () {
+      // Invoice uji yang sama dengan grup di atas: awalan lntn50u
+      // = 50 mikro-koin = 5.000 nusan = 5.000.000 msat.
+      expect(parseBolt11AmountMsat(_invoice), BigInt.from(5000000));
+    });
+
+    // Invoice sisanya dirakit dari payload boneka + checksum
+    // bech32 yang sah (dibuat & diverifikasi dengan encoder
+    // independen): parser nominal hanya membaca awalan + checksum,
+    // isi payload memang tidak dibacanya. Nilai harap dihitung
+    // dari aritmetika BOLT11, bukan dari kode yang diuji.
+    test('tanpa nominal (amountless) → null', () {
+      expect(parseBolt11AmountMsat('lntn1pzry9x8qqqqqqqqqqaskaur'),
+          isNull);
+      expect(parseBolt11AmountMsat('lnnu1pzry9x8qqqqqqqqqqw6klqc'),
+          isNull);
+    });
+
+    test('pengali m: 2m = 200.000.000 msat', () {
+      expect(parseBolt11AmountMsat('lnnu2m1pzry9x8qqqqqqqqqqm853m8'),
+          BigInt.from(200000000));
+    });
+
+    test('pengali n: 250n = 25.000 msat', () {
+      expect(parseBolt11AmountMsat('lnnu250n1pzry9x8qqqqqqqqqqaazt28'),
+          BigInt.from(25000));
+    });
+
+    test('pengali p bulat: 1000p = 100 msat', () {
+      expect(parseBolt11AmountMsat('lnnu1000p1pzry9x8qqqqqqqqqqww2m8t'),
+          BigInt.from(100));
+    });
+
+    test('pengali p tidak bulat ke msat → null', () {
+      expect(parseBolt11AmountMsat('lnnu1005p1pzry9x8qqqqqqqqqqntje42'),
+          isNull);
+    });
+
+    test('checksum rusak → null', () {
+      final corrupted = '${_invoice.substring(0, 40)}q${_invoice.substring(41)}';
+      expect(parseBolt11AmountMsat(corrupted), isNull);
+    });
+
+    test('masukan bukan invoice → null', () {
+      expect(parseBolt11AmountMsat(''), isNull);
+      expect(parseBolt11AmountMsat('bukan invoice'), isNull);
+      expect(parseBolt11AmountMsat('ln'), isNull);
+    });
+  });
 }

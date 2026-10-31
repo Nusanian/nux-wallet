@@ -333,6 +333,27 @@ class AppLocalizationsEn extends AppLocalizations {
       'Paste or scan a Lightning invoice from the recipient. Instant payment via channel.';
 
   @override
+  String sendableLine(String amount) {
+    return 'Available to send: $amount nusan';
+  }
+
+  @override
+  String get sendInsufficientBalance =>
+      'Your balance is not enough to pay this invoice.';
+
+  @override
+  String sendReserveNote(String reserve, String sendable) {
+    return 'This amount can\'t be sent yet. Of your balance, $reserve nusan is always kept aside as a safety reserve for your payment channel — it stays yours, it is not a fee, and it returns in full if the channel is closed. You can currently send: $sendable nusan.';
+  }
+
+  @override
+  String get sendZeroSendableHint =>
+      'Receive a payment first so your balance rises above the reserve — after that you can send again.';
+
+  @override
+  String get backToHome => 'Back to Home';
+
+  @override
   String get paste => 'Paste';
 
   @override

@@ -333,6 +333,27 @@ class AppLocalizationsId extends AppLocalizations {
       'Tempel atau scan invoice Lightning dari penerima. Pembayaran instan via channel.';
 
   @override
+  String sendableLine(String amount) {
+    return 'Bisa dikirim: $amount nusan';
+  }
+
+  @override
+  String get sendInsufficientBalance =>
+      'Saldo tidak cukup untuk membayar invoice ini.';
+
+  @override
+  String sendReserveNote(String reserve, String sendable) {
+    return 'Jumlah ini belum bisa dikirim. Dari saldomu, $reserve nusan selalu disisakan sebagai cadangan pengaman jalur — tetap milikmu, bukan potongan, dan kembali utuh bila jalur ditutup. Yang bisa dikirim saat ini: $sendable nusan.';
+  }
+
+  @override
+  String get sendZeroSendableHint =>
+      'Terima kiriman terlebih dahulu supaya saldomu melewati cadangan — sesudah itu kamu bisa mengirim lagi.';
+
+  @override
+  String get backToHome => 'Kembali ke Beranda';
+
+  @override
   String get paste => 'Tempel';
 
   @override

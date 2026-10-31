@@ -16,6 +16,10 @@
 /// invoice yang checksum-nya rusak dianggap tidak valid dan fungsi
 /// mengembalikan null (fail-open: pemanggil cukup tidak menautkan
 /// invoice tersimpan, tanpa error ke user).
+///
+/// Fungsi ketiga, [parseBolt11AmountMsat], membaca nominal dari
+/// awalan (HRP) invoice mana pun untuk pemeriksaan pra-bayar di
+/// layar Kirim — juga fail-open dengan checksum terverifikasi.
 library;
 
 /// Info hasil baca invoice: payment hash (hex 64 karakter) dan
@@ -92,6 +96,84 @@ Bolt11Info? parseBolt11Info(String invoice) {
       (timestamp + (expirySecs ?? 3600)) * 1000,
       isUtc: true);
   return Bolt11Info(paymentHashHex: paymentHashHex, expiresAt: expiresAt);
+}
+
+/// Baca nominal invoice (msat) dari awalannya (HRP bech32).
+///
+/// Nominal BOLT11 tinggal di HRP: `ln` + kode mata uang + angka +
+/// pengali opsional (m = 10^-3, u = 10^-6, n = 10^-9, p = 10^-12
+/// dari satu koin utuh; tanpa pengali = koin utuh). Dipakai layar
+/// Kirim untuk memeriksa nominal terhadap saldo & kapasitas kirim
+/// SEBELUM pembayaran dicoba — binding node sendiri tidak
+/// menyediakan pembaca nominal invoice.
+///
+/// Mengembalikan null bila invoice tidak valid (termasuk checksum
+/// rusak), tidak bernominal (amountless), atau nominal 'p'-nya
+/// tidak bulat ke msat. Null berarti "tidak diketahui" — pemanggil
+/// melanjutkan alur lama tanpa pemeriksaan (fail-open); node tetap
+/// penentu akhir sah/tidaknya invoice saat pembayaran dijalankan.
+BigInt? parseBolt11AmountMsat(String invoice) {
+  final s = invoice.trim().toLowerCase();
+  if (!s.startsWith('ln')) return null;
+  final sep = s.lastIndexOf('1');
+  if (sep < 1) return null;
+  final dataPart = s.substring(sep + 1);
+  if (dataPart.length < 6) return null;
+
+  // Checksum wajib sah — nominal dari invoice rusak tidak boleh
+  // menjadi dasar pesan apa pun ke pengguna.
+  final words = <int>[];
+  for (var i = 0; i < dataPart.length; i++) {
+    final v = _bech32Charset.indexOf(dataPart[i]);
+    if (v < 0) return null;
+    words.add(v);
+  }
+  final hrp = s.substring(0, sep);
+  if (!_bech32ChecksumValid(hrp, words)) return null;
+
+  // HRP sesudah 'ln': kode mata uang (huruf) lalu angka nominal.
+  var rest = hrp.substring(2);
+  if (rest.isEmpty) return null;
+  var multiplierMsat = BigInt.from(100000000000); // koin utuh → msat
+  final last = rest[rest.length - 1];
+  if ((last == 'm' || last == 'u' || last == 'n' || last == 'p') &&
+      rest.length >= 2 &&
+      _isDigit(rest.codeUnitAt(rest.length - 2))) {
+    multiplierMsat = switch (last) {
+      'm' => BigInt.from(100000000),
+      'u' => BigInt.from(100000),
+      'n' => BigInt.from(100),
+      _ => BigInt.zero, // 'p' ditangani khusus di bawah
+    };
+    rest = rest.substring(0, rest.length - 1);
+    if (last == 'p') {
+      // 1 p = 0,1 msat: hanya bulat bila angkanya kelipatan 10.
+      final digits = _trailingDigits(rest);
+      if (digits == null) return null;
+      final value = BigInt.parse(digits);
+      if (value % BigInt.from(10) != BigInt.zero) return null;
+      return value ~/ BigInt.from(10);
+    }
+  }
+  final digits = _trailingDigits(rest);
+  if (digits == null) return null;
+  return BigInt.parse(digits) * multiplierMsat;
+}
+
+bool _isDigit(int codeUnit) => codeUnit >= 0x30 && codeUnit <= 0x39;
+
+/// Deretan angka di ujung [s] — nominal invoice. Null bila tidak
+/// ada angka sama sekali (amountless) atau ada nol di depan
+/// (bentuk yang tidak pernah diterbitkan penerbit invoice sah).
+String? _trailingDigits(String s) {
+  var i = s.length;
+  while (i > 0 && _isDigit(s.codeUnitAt(i - 1))) {
+    i--;
+  }
+  if (i == s.length) return null;
+  final digits = s.substring(i);
+  if (digits.length > 1 && digits.startsWith('0')) return null;
+  return digits;
 }
 
 /// Verifikasi checksum bech32 (polymod harus 1).
