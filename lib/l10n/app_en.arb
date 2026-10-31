@@ -157,5 +157,9 @@
         "type": "int"
       }
     }
-  }
+  },
+  "shareLog": "Share Log",
+  "shareLogSubtitle": "Send the node's technical log when something goes wrong",
+  "shareLogUnavailable": "The log isn't available yet.",
+  "shareLogFailed": "Couldn't share the log. Try again."
 }
