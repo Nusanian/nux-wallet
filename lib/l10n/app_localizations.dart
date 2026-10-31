@@ -859,6 +859,30 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Gagal memulihkan dompet. Coba lagi.'**
   String get restoreFailed;
+
+  /// No description provided for @shareLog.
+  ///
+  /// In id, this message translates to:
+  /// **'Bagikan Log'**
+  String get shareLog;
+
+  /// No description provided for @shareLogSubtitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Kirim catatan teknis node saat ada kendala'**
+  String get shareLogSubtitle;
+
+  /// No description provided for @shareLogUnavailable.
+  ///
+  /// In id, this message translates to:
+  /// **'Log belum tersedia.'**
+  String get shareLogUnavailable;
+
+  /// No description provided for @shareLogFailed.
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal membagikan log. Coba lagi.'**
+  String get shareLogFailed;
 }
 
 class _AppLocalizationsDelegate

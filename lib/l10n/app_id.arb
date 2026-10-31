@@ -157,5 +157,9 @@
         "type": "int"
       }
     }
-  }
+  },
+  "shareLog": "Bagikan Log",
+  "shareLogSubtitle": "Kirim catatan teknis node saat ada kendala",
+  "shareLogUnavailable": "Log belum tersedia.",
+  "shareLogFailed": "Gagal membagikan log. Coba lagi."
 }
