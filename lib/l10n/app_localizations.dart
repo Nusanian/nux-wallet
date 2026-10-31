@@ -524,6 +524,12 @@ abstract class AppLocalizations {
   /// **'Jaringan: Nusacoin Mainnet'**
   String get networkMainnetLabel;
 
+  /// No description provided for @appVersionLabel.
+  ///
+  /// In id, this message translates to:
+  /// **'Versi {version} • Build {build}'**
+  String appVersionLabel(String version, String build);
+
   /// No description provided for @backupWarning.
   ///
   /// In id, this message translates to:
