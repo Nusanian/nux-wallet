@@ -238,6 +238,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get networkMainnetLabel => 'Network: Nusacoin Mainnet';
 
   @override
+  String appVersionLabel(String version, String build) {
+    return 'Version $version • Build $build';
+  }
+
+  @override
   String get backupWarning =>
       'Write these words on paper and store them somewhere safe. Anyone who has these words can take your funds.';
 

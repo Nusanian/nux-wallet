@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ldk_node/src/generated/api/types.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -1493,9 +1494,37 @@ class _ProfilePage extends StatelessWidget {
               style: TextStyle(fontSize: 12.5, color: context.palette.muted),
             ),
           ),
+          const SizedBox(height: 10),
+          // Label versi + nomor build di kaki halaman — nomor build
+          // adalah nomor run CI pembuat APK-nya, jadi build yang
+          // terpasang bisa dicocokkan dengan run pembuatnya.
+          const Center(child: _AppVersionLabel()),
           const SizedBox(height: 80),
         ],
       ),
+    );
+  }
+}
+
+/// Label versi aplikasi + nomor build di kaki tab Profil, dibaca
+/// dari paket yang terpasang (package_info_plus). Selama infonya
+/// belum termuat — atau gagal dibaca — label tidak dirender sama
+/// sekali, supaya kaki halaman tidak menampilkan teks setengah jadi.
+class _AppVersionLabel extends StatelessWidget {
+  const _AppVersionLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, snapshot) {
+        final info = snapshot.data;
+        if (info == null) return const SizedBox.shrink();
+        return Text(
+          context.l10n.appVersionLabel(info.version, info.buildNumber),
+          style: TextStyle(fontSize: 11.5, color: context.palette.muted),
+        );
+      },
     );
   }
 }
