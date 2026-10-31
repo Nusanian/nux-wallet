@@ -426,4 +426,16 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get restoreFailed => 'Gagal memulihkan dompet. Coba lagi.';
+
+  @override
+  String get shareLog => 'Bagikan Log';
+
+  @override
+  String get shareLogSubtitle => 'Kirim catatan teknis node saat ada kendala';
+
+  @override
+  String get shareLogUnavailable => 'Log belum tersedia.';
+
+  @override
+  String get shareLogFailed => 'Gagal membagikan log. Coba lagi.';
 }

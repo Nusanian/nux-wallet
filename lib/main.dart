@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ldk_node/src/generated/api/types.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'config.dart';
 import 'locale_controller.dart';
@@ -338,6 +339,51 @@ class _HomeScreenState extends State<HomeScreen>
                   fallback: context.l10n.bootGenericError,
                   l10n: context.l10n);
         });
+      }
+    }
+  }
+
+  /// Bagikan berkas log node jaringan aktif (ldk_node.log) lewat share
+  /// sheet sistem — pola Phoenix: user sendiri yang memicu dari tab
+  /// Profil, aplikasi hanya MEMBACA berkas yang sudah ada. Jalur
+  /// diresolusi PERSIS seperti _boot: app support dir + nama storage
+  /// per network. Yang dibagikan adalah SALINAN di cache bernama
+  /// elnux-log-<network>-<tanggal>.log — berkas asli tidak diubah,
+  /// dipindah, atau ditambah data apa pun. Log belum ada/kosong →
+  /// pesan ringkas; kegagalan lain → pesan ramah tanpa detail teknis.
+  Future<void> _shareNodeLog() async {
+    try {
+      final dir = await getApplicationSupportDirectory();
+      final storageName =
+          AppConfig.isTestnet ? 'lsp_storage' : 'lsp_storage_mainnet';
+      final logFile = File('${dir.path}/$storageName/ldk_node.log');
+      if (!await logFile.exists() || await logFile.length() == 0) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(context.l10n.shareLogUnavailable)),
+          );
+        }
+        return;
+      }
+      final now = DateTime.now();
+      String two(int v) => v.toString().padLeft(2, '0');
+      final stamp = '${now.year}${two(now.month)}${two(now.day)}'
+          '-${two(now.hour)}${two(now.minute)}${two(now.second)}';
+      final network = AppConfig.isTestnet ? 'testnet' : 'mainnet';
+      final cacheDir = await getTemporaryDirectory();
+      final copyFile = File('${cacheDir.path}/elnux-log-$network-$stamp.log');
+      await logFile.copy(copyFile.path);
+      await SharePlus.instance.share(
+        ShareParams(files: [XFile(copyFile.path)]),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(friendlyError(e,
+                fallback: context.l10n.shareLogFailed, l10n: context.l10n)),
+          ),
+        );
       }
     }
   }
@@ -819,6 +865,7 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
               },
               onResetWallet: _resetWalletWithPhrase,
               onRestoreWallet: _restoreWalletWithPhrase,
+              onShareLog: _shareNodeLog,
             ),
           ],
         ),
@@ -1033,6 +1080,10 @@ class _ProfilePage extends StatelessWidget {
   /// pergantian dompet (lihat _restoreWalletWithPhrase di HomeScreen).
   final Future<void> Function(String mnemonic) onRestoreWallet;
 
+  /// Bagikan berkas log node lewat share sheet (lihat _shareNodeLog
+  /// di HomeScreen) — membantu pemeriksaan saat aplikasi bermasalah.
+  final VoidCallback onShareLog;
+
   const _ProfilePage({
     required this.mnemonicWords,
     required this.legacyWallet,
@@ -1040,6 +1091,7 @@ class _ProfilePage extends StatelessWidget {
     required this.onViewBackup,
     required this.onResetWallet,
     required this.onRestoreWallet,
+    required this.onShareLog,
   });
 
   /// Dialog pilih bahasa — dua opsi, yang aktif bertanda centang.
@@ -1301,6 +1353,57 @@ class _ProfilePage extends StatelessWidget {
                         const SizedBox(height: 3),
                         Text(
                           context.l10n.restoreSubtitle,
+                          style: TextStyle(
+                              fontSize: 12, color: context.palette.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded,
+                      color: context.palette.muted),
+                ],
+              ),
+            ),
+          ),
+          // Baris Bagikan Log — kirim berkas log node (ldk_node.log)
+          // lewat share sheet untuk membantu pemeriksaan masalah,
+          // pola yang sama seperti fitur share logs di Phoenix.
+          GestureDetector(
+            onTap: onShareLog,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: context.palette.card,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: context.palette.border),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: LinearGradient(colors: [
+                        const Color(0xFF10B981).withValues(alpha: 0.25),
+                        const Color(0xFF10B981).withValues(alpha: 0.08),
+                      ]),
+                    ),
+                    child: const Icon(Icons.share_rounded,
+                        color: Color(0xFF34D399), size: 20),
+                  ),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(context.l10n.shareLog,
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 3),
+                        Text(
+                          context.l10n.shareLogSubtitle,
                           style: TextStyle(
                               fontSize: 12, color: context.palette.muted),
                         ),

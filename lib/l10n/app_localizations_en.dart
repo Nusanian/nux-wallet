@@ -426,4 +426,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get restoreFailed => 'Failed to restore the wallet. Try again.';
+
+  @override
+  String get shareLog => 'Share Log';
+
+  @override
+  String get shareLogSubtitle =>
+      'Send the node\'s technical log when something goes wrong';
+
+  @override
+  String get shareLogUnavailable => 'The log isn\'t available yet.';
+
+  @override
+  String get shareLogFailed => 'Couldn\'t share the log. Try again.';
 }
