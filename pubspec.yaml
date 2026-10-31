@@ -61,13 +61,18 @@ dependencies:
   mobile_scanner: ^7.4.2
 
   # Peringatan koin masuk: bunyi "cling" (assets/sounds/cling.wav)
-  # + getar (package vibration, pola sukses [500, 500, 500, 500]).
+  # + getar (package vibration, pola sukses [0, 1000, 500, 1000]).
   audioplayers: ^6.8.1
   vibration: ^3.2.1
 
   # Bagikan berkas log node dari tab Profil (aksi Bagikan Log) lewat
   # share sheet sistem — pola Phoenix, membantu pemeriksaan masalah.
   share_plus: ^13.3.1
+
+  # Label versi + nomor build di kaki tab Profil. Nomor build yang
+  # dipasang CI adalah nomor run pembuat APK-nya (--build-number di
+  # workflow build), jadi build terpasang bisa dicocokkan ke run-nya.
+  package_info_plus: ^10.1.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

@@ -11,6 +11,12 @@ class CoinAlert {
   static bool _configured = false;
 
   static Future<void> play() async {
+    // Getar dipicu PERTAMA: polanya mulai tanpa jeda, jadi getar
+    // harus berangkat bersamaan dengan munculnya tanda pembayaran
+    // masuk — bukan sesudah bunyi selesai diputar. Dahulu getar
+    // menunggu putaran bunyi tuntas dulu, sehingga terasa terlambat
+    // atau seperti tidak bekerja.
+    await vibrateSuccess();
     try {
       if (!_configured) {
         await _player.setPlayerMode(PlayerMode.lowLatency);
@@ -20,21 +26,24 @@ class CoinAlert {
       await _player.setVolume(1.0);
       await _player.play(AssetSource('sounds/cling.wav'));
     } catch (_) {
-      // Audio gagal tidak masalah — getar tetap dicoba.
+      // Audio gagal tidak masalah — getar sudah terpicu di atas.
     }
-    await vibrateSuccess();
   }
 
   /// Getar sukses — penanda fisik bahwa sebuah pembayaran
   /// BENAR-BENAR berhasil (dipakai peringatan koin masuk maupun
   /// layar Kirim saat hasil akhir pembayaran keluar sukses).
-  /// Pola persis seperti ditentukan NUX (31 Okt 2026):
-  /// [500, 500, 500, 500] ms (tunggu, getar, jeda, getar).
+  /// Pola seperti ditentukan (1 Nov 2026), format pola
+  /// [tunggu, getar, jeda, getar]: [0, 1000, 500, 1000] ms —
+  /// getar 1 detik, jeda 500 ms, getar 1 detik, selesai.
+  /// Panggilan getar ditunggu (await) sampai diterima platform:
+  /// tanpa itu panggilan melayang bisa kalah balapan dengan
+  /// perpindahan layar atau aplikasi yang masuk latar.
   /// Kegagalan ditelan diam-diam.
   static Future<void> vibrateSuccess() async {
     try {
       if (await Vibration.hasVibrator()) {
-        Vibration.vibrate(pattern: [500, 500, 500, 500]);
+        await Vibration.vibrate(pattern: [0, 1000, 500, 1000]);
       }
     } catch (_) {
       // Tanpa vibrator pun tidak masalah.
