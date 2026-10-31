@@ -692,6 +692,36 @@ abstract class AppLocalizations {
   /// **'Tempel atau scan invoice Lightning dari penerima. Pembayaran instan via channel.'**
   String get sendInfo;
 
+  /// No description provided for @sendableLine.
+  ///
+  /// In id, this message translates to:
+  /// **'Bisa dikirim: {amount} nusan'**
+  String sendableLine(String amount);
+
+  /// No description provided for @sendInsufficientBalance.
+  ///
+  /// In id, this message translates to:
+  /// **'Saldo tidak cukup untuk membayar invoice ini.'**
+  String get sendInsufficientBalance;
+
+  /// No description provided for @sendReserveNote.
+  ///
+  /// In id, this message translates to:
+  /// **'Jumlah ini belum bisa dikirim. Dari saldomu, {reserve} nusan selalu disisakan sebagai cadangan pengaman jalur — tetap milikmu, bukan potongan, dan kembali utuh bila jalur ditutup. Yang bisa dikirim saat ini: {sendable} nusan.'**
+  String sendReserveNote(String reserve, String sendable);
+
+  /// No description provided for @sendZeroSendableHint.
+  ///
+  /// In id, this message translates to:
+  /// **'Terima kiriman terlebih dahulu supaya saldomu melewati cadangan — sesudah itu kamu bisa mengirim lagi.'**
+  String get sendZeroSendableHint;
+
+  /// No description provided for @backToHome.
+  ///
+  /// In id, this message translates to:
+  /// **'Kembali ke Beranda'**
+  String get backToHome;
+
   /// No description provided for @paste.
   ///
   /// In id, this message translates to:

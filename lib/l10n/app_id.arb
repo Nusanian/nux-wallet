@@ -123,6 +123,28 @@
   "payStillPending": "Pembayaran masih diproses melewati batas tunggu. Hasil akhirnya akan tampil di Riwayat — jangan bayar ulang invoice yang sama sebelum statusnya jelas.",
   "sendTitle": "Kirim NUX",
   "sendInfo": "Tempel atau scan invoice Lightning dari penerima. Pembayaran instan via channel.",
+  "sendableLine": "Bisa dikirim: {amount} nusan",
+  "@sendableLine": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "sendInsufficientBalance": "Saldo tidak cukup untuk membayar invoice ini.",
+  "sendReserveNote": "Jumlah ini belum bisa dikirim. Dari saldomu, {reserve} nusan selalu disisakan sebagai cadangan pengaman jalur — tetap milikmu, bukan potongan, dan kembali utuh bila jalur ditutup. Yang bisa dikirim saat ini: {sendable} nusan.",
+  "@sendReserveNote": {
+    "placeholders": {
+      "reserve": {
+        "type": "String"
+      },
+      "sendable": {
+        "type": "String"
+      }
+    }
+  },
+  "sendZeroSendableHint": "Terima kiriman terlebih dahulu supaya saldomu melewati cadangan — sesudah itu kamu bisa mengirim lagi.",
+  "backToHome": "Kembali ke Beranda",
   "paste": "Tempel",
   "scanQr": "Scan QR",
   "pay": "Bayar",

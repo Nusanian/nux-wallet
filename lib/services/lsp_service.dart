@@ -136,6 +136,14 @@ class LspService {
     return totalUsableInboundCapacityMsat(await listChannels());
   }
 
+  /// Total kapasitas kirim (msat) dari channel yang usable saat
+  /// ini — plafon nominal yang benar-benar bisa dikirim sekarang.
+  /// Angka node ini sudah bersih dari cadangan pengaman channel,
+  /// jadi inilah angka jujur untuk layar Kirim.
+  Future<BigInt> usableOutboundCapacityMsat() async {
+    return totalUsableOutboundCapacityMsat(await listChannels());
+  }
+
   /// Kirim pembayaran invoice dan kembalikan ID pembayaran-nya.
   ///
   /// PERHATIAN: kembalian send() hanya berarti perintah kirim
@@ -302,6 +310,62 @@ BigInt totalUsableInboundCapacityMsat(List<ChannelDetails> channels) {
     if (c.isUsable) total += c.inboundCapacityMsat;
   }
   return total;
+}
+
+/// Total kapasitas kirim (msat) dari channel yang usable.
+///
+/// Pasangan [totalUsableInboundCapacityMsat] untuk arah keluar.
+/// Kapasitas keluar dari node SUDAH mengeluarkan cadangan pengaman
+/// channel dan pembayaran yang sedang berjalan, jadi jumlah inilah
+/// batas kirim yang sesungguhnya — bukan saldo penuh.
+BigInt totalUsableOutboundCapacityMsat(List<ChannelDetails> channels) {
+  var total = BigInt.zero;
+  for (final c in channels) {
+    if (c.isUsable) total += c.outboundCapacityMsat;
+  }
+  return total;
+}
+
+/// Hasil pemeriksaan pra-bayar layar Kirim.
+enum SendCheck {
+  /// Nominal bisa dicoba dibayar — keputusan akhir tetap di node.
+  ok,
+
+  /// Nominal melewati saldo: memang tidak cukup, titik.
+  insufficientBalance,
+
+  /// Saldo terlihat cukup tetapi nominal melewati kapasitas kirim:
+  /// selisihnya tertahan sebagai cadangan pengaman channel.
+  reserveHeld,
+}
+
+/// Periksa nominal invoice terhadap saldo & kapasitas kirim
+/// SEBELUM pembayaran dicoba (keputusan NUX 31 Okt 2026).
+///
+/// Latarnya temuan RouteNotFound 31 Okt: dompet bersaldo 995 nusan
+/// gagal mengirim 500 berulang kali dan aplikasi hanya berkata
+/// "gagal" sesudah mencoba — padahal batas kirimnya memang 0,
+/// karena dari saldo selalu disisakan cadangan pengaman channel
+/// (di jaringan ini 1.000 nusan untuk channel 25.000). Layar harus
+/// berkata benar sebelum kejadian: nominal di atas saldo =
+/// [SendCheck.insufficientBalance]; nominal yang muat di saldo
+/// tetapi tidak di kapasitas kirim = [SendCheck.reserveHeld],
+/// dengan penjelasan bahwa cadangannya bukan potongan.
+///
+/// Tanpa channel usable, kapasitas kirim tidak bisa dinilai
+/// (penyebabnya bisa koneksi, bukan cadangan) → pemeriksaan
+/// cadangan dilewati dan node yang memutuskan seperti sebelumnya.
+SendCheck evaluateSend({
+  required BigInt amountMsat,
+  required BigInt balanceMsat,
+  required BigInt usableOutboundMsat,
+  required bool hasUsableChannel,
+}) {
+  if (amountMsat > balanceMsat) return SendCheck.insufficientBalance;
+  if (hasUsableChannel && amountMsat > usableOutboundMsat) {
+    return SendCheck.reserveHeld;
+  }
+  return SendCheck.ok;
 }
 
 /// Pilih jalur pembuatan invoice Terima ("Jalur 1", keputusan NUX
