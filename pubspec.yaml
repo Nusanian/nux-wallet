@@ -59,6 +59,7 @@ dependencies:
 
   # Pemindai QR invoice lewat kamera (layar Kirim → tombol Scan QR).
   mobile_scanner: ^7.4.2
+  image_picker: ^1.2.4
 
   # Peringatan koin masuk: bunyi "cling" (assets/sounds/cling.wav)
   # + getar (package vibration, pola sukses [0, 1000, 500, 1000]).
