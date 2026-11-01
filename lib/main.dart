@@ -24,6 +24,7 @@ import 'screens/transaction_detail_screen.dart';
 import 'services/lsp_profile.dart';
 import 'services/saved_invoices.dart';
 import 'services/lsp_service.dart';
+import 'services/csv_export.dart';
 import 'utils/format.dart';
 import 'utils/coin_alert.dart';
 import 'widgets/lightning_status_pill.dart';
@@ -399,6 +400,38 @@ class _HomeScreenState extends State<HomeScreen>
           SnackBar(
             content: Text(friendlyError(e,
                 fallback: context.l10n.shareLogFailed, l10n: context.l10n)),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Ekspor riwayat yang sedang tampil di tab Riwayat sebagai
+  /// berkas CSV lalu tawarkan lembar bagikan sistem — pola yang
+  /// sama seperti Bagikan Log. Yang diekspor persis daftar
+  /// tampilannya (_displayPayments), jadi invoice masuk yang
+  /// belum dibayar tidak ikut, sama seperti di layar.
+  Future<void> _exportHistoryCsv() async {
+    try {
+      final csv = buildTransactionsCsv(_displayPayments);
+      final now = DateTime.now();
+      String two(int v) => v.toString().padLeft(2, '0');
+      final stamp = '${now.year}${two(now.month)}${two(now.day)}'
+          '-${two(now.hour)}${two(now.minute)}${two(now.second)}';
+      final network = AppConfig.isTestnet ? 'testnet' : 'mainnet';
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/elnux-history-$network-$stamp.csv');
+      await file.writeAsString(csv);
+      await SharePlus.instance.share(
+        ShareParams(files: [XFile(file.path)]),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(friendlyError(e,
+                fallback: context.l10n.historyExportFailed,
+                l10n: context.l10n)),
           ),
         );
       }
@@ -866,7 +899,10 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
               title: context.l10n.market,
               message: context.l10n.marketSoon,
             ),
-            _HistoryPage(payments: _displayPayments, rowBuilder: _paymentRow),
+            _HistoryPage(
+                payments: _displayPayments,
+                rowBuilder: _paymentRow,
+                onExport: _exportHistoryCsv),
             _ProfilePage(
               mnemonicWords: _mnemonicWords,
               legacyWallet: _legacyWallet,
@@ -1606,7 +1642,11 @@ class _HistoryPage extends StatelessWidget {
   final List<PaymentDetails> payments;
   final Widget Function(PaymentDetails) rowBuilder;
 
-  const _HistoryPage({required this.payments, required this.rowBuilder});
+  /// Ekspor CSV riwayat ini; null menyembunyikan tombolnya.
+  final VoidCallback? onExport;
+
+  const _HistoryPage(
+      {required this.payments, required this.rowBuilder, this.onExport});
 
   @override
   Widget build(BuildContext context) {
@@ -1636,9 +1676,22 @@ class _HistoryPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.fromLTRB(22, 22, 22, 10),
-          child: Text(context.l10n.history,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          padding: EdgeInsets.fromLTRB(22, 22, 10, 10),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(context.l10n.history,
+                    style:
+                        TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              ),
+              if (onExport != null)
+                IconButton(
+                  icon: const Icon(Icons.ios_share_rounded),
+                  tooltip: context.l10n.historyExport,
+                  onPressed: onExport,
+                ),
+            ],
+          ),
         ),
         Expanded(
           child: ListView(

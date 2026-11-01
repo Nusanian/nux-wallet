@@ -1039,6 +1039,66 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Terima kasih'**
   String get receiptDefaultFooter;
+
+  /// No description provided for @printerSearchHint.
+  ///
+  /// In id, this message translates to:
+  /// **'Cari nama atau alamat'**
+  String get printerSearchHint;
+
+  /// No description provided for @printerTurnOn.
+  ///
+  /// In id, this message translates to:
+  /// **'Nyalakan Bluetooth'**
+  String get printerTurnOn;
+
+  /// No description provided for @printerScan.
+  ///
+  /// In id, this message translates to:
+  /// **'Pindai printer'**
+  String get printerScan;
+
+  /// No description provided for @printerScanning.
+  ///
+  /// In id, this message translates to:
+  /// **'Memindai…'**
+  String get printerScanning;
+
+  /// No description provided for @printerDiscovered.
+  ///
+  /// In id, this message translates to:
+  /// **'Perangkat ditemukan'**
+  String get printerDiscovered;
+
+  /// No description provided for @printerTapToPair.
+  ///
+  /// In id, this message translates to:
+  /// **'Ketuk untuk memasangkan dan memilih'**
+  String get printerTapToPair;
+
+  /// No description provided for @printerBondFailed.
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal memasangkan perangkat itu.'**
+  String get printerBondFailed;
+
+  /// No description provided for @printerPairedSelected.
+  ///
+  /// In id, this message translates to:
+  /// **'Printer terpasang dan dipilih'**
+  String get printerPairedSelected;
+
+  /// No description provided for @historyExport.
+  ///
+  /// In id, this message translates to:
+  /// **'Ekspor CSV'**
+  String get historyExport;
+
+  /// No description provided for @historyExportFailed.
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal membuat berkas CSV.'**
+  String get historyExportFailed;
 }
 
 class _AppLocalizationsDelegate
