@@ -65,6 +65,11 @@ dependencies:
   # Bluetooth Classic + pembangkit perintah ESC/POS.
   print_bluetooth_thermal: ^1.2.5
   esc_pos_utils_plus: ^2.0.4
+  # Khusus halaman Pengaturan Printer: nyalakan Bluetooth,
+  # pindai perangkat Classic di sekitar + pasangkan (bonding)
+  # dari dalam aplikasi. Transport cetak tetap
+  # print_bluetooth_thermal di atas.
+  flutter_blue_classic: ^0.1.1
 
   # Peringatan koin masuk: bunyi "cling" (assets/sounds/cling.wav)
   # + getar (package vibration, pola sukses [0, 1000, 500, 1000]).
