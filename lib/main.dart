@@ -118,6 +118,15 @@ class _HomeScreenState extends State<HomeScreen>
   /// riwayat lama tidak memicu bunyi/getar, hanya kedatangan baru.
   bool _paymentsPrimed = false;
 
+  /// Kunci pembayaran masuk yang sudah pernah terlihat BERHASIL.
+  /// Deteksi membandingkan himpunan ini, bukan kehadiran pembayaran
+  /// di daftar: invoice yang dibuat lalu ditunggu tampil di daftar
+  /// sebagai pending lebih dulu dengan kunci yang sama, sehingga
+  /// deteksi berbasis "kunci belum pernah terlihat" buta terhadap
+  /// perubahan status pending → berhasil — persis alur terima yang
+  /// paling umum. Yang dirayakan adalah TRANSISInya.
+  final Set<String> _receivedAlertKeys = {};
+
   /// Penyegar berkala dashboard selama aplikasi terbuka.
   Timer? _pollTimer;
 
@@ -170,17 +179,23 @@ class _HomeScreenState extends State<HomeScreen>
     if (!lspService.isRunning) return;
     try {
       final payments = await lspService.listPayments();
-      // Deteksi koin masuk: pembayaran inbound yang berhasil dan
-      // belum pernah terlihat → bunyi cling + getar. Muat pertama
-      // (riwayat lama) TIDAK memicu — hanya kedatangan baru.
-      if (_paymentsPrimed) {
-        final seen = _payments.map(_paymentKey).toSet();
-        final coinIn = payments.any((p) =>
-            p.direction == PaymentDirection.inbound &&
-            p.status == PaymentStatus.succeeded &&
-            !seen.contains(_paymentKey(p)));
-        if (coinIn) CoinAlert.play();
+      // Deteksi koin masuk: pembayaran inbound yang BARU berstatus
+      // berhasil → bunyi cling + getar. "Baru" diukur terhadap
+      // himpunan kunci yang sudah pernah terlihat berhasil, supaya
+      // perubahan status pending → berhasil ikut tertangkap (lihat
+      // _receivedAlertKeys). Muat pertama (riwayat lama) TIDAK
+      // memicu — himpunannya hanya diisi sebagai garis dasar.
+      final succeededIn = payments
+          .where((p) =>
+              p.direction == PaymentDirection.inbound &&
+              p.status == PaymentStatus.succeeded)
+          .map(_paymentKey)
+          .toSet();
+      if (_paymentsPrimed &&
+          succeededIn.difference(_receivedAlertKeys).isNotEmpty) {
+        CoinAlert.play();
       }
+      _receivedAlertKeys.addAll(succeededIn);
       _paymentsPrimed = true;
       if (mounted) setState(() => _payments = payments);
     } catch (_) {
@@ -460,6 +475,7 @@ class _HomeScreenState extends State<HomeScreen>
       // Primer ulang: riwayat dompet hasil restore tidak boleh memicu
       // bunyi koin masuk saat muat pertama.
       _paymentsPrimed = false;
+      _receivedAlertKeys.clear();
       _tabIndex = 0;
       _booting = true;
       _bootError = null;
