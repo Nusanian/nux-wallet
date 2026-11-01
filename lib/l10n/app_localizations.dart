@@ -461,7 +461,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupWallet.
   ///
   /// In id, this message translates to:
-  /// **'Backup Wallet'**
+  /// **'Pencadangan Dompet'**
   String get backupWallet;
 
   /// No description provided for @legacyWalletSubtitle.
@@ -737,7 +737,7 @@ abstract class AppLocalizations {
   /// No description provided for @scanQr.
   ///
   /// In id, this message translates to:
-  /// **'Scan QR'**
+  /// **'Pindai QR'**
   String get scanQr;
 
   /// No description provided for @pay.
@@ -767,7 +767,7 @@ abstract class AppLocalizations {
   /// No description provided for @scanTitle.
   ///
   /// In id, this message translates to:
-  /// **'Scan QR Invoice'**
+  /// **'Pindai Invoice QR'**
   String get scanTitle;
 
   /// No description provided for @cameraDenied.
@@ -787,6 +787,18 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Arahkan kamera ke QR invoice'**
   String get pointCamera;
+
+  /// No description provided for @scanFromGallery.
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih dari galeri'**
+  String get scanFromGallery;
+
+  /// No description provided for @scanNoQrFound.
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada kode QR pada gambar itu'**
+  String get scanNoQrFound;
 
   /// No description provided for @errorConnection.
   ///
@@ -815,7 +827,7 @@ abstract class AppLocalizations {
   /// No description provided for @restoreWallet.
   ///
   /// In id, this message translates to:
-  /// **'Restore Phrase'**
+  /// **'Pemulihan Dompet'**
   String get restoreWallet;
 
   /// No description provided for @restoreSubtitle.

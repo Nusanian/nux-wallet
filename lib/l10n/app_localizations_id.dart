@@ -201,7 +201,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Invoice terakhir yang belum dibayar dipulihkan dari simpanan.';
 
   @override
-  String get backupWallet => 'Backup Wallet';
+  String get backupWallet => 'Pencadangan Dompet';
 
   @override
   String get legacyWalletSubtitle =>
@@ -362,7 +362,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get paste => 'Tempel';
 
   @override
-  String get scanQr => 'Scan QR';
+  String get scanQr => 'Pindai QR';
 
   @override
   String get pay => 'Bayar';
@@ -378,7 +378,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get paymentSuccess => 'Pembayaran Berhasil!';
 
   @override
-  String get scanTitle => 'Scan QR Invoice';
+  String get scanTitle => 'Pindai Invoice QR';
 
   @override
   String get cameraDenied =>
@@ -389,6 +389,12 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get pointCamera => 'Arahkan kamera ke QR invoice';
+
+  @override
+  String get scanFromGallery => 'Pilih dari galeri';
+
+  @override
+  String get scanNoQrFound => 'Tidak ada kode QR pada gambar itu';
 
   @override
   String get errorConnection =>
@@ -405,7 +411,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Data dompet bermasalah. Hubungi operator untuk bantuan.';
 
   @override
-  String get restoreWallet => 'Restore Phrase';
+  String get restoreWallet => 'Pemulihan Dompet';
 
   @override
   String get restoreSubtitle => 'Pulihkan dompet dari frasa backup';
