@@ -214,5 +214,13 @@
   "printNoPrinter": "Belum ada printer dipilih. Pilih dulu di Profil, Printer.",
   "printBluetoothOff": "Bluetooth mati. Nyalakan dulu lalu coba lagi.",
   "printPermissionDenied": "Izin Bluetooth diperlukan untuk memakai printer.",
-  "receiptDefaultFooter": "Terima kasih"
+  "receiptDefaultFooter": "Terima kasih",
+  "printerSearchHint": "Cari nama atau alamat",
+  "printerTurnOn": "Nyalakan Bluetooth",
+  "printerScan": "Pindai printer",
+  "printerScanning": "Memindai…",
+  "printerDiscovered": "Perangkat ditemukan",
+  "printerTapToPair": "Ketuk untuk memasangkan dan memilih",
+  "printerBondFailed": "Gagal memasangkan perangkat itu.",
+  "printerPairedSelected": "Printer terpasang dan dipilih"
 }
