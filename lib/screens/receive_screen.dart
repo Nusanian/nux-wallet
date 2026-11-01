@@ -9,6 +9,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../services/lsp_service.dart';
 import '../services/saved_invoices.dart';
 import '../utils/animated_checkmark.dart';
+import '../utils/coin_alert.dart';
 import '../utils/bolt11_info.dart';
 import '../utils/format.dart';
 import '../utils/friendly_error.dart';
@@ -246,6 +247,13 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
         if (e == null) break;
         if (e is Event_PaymentReceived) {
           _eventTimer?.cancel();
+          // Rayakan di sini juga (bunyi + getar), bersamaan dengan
+          // tanda centang: pengawas event layar ini adalah pemicu
+          // tercepat dan pasti untuk invoice yang sedang ditunggu,
+          // sedangkan deteksi polling dashboard bisa datang beberapa
+          // detik sesudahnya. CoinAlert menahan perayaan ganda untuk
+          // penerimaan yang sama.
+          CoinAlert.play();
           // Invoice ini sudah lunas: hapus dari simpanan supaya
           // tidak dipulihkan lagi sebagai pending di sesi berikut.
           final currentInvoice = _invoice;

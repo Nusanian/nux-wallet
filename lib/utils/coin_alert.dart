@@ -10,7 +10,20 @@ class CoinAlert {
   static final AudioPlayer _player = AudioPlayer();
   static bool _configured = false;
 
+  /// Cap waktu perayaan terakhir. Satu penerimaan bisa terdeteksi
+  /// dua pemicu hampir bersamaan — pengawas event di layar Terima
+  /// (jajak 2 detik) dan polling dashboard (jajak 5 detik) — dan
+  /// tidak boleh dirayakan dua kali; perayaan yang datang kurang
+  /// dari 8 detik sesudah yang sebelumnya dianggap duplikat.
+  static DateTime? _lastPlayAt;
+
   static Future<void> play() async {
+    final now = DateTime.now();
+    final last = _lastPlayAt;
+    if (last != null && now.difference(last) < const Duration(seconds: 8)) {
+      return;
+    }
+    _lastPlayAt = now;
     // Getar dipicu PERTAMA: polanya mulai tanpa jeda, jadi getar
     // harus berangkat bersamaan dengan munculnya tanda pembayaran
     // masuk — bukan sesudah bunyi selesai diputar. Dahulu getar
