@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../locale_controller.dart';
 
-/// Layar Scan QR — membaca QR invoice Lightning dengan kamera.
+/// Layar Scan QR — membaca QR invoice Lightning dengan kamera
+/// atau dari gambar QR yang tersimpan di galeri.
 ///
 /// Mengembalikan teks hasil scan (String) ke pemanggil lewat
 /// Navigator.pop, atau null bila user membatalkan.
@@ -37,6 +39,33 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
+  /// Memilih gambar QR dari galeri dan mendekodenya dengan mesin
+  /// yang sama seperti pindaian kamera (analyzeImage). Hasil yang
+  /// valid diteruskan ke [_onDetect]; gambar yang tidak memuat QR
+  /// yang terbaca diberi tahu lewat snackbar.
+  Future<void> _pickFromGallery() async {
+    if (_handled) return;
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked == null || !mounted) return;
+    BarcodeCapture? capture;
+    try {
+      capture = await _controller.analyzeImage(picked.path);
+    } catch (_) {
+      capture = null;
+    }
+    if (!mounted) return;
+    if (capture == null ||
+        !capture.barcodes.any(
+          (b) => b.rawValue != null && b.rawValue!.trim().isNotEmpty,
+        )) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.scanNoQrFound)),
+      );
+      return;
+    }
+    _onDetect(capture);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,6 +73,13 @@ class _ScanScreenState extends State<ScanScreen> {
         title: Text(context.l10n.scanTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.photo_library_outlined),
+            tooltip: context.l10n.scanFromGallery,
+            onPressed: _pickFromGallery,
+          ),
+        ],
       ),
       backgroundColor: Colors.black,
       body: Stack(

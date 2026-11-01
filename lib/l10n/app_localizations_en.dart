@@ -391,6 +391,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pointCamera => 'Point the camera at the QR invoice';
 
   @override
+  String get scanFromGallery => 'Choose from gallery';
+
+  @override
+  String get scanNoQrFound => 'No QR code found in that image';
+
+  @override
   String get errorConnection =>
       'Cannot connect. Check your internet connection, then try again.';
 
@@ -405,7 +411,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Wallet data is corrupted. Contact the operator for help.';
 
   @override
-  String get restoreWallet => 'Restore Phrase';
+  String get restoreWallet => 'Restore Wallet';
 
   @override
   String get restoreSubtitle => 'Restore your wallet from a backup phrase';
