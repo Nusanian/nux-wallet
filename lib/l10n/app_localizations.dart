@@ -931,6 +931,114 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Gagal membagikan log. Coba lagi.'**
   String get shareLogFailed;
+
+  /// No description provided for @printer.
+  ///
+  /// In id, this message translates to:
+  /// **'Printer'**
+  String get printer;
+
+  /// No description provided for @printerSubtitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Printer struk, uji cetak, header & footer'**
+  String get printerSubtitle;
+
+  /// No description provided for @printerSettings.
+  ///
+  /// In id, this message translates to:
+  /// **'Pengaturan Printer'**
+  String get printerSettings;
+
+  /// No description provided for @printerSelect.
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih printer'**
+  String get printerSelect;
+
+  /// No description provided for @printerNoneSelected.
+  ///
+  /// In id, this message translates to:
+  /// **'Belum ada printer dipilih'**
+  String get printerNoneSelected;
+
+  /// No description provided for @printerNoPaired.
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada printer ter-pairing. Pairing printer dulu di Pengaturan Bluetooth Android.'**
+  String get printerNoPaired;
+
+  /// No description provided for @printerTest.
+  ///
+  /// In id, this message translates to:
+  /// **'Uji Cetak'**
+  String get printerTest;
+
+  /// No description provided for @printerHeader.
+  ///
+  /// In id, this message translates to:
+  /// **'Teks header'**
+  String get printerHeader;
+
+  /// No description provided for @printerHeaderHint.
+  ///
+  /// In id, this message translates to:
+  /// **'Dicetak di bagian atas setiap struk (mis. nama dan alamat toko)'**
+  String get printerHeaderHint;
+
+  /// No description provided for @printerFooter.
+  ///
+  /// In id, this message translates to:
+  /// **'Teks footer'**
+  String get printerFooter;
+
+  /// No description provided for @printerFooterHint.
+  ///
+  /// In id, this message translates to:
+  /// **'Dicetak di bagian bawah setiap struk'**
+  String get printerFooterHint;
+
+  /// No description provided for @print.
+  ///
+  /// In id, this message translates to:
+  /// **'Cetak'**
+  String get print;
+
+  /// No description provided for @printSuccess.
+  ///
+  /// In id, this message translates to:
+  /// **'Struk tercetak'**
+  String get printSuccess;
+
+  /// No description provided for @printFailed.
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal mencetak. Periksa printer lalu coba lagi.'**
+  String get printFailed;
+
+  /// No description provided for @printNoPrinter.
+  ///
+  /// In id, this message translates to:
+  /// **'Belum ada printer dipilih. Pilih dulu di Profil, Printer.'**
+  String get printNoPrinter;
+
+  /// No description provided for @printBluetoothOff.
+  ///
+  /// In id, this message translates to:
+  /// **'Bluetooth mati. Nyalakan dulu lalu coba lagi.'**
+  String get printBluetoothOff;
+
+  /// No description provided for @printPermissionDenied.
+  ///
+  /// In id, this message translates to:
+  /// **'Izin Bluetooth diperlukan untuk memakai printer.'**
+  String get printPermissionDenied;
+
+  /// No description provided for @receiptDefaultFooter.
+  ///
+  /// In id, this message translates to:
+  /// **'Terima kasih'**
+  String get receiptDefaultFooter;
 }
 
 class _AppLocalizationsDelegate
