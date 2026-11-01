@@ -1087,6 +1087,18 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Printer terpasang dan dipilih'**
   String get printerPairedSelected;
+
+  /// No description provided for @historyExport.
+  ///
+  /// In id, this message translates to:
+  /// **'Ekspor CSV'**
+  String get historyExport;
+
+  /// No description provided for @historyExportFailed.
+  ///
+  /// In id, this message translates to:
+  /// **'Gagal membuat berkas CSV.'**
+  String get historyExportFailed;
 }
 
 class _AppLocalizationsDelegate
