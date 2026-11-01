@@ -14,9 +14,10 @@ import 'package:flutter/material.dart';
 /// terasa sama. Tanpa package tambahan: hanya AnimationController
 /// dan CustomPainter bawaan Flutter.
 ///
-/// Animasi jalan sekali saat panel sukses muncul (total ~0,3
-/// detik — singkat dan sigap, bukan lambat), lalu diam — tidak
-/// berulang, supaya tidak mengganggu dan tidak menguras baterai.
+/// Animasi jalan sekali saat panel sukses muncul: lingkaran
+/// ±350 ms, lalu centangnya ±505 ms (total ±0,86 detik), lalu
+/// diam — tidak berulang, supaya tidak mengganggu dan tidak
+/// menguras baterai.
 class AnimatedCheckmark extends StatefulWidget {
   final double size;
   final Color color;
@@ -33,9 +34,14 @@ class AnimatedCheckmark extends StatefulWidget {
 
 class _AnimatedCheckmarkState extends State<AnimatedCheckmark>
     with SingleTickerProviderStateMixin {
+  // Durasi per fase dalam milidetik: lingkaran digores dulu,
+  // centang menyusul tepat sesudahnya.
+  static const _circleMs = 350;
+  static const _checkMs = 505;
+
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 300),
+    duration: const Duration(milliseconds: _circleMs + _checkMs),
   );
 
   @override
@@ -58,13 +64,18 @@ class _AnimatedCheckmarkState extends State<AnimatedCheckmark>
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, _) {
-          // Fase 1 (0–55%): lingkaran digores penuh satu putaran.
-          // Fase 2 (45–100%): centang digores (sedikit tumpang tindih
-          // supaya alurnya terasa menyambung, bukan putus-putus).
-          final circleProgress =
-              (_controller.value / 0.55).clamp(0.0, 1.0);
+          // Fase 1 (0–350 ms): lingkaran digores penuh satu putaran.
+          // Fase 2 (350–855 ms): centang digores menyusul.
+          const circleEnd = _circleMs / (_circleMs + _checkMs);
+          final circleProgress = (_controller.value / circleEnd).clamp(
+            0.0,
+            1.0,
+          );
           final checkProgress =
-              ((_controller.value - 0.45) / 0.55).clamp(0.0, 1.0);
+              ((_controller.value - circleEnd) / (1 - circleEnd)).clamp(
+                0.0,
+                1.0,
+              );
           return CustomPaint(
             painter: _CheckmarkPainter(
               circleProgress: circleProgress,

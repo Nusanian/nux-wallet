@@ -195,10 +195,17 @@ class LspService {
     // Konsekuensi yang disadari: HTLC keluar yang sedang terbang
     // belum terhitung sampai selesai/gagal, jadi angka ini bisa
     // tampil lebih rendah sesaat selama pembayaran berlangsung.
+    // Perhatian satuan: unspendablePunishmentReserve dari binding
+    // berdenominasi SAT (nusan utuh), sedangkan outboundCapacityMsat
+    // berdenominasi msat — cadangan wajib dikonversi ke msat sebelum
+    // dijumlahkan. Tanpa konversi, kartu saldo tampil 999 nusan
+    // lebih rendah per channel bercadangan 1.000 (terverifikasi dari
+    // rekonsiliasi riwayat testnet 2 Nov 2026).
     var total = BigInt.zero;
     for (final channel in await listChannels()) {
       total += channel.outboundCapacityMsat +
-          (channel.unspendablePunishmentReserve ?? BigInt.zero);
+          (channel.unspendablePunishmentReserve ?? BigInt.zero) *
+              BigInt.from(1000);
     }
     return total;
   }
