@@ -222,5 +222,7 @@
   "printerDiscovered": "Perangkat ditemukan",
   "printerTapToPair": "Ketuk untuk memasangkan dan memilih",
   "printerBondFailed": "Gagal memasangkan perangkat itu.",
-  "printerPairedSelected": "Printer terpasang dan dipilih"
+  "printerPairedSelected": "Printer terpasang dan dipilih",
+  "historyExport": "Ekspor CSV",
+  "historyExportFailed": "Gagal membuat berkas CSV."
 }

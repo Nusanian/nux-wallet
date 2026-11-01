@@ -222,5 +222,7 @@
   "printerDiscovered": "Found devices",
   "printerTapToPair": "Tap to pair and select",
   "printerBondFailed": "Couldn't pair with that device.",
-  "printerPairedSelected": "Printer paired and selected"
+  "printerPairedSelected": "Printer paired and selected",
+  "historyExport": "Export CSV",
+  "historyExportFailed": "Couldn't create the CSV file."
 }

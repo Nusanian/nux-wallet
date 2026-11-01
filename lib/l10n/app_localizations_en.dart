@@ -553,4 +553,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get printerPairedSelected => 'Printer paired and selected';
+
+  @override
+  String get historyExport => 'Export CSV';
+
+  @override
+  String get historyExportFailed => 'Couldn\'t create the CSV file.';
 }

@@ -553,4 +553,10 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get printerPairedSelected => 'Printer terpasang dan dipilih';
+
+  @override
+  String get historyExport => 'Ekspor CSV';
+
+  @override
+  String get historyExportFailed => 'Gagal membuat berkas CSV.';
 }
