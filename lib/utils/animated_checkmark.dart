@@ -14,9 +14,9 @@ import 'package:flutter/material.dart';
 /// terasa sama. Tanpa package tambahan: hanya AnimationController
 /// dan CustomPainter bawaan Flutter.
 ///
-/// Animasi jalan sekali saat panel sukses muncul (total ~1,1 detik),
-/// lalu diam — tidak berulang, supaya tidak mengganggu dan tidak
-/// menguras baterai.
+/// Animasi jalan sekali saat panel sukses muncul (total ~0,3
+/// detik — singkat dan sigap, bukan lambat), lalu diam — tidak
+/// berulang, supaya tidak mengganggu dan tidak menguras baterai.
 class AnimatedCheckmark extends StatefulWidget {
   final double size;
   final Color color;
@@ -35,7 +35,7 @@ class _AnimatedCheckmarkState extends State<AnimatedCheckmark>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1100),
+    duration: const Duration(milliseconds: 300),
   );
 
   @override
