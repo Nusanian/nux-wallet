@@ -529,4 +529,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get receiptDefaultFooter => 'Thank you';
+
+  @override
+  String get printerSearchHint => 'Search by name or address';
+
+  @override
+  String get printerTurnOn => 'Turn on Bluetooth';
+
+  @override
+  String get printerScan => 'Scan for printers';
+
+  @override
+  String get printerScanning => 'Scanning…';
+
+  @override
+  String get printerDiscovered => 'Found devices';
+
+  @override
+  String get printerTapToPair => 'Tap to pair and select';
+
+  @override
+  String get printerBondFailed => 'Couldn\'t pair with that device.';
+
+  @override
+  String get printerPairedSelected => 'Printer paired and selected';
 }

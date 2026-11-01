@@ -529,4 +529,28 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get receiptDefaultFooter => 'Terima kasih';
+
+  @override
+  String get printerSearchHint => 'Cari nama atau alamat';
+
+  @override
+  String get printerTurnOn => 'Nyalakan Bluetooth';
+
+  @override
+  String get printerScan => 'Pindai printer';
+
+  @override
+  String get printerScanning => 'Memindai…';
+
+  @override
+  String get printerDiscovered => 'Perangkat ditemukan';
+
+  @override
+  String get printerTapToPair => 'Ketuk untuk memasangkan dan memilih';
+
+  @override
+  String get printerBondFailed => 'Gagal memasangkan perangkat itu.';
+
+  @override
+  String get printerPairedSelected => 'Printer terpasang dan dipilih';
 }

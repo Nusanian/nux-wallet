@@ -214,5 +214,13 @@
   "printNoPrinter": "No printer selected yet. Choose one in Profile, Printer.",
   "printBluetoothOff": "Bluetooth is off. Turn it on and try again.",
   "printPermissionDenied": "Bluetooth permission is needed to use the printer.",
-  "receiptDefaultFooter": "Thank you"
+  "receiptDefaultFooter": "Thank you",
+  "printerSearchHint": "Search by name or address",
+  "printerTurnOn": "Turn on Bluetooth",
+  "printerScan": "Scan for printers",
+  "printerScanning": "Scanning…",
+  "printerDiscovered": "Found devices",
+  "printerTapToPair": "Tap to pair and select",
+  "printerBondFailed": "Couldn't pair with that device.",
+  "printerPairedSelected": "Printer paired and selected"
 }
