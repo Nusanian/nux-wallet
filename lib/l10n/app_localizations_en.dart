@@ -471,4 +471,62 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareLogFailed => 'Couldn\'t share the log. Try again.';
+
+  @override
+  String get printer => 'Printer';
+
+  @override
+  String get printerSubtitle => 'Receipt printer, test print, header & footer';
+
+  @override
+  String get printerSettings => 'Printer Settings';
+
+  @override
+  String get printerSelect => 'Select printer';
+
+  @override
+  String get printerNoneSelected => 'No printer selected';
+
+  @override
+  String get printerNoPaired =>
+      'No paired printers found. Pair the printer in Android Bluetooth settings first.';
+
+  @override
+  String get printerTest => 'Test Print';
+
+  @override
+  String get printerHeader => 'Header text';
+
+  @override
+  String get printerHeaderHint =>
+      'Printed at the top of every receipt (e.g. shop name and address)';
+
+  @override
+  String get printerFooter => 'Footer text';
+
+  @override
+  String get printerFooterHint => 'Printed at the bottom of every receipt';
+
+  @override
+  String get print => 'Print';
+
+  @override
+  String get printSuccess => 'Receipt printed';
+
+  @override
+  String get printFailed => 'Couldn\'t print. Check the printer and try again.';
+
+  @override
+  String get printNoPrinter =>
+      'No printer selected yet. Choose one in Profile, Printer.';
+
+  @override
+  String get printBluetoothOff => 'Bluetooth is off. Turn it on and try again.';
+
+  @override
+  String get printPermissionDenied =>
+      'Bluetooth permission is needed to use the printer.';
+
+  @override
+  String get receiptDefaultFooter => 'Thank you';
 }

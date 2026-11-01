@@ -4,6 +4,7 @@ import 'package:ldk_node/src/generated/api/types.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../locale_controller.dart';
+import '../services/print_service.dart';
 import '../services/saved_invoices.dart';
 import '../theme.dart';
 import '../utils/format.dart';
@@ -89,6 +90,55 @@ class TransactionDetailScreen extends StatelessWidget {
     return '${t.day} ${months[t.month - 1]} ${t.year}, $hh.$mm';
   }
 
+  /// Cetak struk transaksi ini ke printer 58mm yang dipilih di
+  /// Pengaturan Printer. Teks struk hanya ASCII (printer thermal
+  /// tidak mengenal glif layar seperti lambang petir/rantai dan
+  /// tanda minus tipografi), jadi jenis ditulis polos dan jumlah
+  /// memakai '-'.
+  Future<void> _printReceipt(BuildContext context) async {
+    final l10n = context.l10n;
+    final isIn = payment.direction == PaymentDirection.inbound;
+    final statusText = switch (payment.status) {
+      PaymentStatus.pending => isIn ? l10n.pending : l10n.processing,
+      PaymentStatus.failed => l10n.failed,
+      PaymentStatus.succeeded => l10n.txSucceeded,
+    };
+    final amountText = payment.amountMsat == null
+        ? '-'
+        : '${isIn ? '+' : '-'}${formatNusan(payment.amountMsat!)} nusan';
+    final typeText =
+        _isJit ? 'Lightning JIT' : _isOnchain ? 'On-chain' : 'Lightning';
+    final txid = _txid;
+    final hashHex = _paymentHashHex;
+    final printableInvoice = savedInvoice != null &&
+            isIn &&
+            payment.status == PaymentStatus.pending &&
+            !savedInvoice!.isExpiredAt(DateTime.now())
+        ? savedInvoice!.invoice
+        : null;
+    final settings = await PrintService.loadSettings();
+    final outcome = await PrintService.printReceipt(
+      settings: settings,
+      receipt: ReceiptData(
+        typeText: typeText,
+        statusText: statusText,
+        amountText: amountText,
+        timeText: _fullTime(context),
+        hashLabel: txid != null ? 'TxID' : (hashHex != null ? 'Hash' : null),
+        hashValue: txid ?? hashHex,
+        invoice: printableInvoice,
+      ),
+      typeLabel: l10n.txType,
+      statusLabel: l10n.txStatus,
+      timeLabel: l10n.txTime,
+      defaultFooter: l10n.receiptDefaultFooter,
+    );
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(printOutcomeMessage(l10n, outcome))),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isIn = payment.direction == PaymentDirection.inbound;
@@ -128,6 +178,13 @@ class TransactionDetailScreen extends StatelessWidget {
         title: Text(context.l10n.txDetailTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.print_rounded),
+            tooltip: context.l10n.print,
+            onPressed: () => _printReceipt(context),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(22),
