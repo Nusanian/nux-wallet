@@ -61,6 +61,11 @@ dependencies:
   mobile_scanner: ^7.4.2
   image_picker: ^1.2.4
 
+  # Cetak struk 58mm Bluetooth (ESC/POS mode teks): transport
+  # Bluetooth Classic + pembangkit perintah ESC/POS.
+  print_bluetooth_thermal: ^1.2.5
+  esc_pos_utils_plus: ^2.0.4
+
   # Peringatan koin masuk: bunyi "cling" (assets/sounds/cling.wav)
   # + getar (package vibration, pola sukses [0, 1000, 500, 1000]).
   audioplayers: ^6.8.1
