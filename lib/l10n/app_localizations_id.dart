@@ -470,4 +470,63 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get shareLogFailed => 'Gagal membagikan log. Coba lagi.';
+
+  @override
+  String get printer => 'Printer';
+
+  @override
+  String get printerSubtitle => 'Printer struk, uji cetak, header & footer';
+
+  @override
+  String get printerSettings => 'Pengaturan Printer';
+
+  @override
+  String get printerSelect => 'Pilih printer';
+
+  @override
+  String get printerNoneSelected => 'Belum ada printer dipilih';
+
+  @override
+  String get printerNoPaired =>
+      'Tidak ada printer ter-pairing. Pairing printer dulu di Pengaturan Bluetooth Android.';
+
+  @override
+  String get printerTest => 'Uji Cetak';
+
+  @override
+  String get printerHeader => 'Teks header';
+
+  @override
+  String get printerHeaderHint =>
+      'Dicetak di bagian atas setiap struk (mis. nama dan alamat toko)';
+
+  @override
+  String get printerFooter => 'Teks footer';
+
+  @override
+  String get printerFooterHint => 'Dicetak di bagian bawah setiap struk';
+
+  @override
+  String get print => 'Cetak';
+
+  @override
+  String get printSuccess => 'Struk tercetak';
+
+  @override
+  String get printFailed => 'Gagal mencetak. Periksa printer lalu coba lagi.';
+
+  @override
+  String get printNoPrinter =>
+      'Belum ada printer dipilih. Pilih dulu di Profil, Printer.';
+
+  @override
+  String get printBluetoothOff =>
+      'Bluetooth mati. Nyalakan dulu lalu coba lagi.';
+
+  @override
+  String get printPermissionDenied =>
+      'Izin Bluetooth diperlukan untuk memakai printer.';
+
+  @override
+  String get receiptDefaultFooter => 'Terima kasih';
 }

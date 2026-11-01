@@ -186,9 +186,21 @@ class LspService {
 
   Future<BigInt> getLightningBalance() async {
     _ensureRunning();
-    final balances = await _node!.listBalances();
-    // totalLightningBalanceSats dalam sats, konversi ke msat
-    return balances.totalLightningBalanceSats * BigInt.from(1000);
+    // Saldo dihitung per channel pada presisi msat: kapasitas keluar
+    // ditambah cadangan hukuman milik sendiri, yang memang bagian
+    // dari saldo tetapi tidak bisa dibelanjakan. Total dari
+    // listBalances berbasis sat utuh (dibulatkan ke bawah per
+    // channel), sehingga sisa sub-sat — mis. 0,5 nusan dari invoice
+    // 1,5 — hilang dari kartu saldo bila memakai total itu.
+    // Konsekuensi yang disadari: HTLC keluar yang sedang terbang
+    // belum terhitung sampai selesai/gagal, jadi angka ini bisa
+    // tampil lebih rendah sesaat selama pembayaran berlangsung.
+    var total = BigInt.zero;
+    for (final channel in await listChannels()) {
+      total += channel.outboundCapacityMsat +
+          (channel.unspendablePunishmentReserve ?? BigInt.zero);
+    }
+    return total;
   }
 
   /// Ambil seluruh riwayat pembayaran dari node, terbaru di depan.
