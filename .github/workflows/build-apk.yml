@@ -5,6 +5,9 @@ on:
     branches: [mainnet]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -83,6 +86,26 @@ jobs:
             if grep -q 'ISI_TOKEN_LSP_MAINNET' lib/config.dart; then echo 'ERROR: placeholder token masih ada'; exit 1; fi
           else
             echo 'tidak ada placeholder token - langkah dilewati'
+          fi
+
+      # URL kanal update mainnet TIDAK disimpan di repo (repo
+      # publik; aset mainnet belum boleh diakses publik sampai
+      # pengumuman - keputusan NUX 2 Nov 2026): aplikasi membacanya
+      # dari VPS sendiri. Berbeda dengan token di atas, secret
+      # kosong TIDAK menggagalkan build - placeholder dibiarkan
+      # dan kanal update nonaktif pada APK hasil build ini.
+      - name: Isi URL update mainnet dari Secrets
+        env:
+          UPDATE_MAINNET_URL: ${{ secrets.UPDATE_MAINNET_URL }}
+        run: |
+          if grep -q 'ISI_URL_UPDATE_MAINNET' lib/services/update_service.dart 2>/dev/null; then
+            if [ -n "$UPDATE_MAINNET_URL" ]; then
+              python3 -c "import os; p='lib/services/update_service.dart'; s=open(p).read(); assert 'ISI_URL_UPDATE_MAINNET' in s; open(p,'w').write(s.replace('ISI_URL_UPDATE_MAINNET', os.environ['UPDATE_MAINNET_URL'])); print('URL update mainnet terisi dari secret')"
+            else
+              echo 'secret UPDATE_MAINNET_URL belum terpasang - kanal update mainnet nonaktif pada build ini'
+            fi
+          else
+            echo 'tidak ada placeholder URL update - langkah dilewati'
           fi
 
       - name: Ambil dependency
@@ -198,3 +221,76 @@ jobs:
         with:
           name: nux-wallet-apk
           path: build/app/outputs/flutter-apk/*.apk
+
+      # ------- OTA mainnet: unggah ke VPS (BUKAN rilis GitHub) -------
+      # Struktur di VPS: <UPDATE_VPS_PATH>/build-<run>/elnux-*.apk
+      # + <UPDATE_VPS_PATH>/update.json sebagai penunjuk (ditulis
+      # terakhir, lewat berkas .tmp + mv agar tidak terbaca
+      # setengah). Retensi sama seperti testnet: hanya 2 build
+      # terbaru dipertahankan. Semua secret opsional - tanpa
+      # mereka, langkah unggah dilewati dan build tetap
+      # menghasilkan artifact seperti biasa.
+      - name: Siapkan aset rilis OTA + update.json
+        env:
+          UPDATE_JSON_BASE: "${{ secrets.UPDATE_MAINNET_URL }}"
+        run: |
+          mkdir -p ota
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk ota/elnux-arm64-v8a.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk ota/elnux-armeabi-v7a.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk ota/elnux-x86_64.apk
+          python3 - <<'PYEOF2'
+          import hashlib, json, os
+          run = os.environ['GITHUB_RUN_NUMBER']
+          # UPDATE_MAINNET_URL adalah URL update.json itu sendiri;
+          # basis alamat APK = direktorinya + folder build ini.
+          raw = os.environ['UPDATE_JSON_BASE']
+          if raw.endswith('/update.json'):
+              raw = raw[:-len('/update.json')]
+          base = raw.rstrip('/') + '/build-' + run
+          def sha(p):
+              return hashlib.sha256(open('ota/' + p, 'rb').read()).hexdigest()
+          def notes(path, fallback):
+              try:
+                  s = open(path, encoding='utf-8').read().strip()
+                  return s if s else fallback
+              except OSError:
+                  return fallback
+          data = {
+              'versi': 'Build ' + run,
+              'versionCode': int(run),
+              'sha256': sha('elnux-arm64-v8a.apk'),
+              'urlUnduh': base + '/elnux-arm64-v8a.apk',
+              'sha256V7a': sha('elnux-armeabi-v7a.apk'),
+              'urlUnduhV7a': base + '/elnux-armeabi-v7a.apk',
+              'sha256X64': sha('elnux-x86_64.apk'),
+              'urlUnduhX64': base + '/elnux-x86_64.apk',
+              'catatanId': notes('release_notes/id.txt',
+                                 'Perbaikan dan peningkatan.'),
+              'catatanEn': notes('release_notes/en.txt',
+                                 'Fixes and improvements.'),
+          }
+          with open('ota/update.json', 'w', encoding='utf-8') as f:
+              json.dump(data, f, ensure_ascii=False, indent=2)
+          print('update.json siap:', data['versi'], '| basis:', base)
+          PYEOF2
+
+      - name: Unggah OTA ke VPS + pangkas (sisa 2)
+        env:
+          UPDATE_MAINNET_URL: ${{ secrets.UPDATE_MAINNET_URL }}
+          UPDATE_VPS_HOST: ${{ secrets.UPDATE_VPS_HOST }}
+          UPDATE_VPS_PATH: ${{ secrets.UPDATE_VPS_PATH }}
+          UPDATE_VPS_SSH_KEY: ${{ secrets.UPDATE_VPS_SSH_KEY }}
+        run: |
+          if [ -z "$UPDATE_MAINNET_URL" ] || [ -z "$UPDATE_VPS_HOST" ] || [ -z "$UPDATE_VPS_PATH" ] || [ -z "$UPDATE_VPS_SSH_KEY" ]; then
+            echo 'secret kanal update mainnet belum lengkap - unggah OTA dilewati'
+            exit 0
+          fi
+          mkdir -p ~/.ssh
+          printf '%s' "$UPDATE_VPS_SSH_KEY" > ~/.ssh/ota_key
+          chmod 600 ~/.ssh/ota_key
+          RUN="${{ github.run_number }}"
+          ssh -i ~/.ssh/ota_key -o StrictHostKeyChecking=accept-new "$UPDATE_VPS_HOST" "mkdir -p '$UPDATE_VPS_PATH/build-$RUN'"
+          scp -i ~/.ssh/ota_key -o StrictHostKeyChecking=accept-new ota/elnux-arm64-v8a.apk ota/elnux-armeabi-v7a.apk ota/elnux-x86_64.apk "$UPDATE_VPS_HOST:$UPDATE_VPS_PATH/build-$RUN/"
+          scp -i ~/.ssh/ota_key -o StrictHostKeyChecking=accept-new ota/update.json "$UPDATE_VPS_HOST:$UPDATE_VPS_PATH/update.json.tmp"
+          ssh -i ~/.ssh/ota_key -o StrictHostKeyChecking=accept-new "$UPDATE_VPS_HOST" "mv '$UPDATE_VPS_PATH/update.json.tmp' '$UPDATE_VPS_PATH/update.json' && cd '$UPDATE_VPS_PATH' && ls -d build-* 2>/dev/null | sort -t- -k2 -n -r | tail -n +3 | xargs -r rm -rf"
+          echo "OTA mainnet terunggah: build-$RUN"
