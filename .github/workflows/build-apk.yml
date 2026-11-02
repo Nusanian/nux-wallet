@@ -286,7 +286,11 @@ jobs:
             exit 0
           fi
           mkdir -p ~/.ssh
-          printf '%s' "$UPDATE_VPS_SSH_KEY" > ~/.ssh/ota_key
+          # Secret UPDATE_VPS_SSH_KEY berisi kunci ter-base64 SATU
+          # baris (base64 -w0) — salinan multi-baris mentah terbukti
+          # rusak di tengah jalan (run 76: 'Load key: error in
+          # libcrypto' di runner, padahal kunci di VPS sehat).
+          printf '%s' "$UPDATE_VPS_SSH_KEY" | base64 -d > ~/.ssh/ota_key
           chmod 600 ~/.ssh/ota_key
           RUN="${{ github.run_number }}"
           ssh -i ~/.ssh/ota_key -o StrictHostKeyChecking=accept-new "$UPDATE_VPS_HOST" "mkdir -p '$UPDATE_VPS_PATH/build-$RUN'"
