@@ -267,6 +267,15 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
             setState(() {
               _received = true;
               _receivedMsat = e.amountMsat;
+              // Layar kembali bersih untuk penerimaan berikutnya
+              // (keputusan NUX 2 Nov 2026): invoice yang sudah
+              // lunas dibersihkan — panel sukses di bawah sudah
+              // menggantikannya — dan kolom jumlah dikosongkan;
+              // sebelumnya nominal invoice yang lunas tetap
+              // tertinggal di kolom.
+              _invoice = null;
+              _restored = false;
+              _amountController.clear();
             });
           }
           return;
