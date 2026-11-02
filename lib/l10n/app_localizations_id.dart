@@ -559,4 +559,61 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get historyExportFailed => 'Gagal membuat berkas CSV.';
+
+  @override
+  String get historyFilter => 'Filter tanggal';
+
+  @override
+  String get historyLast7Days => '7 hari terakhir';
+
+  @override
+  String get historyLast30Days => '30 hari terakhir';
+
+  @override
+  String get historyCustomRange => 'Periode tanggal…';
+
+  @override
+  String get historyNoTransactionsInPeriod =>
+      'Tidak ada transaksi pada periode ini.';
+
+  @override
+  String get updateTitle => 'Pembaruan Tersedia';
+
+  @override
+  String updateVersionAvailable(String versi) {
+    return 'Versi baru tersedia: $versi';
+  }
+
+  @override
+  String get updateNotes => 'Catatan rilis';
+
+  @override
+  String get updateDownloadInstall => 'Unduh & Pasang';
+
+  @override
+  String get updateLater => 'Nanti';
+
+  @override
+  String updateDownloading(int percent) {
+    return 'Mengunduh… $percent%';
+  }
+
+  @override
+  String get updateFailed => 'Unduhan gagal. Periksa koneksi lalu coba lagi.';
+
+  @override
+  String get updateRetry => 'Coba Lagi';
+
+  @override
+  String get updateCheckTitle => 'Periksa Pembaruan';
+
+  @override
+  String get updateCheckSubtitle =>
+      'Lihat apakah ada versi ELNUX yang lebih baru';
+
+  @override
+  String get updateUpToDate => 'ELNUX sudah versi terbaru.';
+
+  @override
+  String get updateCheckFailed => 'Tidak dapat memeriksa pembaruan saat ini.';
 }

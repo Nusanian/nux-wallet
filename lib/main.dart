@@ -25,8 +25,11 @@ import 'services/lsp_profile.dart';
 import 'services/saved_invoices.dart';
 import 'services/lsp_service.dart';
 import 'services/csv_export.dart';
+import 'services/history_filter.dart';
+import 'services/update_service.dart';
 import 'utils/format.dart';
 import 'utils/coin_alert.dart';
+import 'utils/update_dialog.dart';
 import 'widgets/lightning_status_pill.dart';
 import 'widgets/transaction_row.dart';
 import 'utils/friendly_error.dart';
@@ -219,6 +222,118 @@ class _HomeScreenState extends State<HomeScreen>
           p.status == PaymentStatus.pending))
       .toList();
 
+  /// Pilihan filter tanggal tab Riwayat (bawaan: seminggu terakhir).
+  HistoryRangePreset _historyPreset = HistoryRangePreset.last7Days;
+
+  /// Rentang tanggal pilihan sendiri; hanya berlaku saat
+  /// [_historyPreset] bernilai custom.
+  DateTimeRange? _historyCustomRange;
+
+  /// Daftar untuk tab Riwayat dan ekspor CSV: [_displayPayments]
+  /// yang sudah disaring filter tanggal aktif — ekspor mengikuti
+  /// persis yang tampil (keputusan NUX 2 Nov 2026). Beranda TIDAK
+  /// memakai daftar ini; aktivitas terbaru di Beranda tetap dari
+  /// [_displayPayments] utuh.
+  List<PaymentDetails> get _historyPayments {
+    final range = historyRangeForPreset(
+      _historyPreset,
+      now: DateTime.now(),
+      customStart: _historyCustomRange?.start,
+      customEnd: _historyCustomRange?.end,
+    );
+    return filterPaymentsByRange(_displayPayments, range);
+  }
+
+  /// Label rentang aktif, tampil sebagai subjudul tab Riwayat.
+  String get _historyRangeLabel {
+    switch (_historyPreset) {
+      case HistoryRangePreset.last7Days:
+        return context.l10n.historyLast7Days;
+      case HistoryRangePreset.last30Days:
+        return context.l10n.historyLast30Days;
+      case HistoryRangePreset.custom:
+        final r = _historyCustomRange;
+        if (r == null) return context.l10n.historyCustomRange;
+        return '${_shortDate(r.start)} – ${_shortDate(r.end)}';
+    }
+  }
+
+  /// Tanggal singkat "2 Nov 2026", pola yang sama seperti waktu
+  /// lengkap di layar detail transaksi.
+  String _shortDate(DateTime d) {
+    final en = context.l10n.localeName.startsWith('en');
+    const monthsId = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    ];
+    const monthsEn = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final months = en ? monthsEn : monthsId;
+    return '${d.day} ${months[d.month - 1]} ${d.year}';
+  }
+
+  /// Lembar pilihan filter tanggal tab Riwayat. Pilihan "Periode
+  /// tanggal" lanjut ke pemilih rentang tanggal sistem; membatalkan
+  /// pemilih tidak mengubah filter yang sedang aktif.
+  Future<void> _showHistoryFilter() async {
+    final l10n = context.l10n;
+    final picked = await showModalBottomSheet<HistoryRangePreset>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(l10n.historyLast7Days),
+              trailing: _historyPreset == HistoryRangePreset.last7Days
+                  ? const Icon(Icons.check)
+                  : null,
+              onTap: () => Navigator.pop(
+                  sheetContext, HistoryRangePreset.last7Days),
+            ),
+            ListTile(
+              title: Text(l10n.historyLast30Days),
+              trailing: _historyPreset == HistoryRangePreset.last30Days
+                  ? const Icon(Icons.check)
+                  : null,
+              onTap: () => Navigator.pop(
+                  sheetContext, HistoryRangePreset.last30Days),
+            ),
+            ListTile(
+              title: Text(l10n.historyCustomRange),
+              trailing: _historyPreset == HistoryRangePreset.custom
+                  ? const Icon(Icons.check)
+                  : null,
+              onTap: () =>
+                  Navigator.pop(sheetContext, HistoryRangePreset.custom),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    if (picked == HistoryRangePreset.custom) {
+      final now = DateTime.now();
+      final range = await showDateRangePicker(
+        context: context,
+        firstDate: DateTime(2025),
+        lastDate: now,
+        initialDateRange: _historyCustomRange ??
+            DateTimeRange(
+                start: now.subtract(const Duration(days: 7)), end: now),
+      );
+      if (range == null || !mounted) return;
+      setState(() {
+        _historyPreset = HistoryRangePreset.custom;
+        _historyCustomRange = range;
+      });
+    } else {
+      setState(() => _historyPreset = picked);
+    }
+  }
+
   /// Segarkan saldo + riwayat sekaligus. Dipakai di titik-titik
   /// refresh yang sebelumnya hanya menyegarkan saldo.
   Future<void> _refreshDashboard() async {
@@ -334,6 +449,11 @@ class _HomeScreenState extends State<HomeScreen>
         const Duration(seconds: 5),
         (_) => _refreshDashboard(),
       );
+      // Cek pembaruan OTA diam-diam sekali per sesi (gaya
+      // nusan-catcher): hanya bertindak bila ada versi baru.
+      // Dompet baru dilewati — layar frasa backup didahulukan;
+      // pemeriksaan berjalan pada buka berikutnya.
+      if (!_isNewWallet) _cekUpdateOtomatis();
       if (_isNewWallet && mounted) {
         _isNewWallet = false;
         // Dompet baru: tampilkan frasa backup sekali sebelum user
@@ -369,6 +489,48 @@ class _HomeScreenState extends State<HomeScreen>
   /// elnux-log-<network>-<tanggal>.log — berkas asli tidak diubah,
   /// dipindah, atau ditambah data apa pun. Log belum ada/kosong →
   /// pesan ringkas; kegagalan lain → pesan ramah tanpa detail teknis.
+  /// Penanda cek pembaruan otomatis sesi ini sudah berjalan —
+  /// boot ulang di sesi yang sama (reset/restore dompet) tidak
+  /// mengulang dialog pembaruan.
+  bool _updateCheckRan = false;
+
+  /// Cek pembaruan otomatis diam-diam (gaya nusan-catcher):
+  /// dialog hanya muncul bila benar-benar ada versi baru; hasil
+  /// lain — sudah terbaru, gagal, kanal nonaktif — senyap.
+  Future<void> _cekUpdateOtomatis() async {
+    if (_updateCheckRan) return;
+    _updateCheckRan = true;
+    final hasil = await UpdateService.cek();
+    if (!mounted) return;
+    if (hasil.status == UpdateCheckStatus.updateAvailable &&
+        hasil.info != null) {
+      await showUpdateDialog(context, hasil.info!);
+    }
+  }
+
+  /// Cek pembaruan manual dari tab Profil: selalu beri umpan
+  /// balik — dialog bila ada versi baru, snackbar untuk hasil
+  /// lainnya.
+  Future<void> _cekUpdateManual() async {
+    final hasil = await UpdateService.cek();
+    if (!mounted) return;
+    switch (hasil.status) {
+      case UpdateCheckStatus.updateAvailable:
+        if (hasil.info != null) {
+          await showUpdateDialog(context, hasil.info!);
+        }
+      case UpdateCheckStatus.upToDate:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.updateUpToDate)),
+        );
+      case UpdateCheckStatus.failed:
+      case UpdateCheckStatus.disabled:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.updateCheckFailed)),
+        );
+    }
+  }
+
   Future<void> _shareNodeLog() async {
     try {
       final dir = await getApplicationSupportDirectory();
@@ -409,11 +571,13 @@ class _HomeScreenState extends State<HomeScreen>
   /// Ekspor riwayat yang sedang tampil di tab Riwayat sebagai
   /// berkas CSV lalu tawarkan lembar bagikan sistem — pola yang
   /// sama seperti Bagikan Log. Yang diekspor persis daftar
-  /// tampilannya (_displayPayments), jadi invoice masuk yang
-  /// belum dibayar tidak ikut, sama seperti di layar.
+  /// tampilannya (_historyPayments, yaitu _displayPayments yang
+  /// sudah disaring filter tanggal aktif), jadi invoice masuk
+  /// yang belum dibayar dan transaksi di luar periode tidak ikut,
+  /// sama seperti di layar.
   Future<void> _exportHistoryCsv() async {
     try {
-      final csv = buildTransactionsCsv(_displayPayments);
+      final csv = buildTransactionsCsv(_historyPayments);
       final now = DateTime.now();
       String two(int v) => v.toString().padLeft(2, '0');
       final stamp = '${now.year}${two(now.month)}${two(now.day)}'
@@ -900,9 +1064,14 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
               message: context.l10n.marketSoon,
             ),
             _HistoryPage(
-                payments: _displayPayments,
+                payments: _historyPayments,
                 rowBuilder: _paymentRow,
-                onExport: _exportHistoryCsv),
+                onExport: _exportHistoryCsv,
+                onFilter: _showHistoryFilter,
+                filterLabel: _historyRangeLabel,
+                emptyMessage: _displayPayments.isEmpty
+                    ? context.l10n.noTransactions
+                    : context.l10n.historyNoTransactionsInPeriod),
             _ProfilePage(
               mnemonicWords: _mnemonicWords,
               legacyWallet: _legacyWallet,
@@ -920,6 +1089,7 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
               onResetWallet: _resetWalletWithPhrase,
               onRestoreWallet: _restoreWalletWithPhrase,
               onShareLog: _shareNodeLog,
+              onCheckUpdate: _cekUpdateManual,
             ),
           ],
         ),
@@ -1138,6 +1308,11 @@ class _ProfilePage extends StatelessWidget {
   /// di HomeScreen) — membantu pemeriksaan saat aplikasi bermasalah.
   final VoidCallback onShareLog;
 
+  /// Cek pembaruan aplikasi secara manual (lihat _cekUpdateManual
+  /// di HomeScreen) — dialog OTA nusan-catcher juga bisa dibuka
+  /// manual dari pengaturan, bukan hanya cek otomatis.
+  final VoidCallback onCheckUpdate;
+
   const _ProfilePage({
     required this.mnemonicWords,
     required this.legacyWallet,
@@ -1146,6 +1321,7 @@ class _ProfilePage extends StatelessWidget {
     required this.onResetWallet,
     required this.onRestoreWallet,
     required this.onShareLog,
+    required this.onCheckUpdate,
   });
 
   /// Dialog pilih bahasa — dua opsi, yang aktif bertanda centang.
@@ -1525,6 +1701,57 @@ class _ProfilePage extends StatelessWidget {
               ),
             ),
           ),
+          // Baris Periksa Pembaruan — cek manual versi baru
+          // (OTA); cek otomatis diam-diam berjalan saat aplikasi
+          // dibuka, baris ini untuk pengguna yang ingin memastikan.
+          GestureDetector(
+            onTap: onCheckUpdate,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: context.palette.card,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: context.palette.border),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: LinearGradient(colors: [
+                        const Color(0xFF10B981).withValues(alpha: 0.25),
+                        const Color(0xFF10B981).withValues(alpha: 0.08),
+                      ]),
+                    ),
+                    child: const Icon(Icons.system_update_alt_rounded,
+                        color: Color(0xFF34D399), size: 20),
+                  ),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(context.l10n.updateCheckTitle,
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 3),
+                        Text(
+                          context.l10n.updateCheckSubtitle,
+                          style: TextStyle(
+                              fontSize: 12, color: context.palette.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded,
+                      color: context.palette.muted),
+                ],
+              ),
+            ),
+          ),
           // Kartu dompet legacy: tawarkan buat ulang berfrasa
           if (legacyWallet)
             Container(
@@ -1645,33 +1872,28 @@ class _HistoryPage extends StatelessWidget {
   /// Ekspor CSV riwayat ini; null menyembunyikan tombolnya.
   final VoidCallback? onExport;
 
+  /// Buka lembar filter tanggal; null menyembunyikan tombolnya.
+  final VoidCallback? onFilter;
+
+  /// Label rentang tanggal aktif, tampil di bawah judul supaya
+  /// user selalu tahu jendela waktu yang sedang dilihatnya.
+  final String filterLabel;
+
+  /// Pesan saat daftar (yang sudah disaring) kosong — dibedakan
+  /// pemanggil antara "belum ada transaksi sama sekali" dan
+  /// "tidak ada transaksi pada periode ini".
+  final String emptyMessage;
+
   const _HistoryPage(
-      {required this.payments, required this.rowBuilder, this.onExport});
+      {required this.payments,
+      required this.rowBuilder,
+      this.onExport,
+      this.onFilter,
+      required this.filterLabel,
+      required this.emptyMessage});
 
   @override
   Widget build(BuildContext context) {
-    if (payments.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('\u21BA',
-                  style: TextStyle(fontSize: 44, color: Color(0xFF34D399))),
-              SizedBox(height: 14),
-              Text(context.l10n.history,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-              SizedBox(height: 6),
-              Text(
-                  context.l10n.noTransactions,
-                  style: TextStyle(fontSize: 13, color: context.palette.secondary),
-                  textAlign: TextAlign.center),
-            ],
-          ),
-        ),
-      );
-    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1680,10 +1902,26 @@ class _HistoryPage extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: Text(context.l10n.history,
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(context.l10n.history,
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w800)),
+                    SizedBox(height: 2),
+                    Text(filterLabel,
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: context.palette.secondary)),
+                  ],
+                ),
               ),
+              if (onFilter != null)
+                IconButton(
+                  icon: const Icon(Icons.filter_alt_outlined),
+                  tooltip: context.l10n.historyFilter,
+                  onPressed: onFilter,
+                ),
               if (onExport != null)
                 IconButton(
                   icon: const Icon(Icons.ios_share_rounded),
@@ -1694,10 +1932,30 @@ class _HistoryPage extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: 24),
-            children: payments.map(rowBuilder).toList(),
-          ),
+          child: payments.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('\u21BA',
+                            style: TextStyle(
+                                fontSize: 44, color: Color(0xFF34D399))),
+                        SizedBox(height: 14),
+                        Text(emptyMessage,
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: context.palette.secondary),
+                            textAlign: TextAlign.center),
+                      ],
+                    ),
+                  ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  children: payments.map(rowBuilder).toList(),
+                ),
         ),
       ],
     );

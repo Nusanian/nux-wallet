@@ -85,6 +85,13 @@ dependencies:
   # workflow build), jadi build terpasang bisa dicocokkan ke run-nya.
   package_info_plus: ^10.1.0
 
+  # Auto-update (OTA gaya nusan-catcher): ambil update.json dari
+  # kanal rilis + unduh APK baru berprogress (http), verifikasi
+  # SHA-256 APK terpasang & hasil unduhan (crypto). Lihat
+  # lib/services/update_service.dart.
+  http: ^1.6.0
+  crypto: ^3.0.7
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
