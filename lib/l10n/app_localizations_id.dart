@@ -559,4 +559,20 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get historyExportFailed => 'Gagal membuat berkas CSV.';
+
+  @override
+  String get historyFilter => 'Filter tanggal';
+
+  @override
+  String get historyLast7Days => '7 hari terakhir';
+
+  @override
+  String get historyLast30Days => '30 hari terakhir';
+
+  @override
+  String get historyCustomRange => 'Periode tanggal…';
+
+  @override
+  String get historyNoTransactionsInPeriod =>
+      'Tidak ada transaksi pada periode ini.';
 }

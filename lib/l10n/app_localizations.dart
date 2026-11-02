@@ -1099,6 +1099,36 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Gagal membuat berkas CSV.'**
   String get historyExportFailed;
+
+  /// No description provided for @historyFilter.
+  ///
+  /// In id, this message translates to:
+  /// **'Filter tanggal'**
+  String get historyFilter;
+
+  /// No description provided for @historyLast7Days.
+  ///
+  /// In id, this message translates to:
+  /// **'7 hari terakhir'**
+  String get historyLast7Days;
+
+  /// No description provided for @historyLast30Days.
+  ///
+  /// In id, this message translates to:
+  /// **'30 hari terakhir'**
+  String get historyLast30Days;
+
+  /// No description provided for @historyCustomRange.
+  ///
+  /// In id, this message translates to:
+  /// **'Periode tanggal…'**
+  String get historyCustomRange;
+
+  /// No description provided for @historyNoTransactionsInPeriod.
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada transaksi pada periode ini.'**
+  String get historyNoTransactionsInPeriod;
 }
 
 class _AppLocalizationsDelegate

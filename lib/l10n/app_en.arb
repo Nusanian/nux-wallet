@@ -224,5 +224,10 @@
   "printerBondFailed": "Couldn't pair with that device.",
   "printerPairedSelected": "Printer paired and selected",
   "historyExport": "Export CSV",
-  "historyExportFailed": "Couldn't create the CSV file."
+  "historyExportFailed": "Couldn't create the CSV file.",
+  "historyFilter": "Date filter",
+  "historyLast7Days": "Last 7 days",
+  "historyLast30Days": "Last 30 days",
+  "historyCustomRange": "Custom date range…",
+  "historyNoTransactionsInPeriod": "No transactions in this period."
 }

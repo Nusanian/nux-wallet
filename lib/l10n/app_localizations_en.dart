@@ -559,4 +559,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get historyExportFailed => 'Couldn\'t create the CSV file.';
+
+  @override
+  String get historyFilter => 'Date filter';
+
+  @override
+  String get historyLast7Days => 'Last 7 days';
+
+  @override
+  String get historyLast30Days => 'Last 30 days';
+
+  @override
+  String get historyCustomRange => 'Custom date range…';
+
+  @override
+  String get historyNoTransactionsInPeriod => 'No transactions in this period.';
 }

@@ -224,5 +224,10 @@
   "printerBondFailed": "Gagal memasangkan perangkat itu.",
   "printerPairedSelected": "Printer terpasang dan dipilih",
   "historyExport": "Ekspor CSV",
-  "historyExportFailed": "Gagal membuat berkas CSV."
+  "historyExportFailed": "Gagal membuat berkas CSV.",
+  "historyFilter": "Filter tanggal",
+  "historyLast7Days": "7 hari terakhir",
+  "historyLast30Days": "30 hari terakhir",
+  "historyCustomRange": "Periode tanggal…",
+  "historyNoTransactionsInPeriod": "Tidak ada transaksi pada periode ini."
 }
