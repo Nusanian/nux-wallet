@@ -5,6 +5,9 @@ on:
     branches: [testnet]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -178,3 +181,73 @@ jobs:
         with:
           name: nux-wallet-apk
           path: build/app/outputs/flutter-apk/*.apk
+
+      # ------- OTA (auto-update gaya nusan-catcher) -------
+      # Aplikasi membaca update.json dari rilis penunjuk bertag
+      # tetap update-testnet; URL unduh APK di dalamnya menunjuk
+      # rilis berversi build-testnet-<run>. Catatan rilis dwibahasa
+      # dari release_notes/id.txt + en.txt di repo (bila ada).
+      # Sesudah publish, rilis berversi dipangkas: hanya 2 terbaru
+      # dipertahankan (keputusan NUX 2 Nov 2026).
+      - name: Siapkan aset rilis OTA + update.json
+        env:
+          UPDATE_JSON_BASE: 'https://github.com/Nusanian/nux-wallet/releases/download'
+        run: |
+          mkdir -p ota
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk ota/elnux-arm64-v8a.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk ota/elnux-armeabi-v7a.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk ota/elnux-x86_64.apk
+          python3 - <<'PYEOF2'
+          import hashlib, json, os
+          run = os.environ['GITHUB_RUN_NUMBER']
+          base = os.environ['UPDATE_JSON_BASE'].rstrip('/') + '/build-testnet-' + run
+          def sha(p):
+              return hashlib.sha256(open('ota/' + p, 'rb').read()).hexdigest()
+          def notes(path, fallback):
+              try:
+                  s = open(path, encoding='utf-8').read().strip()
+                  return s if s else fallback
+              except OSError:
+                  return fallback
+          data = {
+              'versi': 'Build ' + run,
+              'versionCode': int(run),
+              'sha256': sha('elnux-arm64-v8a.apk'),
+              'urlUnduh': base + '/elnux-arm64-v8a.apk',
+              'sha256V7a': sha('elnux-armeabi-v7a.apk'),
+              'urlUnduhV7a': base + '/elnux-armeabi-v7a.apk',
+              'sha256X64': sha('elnux-x86_64.apk'),
+              'urlUnduhX64': base + '/elnux-x86_64.apk',
+              'catatanId': notes('release_notes/id.txt',
+                                 'Perbaikan dan peningkatan.'),
+              'catatanEn': notes('release_notes/en.txt',
+                                 'Fixes and improvements.'),
+          }
+          with open('ota/update.json', 'w', encoding='utf-8') as f:
+              json.dump(data, f, ensure_ascii=False, indent=2)
+          print('update.json siap:', data['versi'], '| basis:', base)
+          PYEOF2
+
+      - name: Terbitkan rilis OTA + perbarui penunjuk + pangkas (sisa 2)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "build-testnet-${{ github.run_number }}" \
+            ota/elnux-arm64-v8a.apk ota/elnux-armeabi-v7a.apk \
+            ota/elnux-x86_64.apk ota/update.json \
+            --target "${{ github.sha }}" \
+            --title "ELNUX testnet - build ${{ github.run_number }}" \
+            --notes "Rilis OTA otomatis kulit testnet."
+          gh release delete update-testnet --cleanup-tag --yes || true
+          gh release create update-testnet ota/update.json \
+            --target "${{ github.sha }}" \
+            --title "Penunjuk update testnet" \
+            --notes "Hanya update.json terbaru kanal testnet - jangan hapus manual."
+          gh release list --limit 200 --json tagName,createdAt \
+            --jq '[.[] | select(.tagName | startswith("build-testnet-"))] | sort_by(.createdAt) | reverse | .[2:] | .[].tagName' \
+            | while read -r tag; do
+                if [ -n "$tag" ]; then
+                  echo "pangkas rilis lama: $tag"
+                  gh release delete "$tag" --cleanup-tag --yes
+                fi
+              done
