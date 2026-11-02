@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Jalur berkas yang boleh dibagikan FileProvider ke installer
+     sistem (untuk pemasangan APK hasil unduhan OTA). -->
+<paths>
+    <cache-path name="cache" path="." />
+    <external-cache-path name="cache_luar" path="." />
+    <files-path name="berkas" path="." />
+</paths>

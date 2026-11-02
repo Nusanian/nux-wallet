@@ -229,5 +229,31 @@
   "historyLast7Days": "7 hari terakhir",
   "historyLast30Days": "30 hari terakhir",
   "historyCustomRange": "Periode tanggal…",
-  "historyNoTransactionsInPeriod": "Tidak ada transaksi pada periode ini."
+  "historyNoTransactionsInPeriod": "Tidak ada transaksi pada periode ini.",
+  "updateTitle": "Pembaruan Tersedia",
+  "updateVersionAvailable": "Versi baru tersedia: {versi}",
+  "@updateVersionAvailable": {
+    "placeholders": {
+      "versi": {
+        "type": "String"
+      }
+    }
+  },
+  "updateNotes": "Catatan rilis",
+  "updateDownloadInstall": "Unduh & Pasang",
+  "updateLater": "Nanti",
+  "updateDownloading": "Mengunduh… {percent}%",
+  "@updateDownloading": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "updateFailed": "Unduhan gagal. Periksa koneksi lalu coba lagi.",
+  "updateRetry": "Coba Lagi",
+  "updateCheckTitle": "Periksa Pembaruan",
+  "updateCheckSubtitle": "Lihat apakah ada versi ELNUX yang lebih baru",
+  "updateUpToDate": "ELNUX sudah versi terbaru.",
+  "updateCheckFailed": "Tidak dapat memeriksa pembaruan saat ini."
 }

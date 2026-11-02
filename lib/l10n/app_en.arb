@@ -229,5 +229,31 @@
   "historyLast7Days": "Last 7 days",
   "historyLast30Days": "Last 30 days",
   "historyCustomRange": "Custom date range…",
-  "historyNoTransactionsInPeriod": "No transactions in this period."
+  "historyNoTransactionsInPeriod": "No transactions in this period.",
+  "updateTitle": "Update Available",
+  "updateVersionAvailable": "A new version is available: {versi}",
+  "@updateVersionAvailable": {
+    "placeholders": {
+      "versi": {
+        "type": "String"
+      }
+    }
+  },
+  "updateNotes": "Release notes",
+  "updateDownloadInstall": "Download & Install",
+  "updateLater": "Later",
+  "updateDownloading": "Downloading… {percent}%",
+  "@updateDownloading": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "updateFailed": "Download failed. Check your connection and try again.",
+  "updateRetry": "Try Again",
+  "updateCheckTitle": "Check for Updates",
+  "updateCheckSubtitle": "See if a newer ELNUX version is available",
+  "updateUpToDate": "ELNUX is up to date.",
+  "updateCheckFailed": "Couldn't check for updates right now."
 }

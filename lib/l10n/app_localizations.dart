@@ -1129,6 +1129,78 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Tidak ada transaksi pada periode ini.'**
   String get historyNoTransactionsInPeriod;
+
+  /// No description provided for @updateTitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Pembaruan Tersedia'**
+  String get updateTitle;
+
+  /// No description provided for @updateVersionAvailable.
+  ///
+  /// In id, this message translates to:
+  /// **'Versi baru tersedia: {versi}'**
+  String updateVersionAvailable(String versi);
+
+  /// No description provided for @updateNotes.
+  ///
+  /// In id, this message translates to:
+  /// **'Catatan rilis'**
+  String get updateNotes;
+
+  /// No description provided for @updateDownloadInstall.
+  ///
+  /// In id, this message translates to:
+  /// **'Unduh & Pasang'**
+  String get updateDownloadInstall;
+
+  /// No description provided for @updateLater.
+  ///
+  /// In id, this message translates to:
+  /// **'Nanti'**
+  String get updateLater;
+
+  /// No description provided for @updateDownloading.
+  ///
+  /// In id, this message translates to:
+  /// **'Mengunduh… {percent}%'**
+  String updateDownloading(int percent);
+
+  /// No description provided for @updateFailed.
+  ///
+  /// In id, this message translates to:
+  /// **'Unduhan gagal. Periksa koneksi lalu coba lagi.'**
+  String get updateFailed;
+
+  /// No description provided for @updateRetry.
+  ///
+  /// In id, this message translates to:
+  /// **'Coba Lagi'**
+  String get updateRetry;
+
+  /// No description provided for @updateCheckTitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Periksa Pembaruan'**
+  String get updateCheckTitle;
+
+  /// No description provided for @updateCheckSubtitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Lihat apakah ada versi ELNUX yang lebih baru'**
+  String get updateCheckSubtitle;
+
+  /// No description provided for @updateUpToDate.
+  ///
+  /// In id, this message translates to:
+  /// **'ELNUX sudah versi terbaru.'**
+  String get updateUpToDate;
+
+  /// No description provided for @updateCheckFailed.
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak dapat memeriksa pembaruan saat ini.'**
+  String get updateCheckFailed;
 }
 
 class _AppLocalizationsDelegate

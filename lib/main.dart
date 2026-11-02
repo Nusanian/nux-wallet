@@ -26,8 +26,10 @@ import 'services/saved_invoices.dart';
 import 'services/lsp_service.dart';
 import 'services/csv_export.dart';
 import 'services/history_filter.dart';
+import 'services/update_service.dart';
 import 'utils/format.dart';
 import 'utils/coin_alert.dart';
+import 'utils/update_dialog.dart';
 import 'widgets/lightning_status_pill.dart';
 import 'widgets/transaction_row.dart';
 import 'utils/friendly_error.dart';
@@ -447,6 +449,11 @@ class _HomeScreenState extends State<HomeScreen>
         const Duration(seconds: 5),
         (_) => _refreshDashboard(),
       );
+      // Cek pembaruan OTA diam-diam sekali per sesi (gaya
+      // nusan-catcher): hanya bertindak bila ada versi baru.
+      // Dompet baru dilewati — layar frasa backup didahulukan;
+      // pemeriksaan berjalan pada buka berikutnya.
+      if (!_isNewWallet) _cekUpdateOtomatis();
       if (_isNewWallet && mounted) {
         _isNewWallet = false;
         // Dompet baru: tampilkan frasa backup sekali sebelum user
@@ -482,6 +489,48 @@ class _HomeScreenState extends State<HomeScreen>
   /// elnux-log-<network>-<tanggal>.log — berkas asli tidak diubah,
   /// dipindah, atau ditambah data apa pun. Log belum ada/kosong →
   /// pesan ringkas; kegagalan lain → pesan ramah tanpa detail teknis.
+  /// Penanda cek pembaruan otomatis sesi ini sudah berjalan —
+  /// boot ulang di sesi yang sama (reset/restore dompet) tidak
+  /// mengulang dialog pembaruan.
+  bool _updateCheckRan = false;
+
+  /// Cek pembaruan otomatis diam-diam (gaya nusan-catcher):
+  /// dialog hanya muncul bila benar-benar ada versi baru; hasil
+  /// lain — sudah terbaru, gagal, kanal nonaktif — senyap.
+  Future<void> _cekUpdateOtomatis() async {
+    if (_updateCheckRan) return;
+    _updateCheckRan = true;
+    final hasil = await UpdateService.cek();
+    if (!mounted) return;
+    if (hasil.status == UpdateCheckStatus.updateAvailable &&
+        hasil.info != null) {
+      await showUpdateDialog(context, hasil.info!);
+    }
+  }
+
+  /// Cek pembaruan manual dari tab Profil: selalu beri umpan
+  /// balik — dialog bila ada versi baru, snackbar untuk hasil
+  /// lainnya.
+  Future<void> _cekUpdateManual() async {
+    final hasil = await UpdateService.cek();
+    if (!mounted) return;
+    switch (hasil.status) {
+      case UpdateCheckStatus.updateAvailable:
+        if (hasil.info != null) {
+          await showUpdateDialog(context, hasil.info!);
+        }
+      case UpdateCheckStatus.upToDate:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.updateUpToDate)),
+        );
+      case UpdateCheckStatus.failed:
+      case UpdateCheckStatus.disabled:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.updateCheckFailed)),
+        );
+    }
+  }
+
   Future<void> _shareNodeLog() async {
     try {
       final dir = await getApplicationSupportDirectory();
@@ -1040,6 +1089,7 @@ _quickAction(const Icon(Icons.add_rounded, size: 25), context.l10n.buy, false, (
               onResetWallet: _resetWalletWithPhrase,
               onRestoreWallet: _restoreWalletWithPhrase,
               onShareLog: _shareNodeLog,
+              onCheckUpdate: _cekUpdateManual,
             ),
           ],
         ),
@@ -1258,6 +1308,11 @@ class _ProfilePage extends StatelessWidget {
   /// di HomeScreen) — membantu pemeriksaan saat aplikasi bermasalah.
   final VoidCallback onShareLog;
 
+  /// Cek pembaruan aplikasi secara manual (lihat _cekUpdateManual
+  /// di HomeScreen) — dialog OTA nusan-catcher juga bisa dibuka
+  /// manual dari pengaturan, bukan hanya cek otomatis.
+  final VoidCallback onCheckUpdate;
+
   const _ProfilePage({
     required this.mnemonicWords,
     required this.legacyWallet,
@@ -1266,6 +1321,7 @@ class _ProfilePage extends StatelessWidget {
     required this.onResetWallet,
     required this.onRestoreWallet,
     required this.onShareLog,
+    required this.onCheckUpdate,
   });
 
   /// Dialog pilih bahasa — dua opsi, yang aktif bertanda centang.
@@ -1633,6 +1689,57 @@ class _ProfilePage extends StatelessWidget {
                         const SizedBox(height: 3),
                         Text(
                           context.l10n.shareLogSubtitle,
+                          style: TextStyle(
+                              fontSize: 12, color: context.palette.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded,
+                      color: context.palette.muted),
+                ],
+              ),
+            ),
+          ),
+          // Baris Periksa Pembaruan — cek manual versi baru
+          // (OTA); cek otomatis diam-diam berjalan saat aplikasi
+          // dibuka, baris ini untuk pengguna yang ingin memastikan.
+          GestureDetector(
+            onTap: onCheckUpdate,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: context.palette.card,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: context.palette.border),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: LinearGradient(colors: [
+                        const Color(0xFF10B981).withValues(alpha: 0.25),
+                        const Color(0xFF10B981).withValues(alpha: 0.08),
+                      ]),
+                    ),
+                    child: const Icon(Icons.system_update_alt_rounded,
+                        color: Color(0xFF34D399), size: 20),
+                  ),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(context.l10n.updateCheckTitle,
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 3),
+                        Text(
+                          context.l10n.updateCheckSubtitle,
                           style: TextStyle(
                               fontSize: 12, color: context.palette.muted),
                         ),

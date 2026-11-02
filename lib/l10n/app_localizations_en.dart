@@ -574,4 +574,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get historyNoTransactionsInPeriod => 'No transactions in this period.';
+
+  @override
+  String get updateTitle => 'Update Available';
+
+  @override
+  String updateVersionAvailable(String versi) {
+    return 'A new version is available: $versi';
+  }
+
+  @override
+  String get updateNotes => 'Release notes';
+
+  @override
+  String get updateDownloadInstall => 'Download & Install';
+
+  @override
+  String get updateLater => 'Later';
+
+  @override
+  String updateDownloading(int percent) {
+    return 'Downloading… $percent%';
+  }
+
+  @override
+  String get updateFailed =>
+      'Download failed. Check your connection and try again.';
+
+  @override
+  String get updateRetry => 'Try Again';
+
+  @override
+  String get updateCheckTitle => 'Check for Updates';
+
+  @override
+  String get updateCheckSubtitle => 'See if a newer ELNUX version is available';
+
+  @override
+  String get updateUpToDate => 'ELNUX is up to date.';
+
+  @override
+  String get updateCheckFailed => 'Couldn\'t check for updates right now.';
 }
