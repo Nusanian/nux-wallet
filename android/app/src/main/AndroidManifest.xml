@@ -2,6 +2,9 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- Memasang APK hasil unduhan untuk update OTA (installer sistem
+         tetap meminta persetujuan pengguna sebelum memasang). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <!-- Penemuan printer Bluetooth Classic di dalam aplikasi:
          BLUETOOTH_SCAN dinyatakan neverForLocation (lokasi tidak
          pernah dipakai menurunkan posisi); entri lama hanya untuk
@@ -39,6 +42,26 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Penyedia berkas untuk membuka installer sistem saat
+             update OTA (jalur fallback intent): APK hasil unduhan
+             di cache dibagikan lewat content URI. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+        <!-- Menerima hasil instalasi sesi PackageInstaller OTA:
+             tanpa intent-filter karena pengiriman lewat
+             PendingIntent eksplisit dari MainActivity;
+             exported=false karena hanya dipicu sistem atas nama
+             aplikasi sendiri. -->
+        <receiver
+            android:name=".PenerimaStatusPasang"
+            android:exported="false" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
@@ -54,6 +77,25 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Visibilitas paket untuk fallback OTA (Android 11+):
+             tanpa deklarasi ini, getPackageInfo untuk installer
+             sistem melempar NameNotFound meski paketnya ada,
+             sehingga pasangLewatIntent tidak bisa mengarahkan
+             intent dan kembali menampilkan chooser. -->
+        <package android:name="com.google.android.packageinstaller" />
+        <package android:name="com.android.packageinstaller" />
+        <package android:name="com.samsung.android.packageinstaller" />
+        <package android:name="com.miui.packageinstaller" />
+        <package android:name="com.oppo.packageinstaller" />
+        <package android:name="com.vivo.packageinstaller" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/vnd.android.package-archive" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.INSTALL_PACKAGE" />
+            <data android:mimeType="application/vnd.android.package-archive" />
         </intent>
     </queries>
 </manifest>

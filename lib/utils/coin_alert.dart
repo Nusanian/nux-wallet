@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
 
@@ -30,6 +32,19 @@ class CoinAlert {
     // menunggu putaran bunyi tuntas dulu, sehingga terasa terlambat
     // atau seperti tidak bekerja.
     await vibrateSuccess();
+    // Bunyi cling diputar DUA kali, selaras dua denyut getar
+    // (keputusan NUX 2 Nov 2026): denyut mulai di 0 dan di
+    // 1.500 ms (pola getar [0, 1000, 500, 1000] — getar 1 detik,
+    // jeda 500 ms), jadi cling kedua dijadwalkan 1.500 ms sesudah
+    // cling pertama. Cling hanya 0,45 detik, jadi keduanya tidak
+    // bertumpuk. Cling kedua adalah bagian perayaan yang sama —
+    // penjaga anti-ganda di atas tidak berubah.
+    await _playCling();
+    Timer(const Duration(milliseconds: 1500), _playCling);
+  }
+
+  /// Putar bunyi cling satu kali; semua kegagalan ditelan diam-diam.
+  static Future<void> _playCling() async {
     try {
       if (!_configured) {
         await _player.setPlayerMode(PlayerMode.lowLatency);
@@ -39,7 +54,7 @@ class CoinAlert {
       await _player.setVolume(1.0);
       await _player.play(AssetSource('sounds/cling.wav'));
     } catch (_) {
-      // Audio gagal tidak masalah — getar sudah terpicu di atas.
+      // Audio gagal tidak masalah — getar sudah terpicu.
     }
   }
 
