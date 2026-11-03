@@ -654,4 +654,290 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get updateCheckFailed => 'Tidak dapat memeriksa pembaruan saat ini.';
+
+  @override
+  String get updateChecking => 'Memeriksa pembaruan…';
+
+  @override
+  String get communityTitle => 'Komunitas';
+
+  @override
+  String get communityWebsiteLabel => 'Website';
+
+  @override
+  String get communityTelegramGroup => 'Grup Telegram';
+
+  @override
+  String get communityOpenFailed => 'Tidak dapat membuka tautan.';
+
+  @override
+  String get storeMode => 'Mode Toko';
+
+  @override
+  String get storeModeSubtitle => 'Kasir untuk menerima pembayaran di toko';
+
+  @override
+  String get storeCreateCode => 'Buat Kode Bayar';
+
+  @override
+  String get storeWaitingPayment => 'Menunggu pembayaran…';
+
+  @override
+  String get storeCancelCode => 'Batalkan Kode';
+
+  @override
+  String get storeIdleHint =>
+      'Susun pesanan, lalu buat kode bayar dari totalnya — atau tampilkan kode bayar statis.';
+
+  @override
+  String get storeFreeAmountLabel => 'Nominal Bebas (nusan)';
+
+  @override
+  String get storeAddFreeItem => 'Tambah Item Bebas';
+
+  @override
+  String get storeFreeItem => 'Item Bebas';
+
+  @override
+  String get storeOrderTitle => 'Pesanan';
+
+  @override
+  String get storeOrderEmpty =>
+      'Belum ada item — ketuk produk di katalog, pindai kode, atau tambah nominal bebas.';
+
+  @override
+  String get storeSubtotal => 'Subtotal';
+
+  @override
+  String get storeTotalDiscount => 'Total Diskon';
+
+  @override
+  String get storeGrandTotal => 'Total';
+
+  @override
+  String get storeOrderDiscount => 'Diskon Order';
+
+  @override
+  String get storeDiscount => 'Diskon';
+
+  @override
+  String get storeSetDiscount => 'Atur Diskon';
+
+  @override
+  String get storeApplyDiscount => 'Terapkan';
+
+  @override
+  String get storeRemoveDiscount => 'Hapus Diskon';
+
+  @override
+  String get storeDiscountPercent => 'Persen (%)';
+
+  @override
+  String get storeDiscountFixed => 'Nominal (nusan)';
+
+  @override
+  String get storeDiscountValue => 'Nilai Diskon';
+
+  @override
+  String get storeZeroTotalHint =>
+      'Total 0 tidak bisa dibuatkan kode bayar — kurangi diskon atau tambah item.';
+
+  @override
+  String get storeSessionTitle => 'Sesi Ini';
+
+  @override
+  String storeSessionSales(int count, String total) {
+    return '$count transaksi • $total nusan';
+  }
+
+  @override
+  String get storePrintReceipt => 'Cetak Struk';
+
+  @override
+  String get storeScanCode => 'Pindai Kode';
+
+  @override
+  String get storeCatalogTitle => 'Katalog Produk';
+
+  @override
+  String get storeManageCatalog => 'Kelola';
+
+  @override
+  String get storeCatalogEmpty =>
+      'Katalog masih kosong — tambahkan produk pertama lewat tombol Kelola.';
+
+  @override
+  String get storeCodeNotRegistered => 'Kode ini belum terdaftar di katalog.';
+
+  @override
+  String get storeRegisterNow => 'Daftarkan Sekarang';
+
+  @override
+  String get storeProductCode => 'Kode Produk';
+
+  @override
+  String get storeProductName => 'Nama Produk';
+
+  @override
+  String get storeProductPrice => 'Harga (nusan)';
+
+  @override
+  String get storeProductDiscount => 'Diskon Bawaan (opsional)';
+
+  @override
+  String get storeSaveProduct => 'Simpan Produk';
+
+  @override
+  String storeProductSaved(String name) {
+    return 'Produk tersimpan: $name';
+  }
+
+  @override
+  String storeProductAdded(String name) {
+    return 'Ditambahkan: $name';
+  }
+
+  @override
+  String storeReceiptDiscountNote(String amount) {
+    return 'Total diskon penjualan ini: $amount nusan';
+  }
+
+  @override
+  String get storeClearKeypad => 'Bersih';
+
+  @override
+  String get storeProductFormError =>
+      'Periksa lagi: kode, nama, dan harga (di atas 0) wajib diisi.';
+
+  @override
+  String get storeProductCategory => 'Kategori (opsional)';
+
+  @override
+  String get storeShiftTitle => 'Shift Kasir';
+
+  @override
+  String get storeShiftNotOpen => 'Shift Belum Dibuka';
+
+  @override
+  String get storeShiftOpenHint =>
+      'Buka shift dulu untuk menyusun pesanan, membuat kode bayar, dan menerima pembayaran di Mode Toko.';
+
+  @override
+  String get storeShiftOpen => 'Buka Shift';
+
+  @override
+  String get storeShiftClose => 'Tutup Shift';
+
+  @override
+  String storeShiftOpenedAt(String time) {
+    return 'Dibuka $time';
+  }
+
+  @override
+  String get storeShiftStillOpen => 'Masih Berjalan';
+
+  @override
+  String get storeCloseShiftBlocked =>
+      'Tidak bisa menutup shift: masih ada kode bayar yang menunggu pembayaran atau penerimaan yang sedang dirayakan. Selesaikan atau batalkan dulu.';
+
+  @override
+  String get storeCloseShiftConfirmTitle => 'Tutup Shift Ini?';
+
+  @override
+  String get storeCloseShiftConfirmBody =>
+      'Sesudah ditutup, penjualan berikutnya masuk ke shift baru.';
+
+  @override
+  String get storeShiftClosedTitle => 'Shift Ditutup';
+
+  @override
+  String get storeShiftClosedBody =>
+      'Laporan shift ini sudah bisa dilihat, dicetak, atau dibagikan sebagai PDF.';
+
+  @override
+  String get storeLater => 'Nanti';
+
+  @override
+  String get storeViewReport => 'Lihat Laporan';
+
+  @override
+  String get storeSalesReport => 'Laporan Penjualan';
+
+  @override
+  String get storeReportCurrentShift => 'Shift Berjalan';
+
+  @override
+  String get storeReportByDate => 'Per Tanggal';
+
+  @override
+  String get storeReportPastShifts => 'Shift Lampau';
+
+  @override
+  String get storeReportPrint => 'Cetak Laporan';
+
+  @override
+  String get storeReportSharePdf => 'Bagikan PDF';
+
+  @override
+  String get storeReportEmpty =>
+      'Belum ada penjualan tercatat pada periode ini.';
+
+  @override
+  String get storeInvoiceExpiredVoid =>
+      'Kode bayar kedaluwarsa — pesanan dicatat sebagai VOID.';
+
+  @override
+  String get storeReportSummaryTitle => 'LAPORAN SHIFT';
+
+  @override
+  String get storeReportDetailsTitle => 'RINCIAN PENJUALAN';
+
+  @override
+  String get storeReportItemQty => 'Qty Item';
+
+  @override
+  String get storeReportTotalOrder => 'Total ORDER';
+
+  @override
+  String get storeReportTotalOrderInfo => 'Info Total ORDER';
+
+  @override
+  String get storeReportInvoices => '#Invoice';
+
+  @override
+  String get storeReportInvUnit => 'inv.';
+
+  @override
+  String get storeReportVoidInfo => 'Info VOID';
+
+  @override
+  String get storeReportVoidItemQty => 'Qty Item VOID';
+
+  @override
+  String get storeReportVoidSubTotal => 'Sub Total VOID';
+
+  @override
+  String get storeReportVoidDiscount => 'Diskon VOID';
+
+  @override
+  String get storeReportVoidTotalOrder => 'Total ORDER VOID';
+
+  @override
+  String get storeReportOther => 'LAINNYA';
+
+  @override
+  String get storeReportQty => 'Qty';
+
+  @override
+  String storeReportMenus(int count) {
+    return '$count menu(s)';
+  }
+
+  @override
+  String get storeReportGeneratedOn => 'Laporan dibuat';
+
+  @override
+  String storeReportShiftsNote(int count) {
+    return 'Meliputi $count shift';
+  }
 }

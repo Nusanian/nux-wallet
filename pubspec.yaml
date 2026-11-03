@@ -57,6 +57,10 @@ dependencies:
   # harus siap menerima; layar mati di tengah standby merepotkan user.
   wakelock_plus: ^1.8.2
 
+  # Buka tautan komunitas (website & Telegram) di browser eksternal
+  # dari kartu Komunitas di tab Profil.
+  url_launcher: ^6.3.2
+
   # Pemindai QR invoice lewat kamera (layar Kirim → tombol Scan QR).
   mobile_scanner: ^7.4.2
   image_picker: ^1.2.4
@@ -91,6 +95,11 @@ dependencies:
   # lib/services/update_service.dart.
   http: ^1.6.0
   crypto: ^3.0.7
+
+  # Ekspor PDF laporan penjualan Mode Toko: dokumen teks
+  # monospace yang sama dengan versi cetak 58mm, dibagikan lewat
+  # share sheet. Lihat lib/services/store_report_export.dart.
+  pdf: ^3.11.3
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
