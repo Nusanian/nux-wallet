@@ -5,6 +5,8 @@
   "languageIndonesian": "Bahasa Indonesia",
   "languageEnglish": "English",
   "themeTitle": "Theme",
+  "unitTitle": "Unit",
+  "unitSubtitle": "Display unit for amounts in balance, send, receive, and history",
   "themeSubtitle": "Dark or light, as you like",
   "changeThemeTooltip": "Change theme",
   "greetingMorning": "Good morning",
@@ -99,7 +101,7 @@
   "backupConfirmed": "I have written these words somewhere safe",
   "done": "Done",
   "invalidAmount": "Enter a valid amount",
-  "receiveInvoiceDesc": "Receive {amount} nusan",
+  "receiveInvoiceDesc": "Receive {amount}",
   "@receiveInvoiceDesc": {
     "placeholders": {
       "amount": {
@@ -111,10 +113,10 @@
   "receiveJitMinimumNote": "For your first receive (which also creates your receiving channel), the smallest amount is 1,000 nusan. Once your channel is ready, you can receive any amount, including less than 1,000 nusan.",
   "receiveTitle": "Receive NUX",
   "jitInfo": "Lightning invoice with an instant channel (JIT). No need to wait for block confirmation.",
-  "amountLabel": "Amount (nusan)",
+  "amountLabel": "Amount",
   "createInvoice": "Create Invoice",
   "paymentReceived": "Payment Received",
-  "receivedAmount": "+{amount} nusan",
+  "receivedAmount": "+{amount}",
   "@receivedAmount": {
     "placeholders": {
       "amount": {
@@ -133,7 +135,7 @@
   "staticCodeFailed": "Couldn't create your payment code. Try again.",
   "staticOfferDescription": "ELNUX payment code",
   "confirmPayOfferTitle": "Pay this payment code?",
-  "sendOfferAmountLine": "Amount: {amount} nusan",
+  "sendOfferAmountLine": "Amount: {amount}",
   "@sendOfferAmountLine": {
     "placeholders": {
       "amount": {
@@ -152,7 +154,7 @@
   "payStillPending": "The payment is still being processed past the wait limit. Its final result will appear in History — do not pay the same invoice again until its status is clear.",
   "sendTitle": "Send NUX",
   "sendInfo": "Paste or scan a Lightning invoice from the recipient. Instant payment via channel.",
-  "sendableLine": "Available to send: {amount} nusan",
+  "sendableLine": "Available to send: {amount}",
   "@sendableLine": {
     "placeholders": {
       "amount": {
@@ -161,7 +163,7 @@
     }
   },
   "sendInsufficientBalance": "Your balance is not enough to pay this invoice.",
-  "sendReserveNote": "This amount can't be sent yet. Of your balance, {reserve} nusan is always kept aside as a safety reserve for your payment channel — it stays yours, it is not a fee, and it returns in full if the channel is closed. You can currently send: {sendable} nusan.",
+  "sendReserveNote": "This amount can't be sent yet. Of your balance, {reserve} is always kept aside as a safety reserve for your payment channel — it stays yours, it is not a fee, and it returns in full if the channel is closed. You can currently send: {sendable}.",
   "@sendReserveNote": {
     "placeholders": {
       "reserve": {
@@ -179,6 +181,14 @@
   "pay": "Pay",
   "confirmPayTitle": "Pay this invoice?",
   "confirmPayBody": "Lightning payments are instant and cannot be cancelled. Double-check the invoice below before continuing.",
+  "confirmPayAmountLine": "Amount: {amount}",
+  "@confirmPayAmountLine": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "paymentSuccess": "Payment Successful!",
   "scanTitle": "Scan QR Invoice",
   "cameraDenied": "Camera permission denied. Enable camera permission for ELNUX in phone Settings, then try again.",
@@ -342,7 +352,14 @@
   },
   "storeKeypadModeQty": "Qty",
   "storeKeypadModeAmount": "Amount",
-  "storeQtyMultiplierWord": "Multiplier",
+  "storeQtyBadge": "Qty: {qty}",
+  "@storeQtyBadge": {
+    "placeholders": {
+      "qty": {
+        "type": "int"
+      }
+    }
+  },
   "storeQtyModeHint": "Qty mode: tap digits as a multiplier, then tap a catalog product or scan its code — the product is added that many times.",
   "storeProductAddedQty": "Added: {name} ×{qty}",
   "@storeProductAddedQty": {
@@ -535,6 +552,7 @@
   },
   "storeRedeemCreate": "Create Redemption Code",
   "storeRedeemWaiting": "Waiting for the customer's points payment…",
+  "storeRedeemCopied": "Redemption code copied",
   "storeRedeemVerified": "Redemption verified: {points} points = Rp{amount} discount.",
   "@storeRedeemVerified": {
     "placeholders": {
@@ -643,6 +661,32 @@
     }
   },
   "storeReceiptPromo": "No payment (promotion)",
+  "storeReceiptCustomer": "Customer",
+  "storeReceiptDate": "Date",
+  "storeReceiptBillNo": "Bill No",
+  "storeReceiptTokenNo": "Token No",
+  "storeReceiptItemHeader": "Item",
+  "storeReceiptAmountHeader": "Amount",
+  "storeReceiptOrderDiscount": "Order Discount",
+  "storeReceiptGrandTotal": "GRAND TOTAL",
+  "storeReceiptPointsDiscountLabel": "Nusan points discount ({points} pts)",
+  "@storeReceiptPointsDiscountLabel": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "storeReceiptFooterDefault": "Thank You & Visit Again",
+  "storeShareReceipt": "Share Receipt",
+  "storeReceiptPreviewTitle": "Receipt",
+  "storeShareReceiptFailed": "Could not create the receipt image.",
+  "storeCustomerNameLabel": "Customer Name (optional)",
+  "storeSettingsAddress": "Store Address (receipt header line)",
+  "storeSettingsShowToken": "Show Token Number on Receipt",
+  "storeSettingsShowTokenHint": "Daily queue number on the receipt; restarts from 1 each day.",
+  "storeSettingsFooterText": "Receipt Footer Text",
+  "storeSettingsFooterTextHint": "Leave empty for the default text in the app language.",
   "storeSettingsTitle": "Store Settings",
   "storeSettingsStoreName": "Store Name",
   "storeSettingsPointsEnabled": "Nusan Points Program On",
@@ -667,6 +711,7 @@
   "storeSettingsSaved": "Store settings saved.",
   "storeSettingsInvalid": "Check again: the step and discount value must be above 0; the max cap is 1–100 when filled.",
   "storeRulesTitle": "Points Program Rules",
+  "storeRulesButton": "Point Rules",
   "storeRulesHeading": "Nusan Points — Store Promotional Bonus",
   "storeRulesP1": "Nusan points are a promotional bonus from this store — not money and not a payment method. Purchases at this store are always paid in rupiah (cash or QRIS).",
   "storeRulesP2": "Points are earned only from settled rupiah purchases, under the earning terms in effect at this store.",

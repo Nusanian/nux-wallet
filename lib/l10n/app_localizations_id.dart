@@ -25,6 +25,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get themeTitle => 'Tema';
 
   @override
+  String get unitTitle => 'Satuan';
+
+  @override
+  String get unitSubtitle =>
+      'Satuan tampilan jumlah di saldo, kirim, terima, dan riwayat';
+
+  @override
   String get themeSubtitle => 'Gelap atau terang, sesuai selera';
 
   @override
@@ -266,7 +273,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String receiveInvoiceDesc(String amount) {
-    return 'Terima $amount nusan';
+    return 'Terima $amount';
   }
 
   @override
@@ -284,7 +291,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Invoice Lightning dengan channel instan (JIT). Tidak perlu tunggu konfirmasi block.';
 
   @override
-  String get amountLabel => 'Nominal (nusan)';
+  String get amountLabel => 'Nominal';
 
   @override
   String get createInvoice => 'Buat Invoice';
@@ -294,7 +301,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String receivedAmount(String amount) {
-    return '+$amount nusan';
+    return '+$amount';
   }
 
   @override
@@ -335,7 +342,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String sendOfferAmountLine(String amount) {
-    return 'Nominal: $amount nusan';
+    return 'Nominal: $amount';
   }
 
   @override
@@ -377,7 +384,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String sendableLine(String amount) {
-    return 'Bisa dikirim: $amount nusan';
+    return 'Bisa dikirim: $amount';
   }
 
   @override
@@ -386,7 +393,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String sendReserveNote(String reserve, String sendable) {
-    return 'Jumlah ini belum bisa dikirim. Dari saldomu, $reserve nusan selalu disisakan sebagai cadangan pengaman jalur — tetap milikmu, bukan potongan, dan kembali utuh bila jalur ditutup. Yang bisa dikirim saat ini: $sendable nusan.';
+    return 'Jumlah ini belum bisa dikirim. Dari saldomu, $reserve selalu disisakan sebagai cadangan pengaman jalur — tetap milikmu, bukan potongan, dan kembali utuh bila jalur ditutup. Yang bisa dikirim saat ini: $sendable.';
   }
 
   @override
@@ -411,6 +418,11 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get confirmPayBody =>
       'Pembayaran Lightning bersifat instan dan tidak bisa dibatalkan. Periksa lagi invoice di bawah sebelum lanjut.';
+
+  @override
+  String confirmPayAmountLine(String amount) {
+    return 'Nominal: $amount';
+  }
 
   @override
   String get paymentSuccess => 'Pembayaran Berhasil!';
@@ -771,7 +783,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get storeKeypadModeAmount => 'Nominal';
 
   @override
-  String get storeQtyMultiplierWord => 'Pengali';
+  String storeQtyBadge(int qty) {
+    return 'Qty: $qty';
+  }
 
   @override
   String get storeQtyModeHint =>
@@ -1128,6 +1142,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get storeRedeemWaiting => 'Menunggu pembayaran poin dari pelanggan…';
 
   @override
+  String get storeRedeemCopied => 'Kode penukaran disalin';
+
+  @override
   String storeRedeemVerified(int points, String amount) {
     return 'Penukaran terverifikasi: $points poin = potongan Rp$amount.';
   }
@@ -1255,6 +1272,68 @@ class AppLocalizationsId extends AppLocalizations {
   String get storeReceiptPromo => 'Tanpa pembayaran (promosi)';
 
   @override
+  String get storeReceiptCustomer => 'Pelanggan';
+
+  @override
+  String get storeReceiptDate => 'Tanggal';
+
+  @override
+  String get storeReceiptBillNo => 'No. Bill';
+
+  @override
+  String get storeReceiptTokenNo => 'No. Token';
+
+  @override
+  String get storeReceiptItemHeader => 'Item';
+
+  @override
+  String get storeReceiptAmountHeader => 'Jumlah';
+
+  @override
+  String get storeReceiptOrderDiscount => 'Diskon Order';
+
+  @override
+  String get storeReceiptGrandTotal => 'TOTAL BAYAR';
+
+  @override
+  String storeReceiptPointsDiscountLabel(String points) {
+    return 'Diskon poin nusan ($points poin)';
+  }
+
+  @override
+  String get storeReceiptFooterDefault =>
+      'Terima kasih & silakan berkunjung kembali';
+
+  @override
+  String get storeShareReceipt => 'Bagikan Struk';
+
+  @override
+  String get storeReceiptPreviewTitle => 'Struk';
+
+  @override
+  String get storeShareReceiptFailed => 'Tidak dapat membuat gambar struk.';
+
+  @override
+  String get storeCustomerNameLabel => 'Nama Pelanggan (opsional)';
+
+  @override
+  String get storeSettingsAddress => 'Alamat Toko (baris kop struk)';
+
+  @override
+  String get storeSettingsShowToken => 'Tampilkan Nomor Token di Struk';
+
+  @override
+  String get storeSettingsShowTokenHint =>
+      'Nomor antrean harian pada struk; mulai dari 1 setiap hari.';
+
+  @override
+  String get storeSettingsFooterText => 'Teks Penutup Struk';
+
+  @override
+  String get storeSettingsFooterTextHint =>
+      'Kosongkan untuk teks bawaan bahasa aplikasi.';
+
+  @override
   String get storeSettingsTitle => 'Pengaturan Toko';
 
   @override
@@ -1301,6 +1380,9 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get storeRulesTitle => 'Aturan Program Poin';
+
+  @override
+  String get storeRulesButton => 'Aturan Poin';
 
   @override
   String get storeRulesHeading => 'Poin Nusan — Bonus Promosi Toko';

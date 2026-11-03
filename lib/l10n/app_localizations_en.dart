@@ -25,6 +25,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeTitle => 'Theme';
 
   @override
+  String get unitTitle => 'Unit';
+
+  @override
+  String get unitSubtitle =>
+      'Display unit for amounts in balance, send, receive, and history';
+
+  @override
   String get themeSubtitle => 'Dark or light, as you like';
 
   @override
@@ -266,7 +273,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String receiveInvoiceDesc(String amount) {
-    return 'Receive $amount nusan';
+    return 'Receive $amount';
   }
 
   @override
@@ -284,7 +291,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Lightning invoice with an instant channel (JIT). No need to wait for block confirmation.';
 
   @override
-  String get amountLabel => 'Amount (nusan)';
+  String get amountLabel => 'Amount';
 
   @override
   String get createInvoice => 'Create Invoice';
@@ -294,7 +301,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String receivedAmount(String amount) {
-    return '+$amount nusan';
+    return '+$amount';
   }
 
   @override
@@ -336,7 +343,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String sendOfferAmountLine(String amount) {
-    return 'Amount: $amount nusan';
+    return 'Amount: $amount';
   }
 
   @override
@@ -378,7 +385,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String sendableLine(String amount) {
-    return 'Available to send: $amount nusan';
+    return 'Available to send: $amount';
   }
 
   @override
@@ -387,7 +394,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String sendReserveNote(String reserve, String sendable) {
-    return 'This amount can\'t be sent yet. Of your balance, $reserve nusan is always kept aside as a safety reserve for your payment channel — it stays yours, it is not a fee, and it returns in full if the channel is closed. You can currently send: $sendable nusan.';
+    return 'This amount can\'t be sent yet. Of your balance, $reserve is always kept aside as a safety reserve for your payment channel — it stays yours, it is not a fee, and it returns in full if the channel is closed. You can currently send: $sendable.';
   }
 
   @override
@@ -412,6 +419,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get confirmPayBody =>
       'Lightning payments are instant and cannot be cancelled. Double-check the invoice below before continuing.';
+
+  @override
+  String confirmPayAmountLine(String amount) {
+    return 'Amount: $amount';
+  }
 
   @override
   String get paymentSuccess => 'Payment Successful!';
@@ -770,7 +782,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storeKeypadModeAmount => 'Amount';
 
   @override
-  String get storeQtyMultiplierWord => 'Multiplier';
+  String storeQtyBadge(int qty) {
+    return 'Qty: $qty';
+  }
 
   @override
   String get storeQtyModeHint =>
@@ -1128,6 +1142,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Waiting for the customer\'s points payment…';
 
   @override
+  String get storeRedeemCopied => 'Redemption code copied';
+
+  @override
   String storeRedeemVerified(int points, String amount) {
     return 'Redemption verified: $points points = Rp$amount discount.';
   }
@@ -1254,6 +1271,67 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storeReceiptPromo => 'No payment (promotion)';
 
   @override
+  String get storeReceiptCustomer => 'Customer';
+
+  @override
+  String get storeReceiptDate => 'Date';
+
+  @override
+  String get storeReceiptBillNo => 'Bill No';
+
+  @override
+  String get storeReceiptTokenNo => 'Token No';
+
+  @override
+  String get storeReceiptItemHeader => 'Item';
+
+  @override
+  String get storeReceiptAmountHeader => 'Amount';
+
+  @override
+  String get storeReceiptOrderDiscount => 'Order Discount';
+
+  @override
+  String get storeReceiptGrandTotal => 'GRAND TOTAL';
+
+  @override
+  String storeReceiptPointsDiscountLabel(String points) {
+    return 'Nusan points discount ($points pts)';
+  }
+
+  @override
+  String get storeReceiptFooterDefault => 'Thank You & Visit Again';
+
+  @override
+  String get storeShareReceipt => 'Share Receipt';
+
+  @override
+  String get storeReceiptPreviewTitle => 'Receipt';
+
+  @override
+  String get storeShareReceiptFailed => 'Could not create the receipt image.';
+
+  @override
+  String get storeCustomerNameLabel => 'Customer Name (optional)';
+
+  @override
+  String get storeSettingsAddress => 'Store Address (receipt header line)';
+
+  @override
+  String get storeSettingsShowToken => 'Show Token Number on Receipt';
+
+  @override
+  String get storeSettingsShowTokenHint =>
+      'Daily queue number on the receipt; restarts from 1 each day.';
+
+  @override
+  String get storeSettingsFooterText => 'Receipt Footer Text';
+
+  @override
+  String get storeSettingsFooterTextHint =>
+      'Leave empty for the default text in the app language.';
+
+  @override
   String get storeSettingsTitle => 'Store Settings';
 
   @override
@@ -1299,6 +1377,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storeRulesTitle => 'Points Program Rules';
+
+  @override
+  String get storeRulesButton => 'Point Rules';
 
   @override
   String get storeRulesHeading => 'Nusan Points — Store Promotional Bonus';
