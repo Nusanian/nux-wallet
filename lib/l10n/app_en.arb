@@ -273,5 +273,144 @@
   "updateCheckTitle": "Check for Updates",
   "updateCheckSubtitle": "See if a newer ELNUX version is available",
   "updateUpToDate": "ELNUX is up to date.",
-  "updateCheckFailed": "Couldn't check for updates right now."
+  "updateCheckFailed": "Couldn't check for updates right now.",
+  "updateChecking": "Checking for updates…",
+  "communityTitle": "Community",
+  "communityWebsiteLabel": "Website",
+  "communityTelegramGroup": "Telegram Group",
+  "communityOpenFailed": "Couldn't open the link.",
+  "storeMode": "Store Mode",
+  "storeModeSubtitle": "Cashier mode for accepting payments in your store",
+  "storeCreateCode": "Create Payment Code",
+  "storeWaitingPayment": "Waiting for payment…",
+  "storeCancelCode": "Cancel Code",
+  "storeIdleHint": "Build an order, then create a payment code for its total — or show the static payment code.",
+  "storeFreeAmountLabel": "Custom Amount (nusan)",
+  "storeAddFreeItem": "Add Custom Item",
+  "storeFreeItem": "Custom Item",
+  "storeOrderTitle": "Order",
+  "storeOrderEmpty": "No items yet — tap a catalog product, scan a code, or add a custom amount.",
+  "storeSubtotal": "Subtotal",
+  "storeTotalDiscount": "Total Discount",
+  "storeGrandTotal": "Total",
+  "storeOrderDiscount": "Order Discount",
+  "storeDiscount": "Discount",
+  "storeSetDiscount": "Set Discount",
+  "storeApplyDiscount": "Apply",
+  "storeRemoveDiscount": "Remove Discount",
+  "storeDiscountPercent": "Percent (%)",
+  "storeDiscountFixed": "Fixed (nusan)",
+  "storeDiscountValue": "Discount Value",
+  "storeZeroTotalHint": "A total of 0 can't be made into a payment code — reduce the discount or add items.",
+  "storeSessionTitle": "This Session",
+  "storeSessionSales": "{count} sales • {total} nusan",
+  "@storeSessionSales": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "storePrintReceipt": "Print Receipt",
+  "storeScanCode": "Scan Code",
+  "storeCatalogTitle": "Product Catalog",
+  "storeManageCatalog": "Manage",
+  "storeCatalogEmpty": "The catalog is still empty — add the first product via Manage.",
+  "storeCodeNotRegistered": "This code isn't registered in the catalog yet.",
+  "storeRegisterNow": "Register It Now",
+  "storeProductCode": "Product Code",
+  "storeProductName": "Product Name",
+  "storeProductPrice": "Price (nusan)",
+  "storeProductDiscount": "Default Discount (optional)",
+  "storeSaveProduct": "Save Product",
+  "storeProductSaved": "Product saved: {name}",
+  "@storeProductSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "storeProductAdded": "Added: {name}",
+  "@storeProductAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "storeReceiptDiscountNote": "Total discount on this sale: {amount} nusan",
+  "@storeReceiptDiscountNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "storeClearKeypad": "Clear",
+  "storeProductFormError": "Check again: code, name, and a price above 0 are all required.",
+  "storeProductCategory": "Category (optional)",
+  "storeShiftTitle": "Cashier Shift",
+  "storeShiftNotOpen": "Shift Not Open",
+  "storeShiftOpenHint": "Open a shift first to build orders, create payment codes, and take payments in Store Mode.",
+  "storeShiftOpen": "Open Shift",
+  "storeShiftClose": "Close Shift",
+  "storeShiftOpenedAt": "Opened {time}",
+  "@storeShiftOpenedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "storeShiftStillOpen": "Still Open",
+  "storeCloseShiftBlocked": "Can't close the shift yet: a payment code is still waiting or a payment is being celebrated. Finish or cancel it first.",
+  "storeCloseShiftConfirmTitle": "Close This Shift?",
+  "storeCloseShiftConfirmBody": "Once closed, later sales go into a new shift.",
+  "storeShiftClosedTitle": "Shift Closed",
+  "storeShiftClosedBody": "This shift's report is ready to view, print, or share as PDF.",
+  "storeLater": "Later",
+  "storeViewReport": "View Report",
+  "storeSalesReport": "Sales Report",
+  "storeReportCurrentShift": "Current Shift",
+  "storeReportByDate": "By Date",
+  "storeReportPastShifts": "Past Shifts",
+  "storeReportPrint": "Print Report",
+  "storeReportSharePdf": "Share PDF",
+  "storeReportEmpty": "No sales recorded in this period yet.",
+  "storeInvoiceExpiredVoid": "The payment code expired — the order was recorded as VOID.",
+  "storeReportSummaryTitle": "SELECTED REPORT",
+  "storeReportDetailsTitle": "MENU SALES DETAILS",
+  "storeReportItemQty": "Item Qty",
+  "storeReportTotalOrder": "Total ORDER",
+  "storeReportTotalOrderInfo": "Total ORDER Info",
+  "storeReportInvoices": "#Invoices",
+  "storeReportInvUnit": "inv.",
+  "storeReportVoidInfo": "VOID Info",
+  "storeReportVoidItemQty": "VOID Item Qty",
+  "storeReportVoidSubTotal": "VOID Sub Total",
+  "storeReportVoidDiscount": "VOID Discount",
+  "storeReportVoidTotalOrder": "VOID Total ORDER",
+  "storeReportOther": "OTHER",
+  "storeReportQty": "Qty",
+  "storeReportMenus": "{count} menu(s)",
+  "@storeReportMenus": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "storeReportGeneratedOn": "Rpt.generated on",
+  "storeReportShiftsNote": "Covers {count} shift(s)",
+  "@storeReportShiftsNote": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }
