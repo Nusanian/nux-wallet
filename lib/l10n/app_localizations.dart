@@ -128,6 +128,18 @@ abstract class AppLocalizations {
   /// **'Tema'**
   String get themeTitle;
 
+  /// No description provided for @unitTitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Satuan'**
+  String get unitTitle;
+
+  /// No description provided for @unitSubtitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Satuan tampilan jumlah di saldo, kirim, terima, dan riwayat'**
+  String get unitSubtitle;
+
   /// No description provided for @themeSubtitle.
   ///
   /// In id, this message translates to:
@@ -575,7 +587,7 @@ abstract class AppLocalizations {
   /// No description provided for @receiveInvoiceDesc.
   ///
   /// In id, this message translates to:
-  /// **'Terima {amount} nusan'**
+  /// **'Terima {amount}'**
   String receiveInvoiceDesc(String amount);
 
   /// No description provided for @createInvoiceFailed.
@@ -605,7 +617,7 @@ abstract class AppLocalizations {
   /// No description provided for @amountLabel.
   ///
   /// In id, this message translates to:
-  /// **'Nominal (nusan)'**
+  /// **'Nominal'**
   String get amountLabel;
 
   /// No description provided for @createInvoice.
@@ -623,7 +635,7 @@ abstract class AppLocalizations {
   /// No description provided for @receivedAmount.
   ///
   /// In id, this message translates to:
-  /// **'+{amount} nusan'**
+  /// **'+{amount}'**
   String receivedAmount(String amount);
 
   /// No description provided for @fundsArrived.
@@ -695,7 +707,7 @@ abstract class AppLocalizations {
   /// No description provided for @sendOfferAmountLine.
   ///
   /// In id, this message translates to:
-  /// **'Nominal: {amount} nusan'**
+  /// **'Nominal: {amount}'**
   String sendOfferAmountLine(String amount);
 
   /// No description provided for @sendOfferVariableHint.
@@ -767,7 +779,7 @@ abstract class AppLocalizations {
   /// No description provided for @sendableLine.
   ///
   /// In id, this message translates to:
-  /// **'Bisa dikirim: {amount} nusan'**
+  /// **'Bisa dikirim: {amount}'**
   String sendableLine(String amount);
 
   /// No description provided for @sendInsufficientBalance.
@@ -779,7 +791,7 @@ abstract class AppLocalizations {
   /// No description provided for @sendReserveNote.
   ///
   /// In id, this message translates to:
-  /// **'Jumlah ini belum bisa dikirim. Dari saldomu, {reserve} nusan selalu disisakan sebagai cadangan pengaman jalur — tetap milikmu, bukan potongan, dan kembali utuh bila jalur ditutup. Yang bisa dikirim saat ini: {sendable} nusan.'**
+  /// **'Jumlah ini belum bisa dikirim. Dari saldomu, {reserve} selalu disisakan sebagai cadangan pengaman jalur — tetap milikmu, bukan potongan, dan kembali utuh bila jalur ditutup. Yang bisa dikirim saat ini: {sendable}.'**
   String sendReserveNote(String reserve, String sendable);
 
   /// No description provided for @sendZeroSendableHint.
@@ -823,6 +835,12 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Pembayaran Lightning bersifat instan dan tidak bisa dibatalkan. Periksa lagi invoice di bawah sebelum lanjut.'**
   String get confirmPayBody;
+
+  /// No description provided for @confirmPayAmountLine.
+  ///
+  /// In id, this message translates to:
+  /// **'Nominal: {amount}'**
+  String confirmPayAmountLine(String amount);
 
   /// No description provided for @paymentSuccess.
   ///
@@ -1472,11 +1490,11 @@ abstract class AppLocalizations {
   /// **'Nominal'**
   String get storeKeypadModeAmount;
 
-  /// No description provided for @storeQtyMultiplierWord.
+  /// No description provided for @storeQtyBadge.
   ///
   /// In id, this message translates to:
-  /// **'Pengali'**
-  String get storeQtyMultiplierWord;
+  /// **'Qty: {qty}'**
+  String storeQtyBadge(int qty);
 
   /// No description provided for @storeQtyModeHint.
   ///
@@ -2114,6 +2132,12 @@ abstract class AppLocalizations {
   /// **'Menunggu pembayaran poin dari pelanggan…'**
   String get storeRedeemWaiting;
 
+  /// No description provided for @storeRedeemCopied.
+  ///
+  /// In id, this message translates to:
+  /// **'Kode penukaran disalin'**
+  String get storeRedeemCopied;
+
   /// No description provided for @storeRedeemVerified.
   ///
   /// In id, this message translates to:
@@ -2312,6 +2336,120 @@ abstract class AppLocalizations {
   /// **'Tanpa pembayaran (promosi)'**
   String get storeReceiptPromo;
 
+  /// No description provided for @storeReceiptCustomer.
+  ///
+  /// In id, this message translates to:
+  /// **'Pelanggan'**
+  String get storeReceiptCustomer;
+
+  /// No description provided for @storeReceiptDate.
+  ///
+  /// In id, this message translates to:
+  /// **'Tanggal'**
+  String get storeReceiptDate;
+
+  /// No description provided for @storeReceiptBillNo.
+  ///
+  /// In id, this message translates to:
+  /// **'No. Bill'**
+  String get storeReceiptBillNo;
+
+  /// No description provided for @storeReceiptTokenNo.
+  ///
+  /// In id, this message translates to:
+  /// **'No. Token'**
+  String get storeReceiptTokenNo;
+
+  /// No description provided for @storeReceiptItemHeader.
+  ///
+  /// In id, this message translates to:
+  /// **'Item'**
+  String get storeReceiptItemHeader;
+
+  /// No description provided for @storeReceiptAmountHeader.
+  ///
+  /// In id, this message translates to:
+  /// **'Jumlah'**
+  String get storeReceiptAmountHeader;
+
+  /// No description provided for @storeReceiptOrderDiscount.
+  ///
+  /// In id, this message translates to:
+  /// **'Diskon Order'**
+  String get storeReceiptOrderDiscount;
+
+  /// No description provided for @storeReceiptGrandTotal.
+  ///
+  /// In id, this message translates to:
+  /// **'TOTAL BAYAR'**
+  String get storeReceiptGrandTotal;
+
+  /// No description provided for @storeReceiptPointsDiscountLabel.
+  ///
+  /// In id, this message translates to:
+  /// **'Diskon poin nusan ({points} poin)'**
+  String storeReceiptPointsDiscountLabel(String points);
+
+  /// No description provided for @storeReceiptFooterDefault.
+  ///
+  /// In id, this message translates to:
+  /// **'Terima kasih & silakan berkunjung kembali'**
+  String get storeReceiptFooterDefault;
+
+  /// No description provided for @storeShareReceipt.
+  ///
+  /// In id, this message translates to:
+  /// **'Bagikan Struk'**
+  String get storeShareReceipt;
+
+  /// No description provided for @storeReceiptPreviewTitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Struk'**
+  String get storeReceiptPreviewTitle;
+
+  /// No description provided for @storeShareReceiptFailed.
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak dapat membuat gambar struk.'**
+  String get storeShareReceiptFailed;
+
+  /// No description provided for @storeCustomerNameLabel.
+  ///
+  /// In id, this message translates to:
+  /// **'Nama Pelanggan (opsional)'**
+  String get storeCustomerNameLabel;
+
+  /// No description provided for @storeSettingsAddress.
+  ///
+  /// In id, this message translates to:
+  /// **'Alamat Toko (baris kop struk)'**
+  String get storeSettingsAddress;
+
+  /// No description provided for @storeSettingsShowToken.
+  ///
+  /// In id, this message translates to:
+  /// **'Tampilkan Nomor Token di Struk'**
+  String get storeSettingsShowToken;
+
+  /// No description provided for @storeSettingsShowTokenHint.
+  ///
+  /// In id, this message translates to:
+  /// **'Nomor antrean harian pada struk; mulai dari 1 setiap hari.'**
+  String get storeSettingsShowTokenHint;
+
+  /// No description provided for @storeSettingsFooterText.
+  ///
+  /// In id, this message translates to:
+  /// **'Teks Penutup Struk'**
+  String get storeSettingsFooterText;
+
+  /// No description provided for @storeSettingsFooterTextHint.
+  ///
+  /// In id, this message translates to:
+  /// **'Kosongkan untuk teks bawaan bahasa aplikasi.'**
+  String get storeSettingsFooterTextHint;
+
   /// No description provided for @storeSettingsTitle.
   ///
   /// In id, this message translates to:
@@ -2395,6 +2533,12 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Aturan Program Poin'**
   String get storeRulesTitle;
+
+  /// No description provided for @storeRulesButton.
+  ///
+  /// In id, this message translates to:
+  /// **'Aturan Poin'**
+  String get storeRulesButton;
 
   /// No description provided for @storeRulesHeading.
   ///

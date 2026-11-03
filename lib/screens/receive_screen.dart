@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../locale_controller.dart';
+import '../unit_controller.dart';
 import '../theme.dart';
 import 'package:flutter/services.dart';
 import 'package:ldk_node/src/generated/api/types.dart';
@@ -58,6 +59,10 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   Timer? _eventTimer;
   int _watchGen = 0;
   bool _watching = false;
+
+  /// Penanda layar sudah ditutup (dispose): pengawas event hanya
+  /// boleh berjalan selama layar aktif — lihat receive_watch.dart.
+  bool _disposed = false;
   bool _received = false;
   BigInt? _receivedMsat;
 
@@ -69,6 +74,13 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   /// Penggulir body: penerimaan mengantar layar ke atas supaya
   /// panel sukses terlihat tanpa scroll manual dari user.
   final _scrollController = ScrollController();
+
+  /// Kunci blok perayaan penerimaan: sesudah perayaan terpicu,
+  /// layar digulir sampai blok INI terlihat (ensureVisible) —
+  /// bukan sekadar ke atas — supaya fokusnya tepat ke perayaan
+  /// walau user sedang tergulir jauh ke bawah (mis. di panel
+  /// Kode Bayar Statis) saat pembayaran masuk.
+  final _celebrationKey = GlobalKey();
 
   /// True bila [_invoice] berasal dari simpanan lokal (invoice
   /// pending terakhir dipulihkan saat layar dibuka), bukan baru
@@ -86,6 +98,10 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   @override
   void initState() {
     super.initState();
+    // Pengawas event bersenjata sejak layar dibuka (bukan hanya
+    // sesudah ada invoice/panel statis): pembayaran offer yang
+    // tiba kapan pun selama user di layar ini harus terayakan.
+    _syncWatcher();
     _restoreLastInvoice();
     // Sesudah frame pertama: context.l10n belum boleh dibaca di
     // initState.
@@ -112,15 +128,15 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   /// belum tersedia, pembuatan dicoba (lagi) — inilah titik coba
   /// ulang alami sesudah node tersambung ke LSP.
   ///
-  /// Membuka panel juga menyalakan pengawas event: pembayaran
-  /// offer masuk lewat Event_PaymentReceived yang sama seperti
-  /// invoice Bolt11 (handler PaymentClaimed di ldk-node menerbitkan
-  /// event itu untuk semua PaymentPurpose, termasuk
-  /// Bolt12OfferPayment), jadi panel sukses kini tampil juga untuk
-  /// pembayaran ke kode statis — bukan cuma suara + getar dari
-  /// detektor dashboard. Menutup panel menghentikan pengawas,
-  /// kecuali ada invoice pending atau perayaan yang sedang tampil
-  /// (diputuskan murni oleh [_syncWatcher]).
+  /// Pembayaran offer masuk lewat Event_PaymentReceived yang sama
+  /// seperti invoice Bolt11 (handler PaymentClaimed di ldk-node
+  /// menerbitkan event itu untuk semua PaymentPurpose, termasuk
+  /// Bolt12OfferPayment). Pengawas event layar ini bersenjata
+  /// selama layar aktif — membuka/menutup panel tidak lagi
+  /// menyalakan/mematikannya — jadi panel sukses tampil untuk
+  /// pembayaran ke kode statis baik QR-nya sedang ditampilkan
+  /// maupun tidak, bukan cuma suara + getar dari detektor
+  /// dashboard (temuan lapangan NUX 3 Nov 2026).
   void _toggleStaticCode() {
     setState(() => _staticOpen = !_staticOpen);
     if (_staticOpen && _staticOffer == null && !_staticLoading) {
@@ -188,31 +204,35 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
     setState(() {
       _invoice = restored.invoice;
       _restored = true;
-      _amountController.text = formatNusan(restored.amountMsat);
+      // Kolom nominal terisi dalam satuan tampilan aktif, dengan
+      // format yang sama seperti yang dihasilkan pemformat isian.
+      _amountController.text = formatAmountNumber(
+          restored.amountMsat, UnitController.unit.value,
+          locale: LocaleController.locale.value.languageCode);
     });
     _syncWatcher();
   }
 
   @override
   void dispose() {
-    _eventTimer?.cancel();
+    _disposed = true;
+    _stopWatching();
     _celebrationTimer?.cancel();
-    _watchGen++;
     _amountController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
   Future<void> _createInvoice() async {
-    // Kolom nominal menampilkan pemisah gaya id ('.' ribuan, ','
-    // desimal — lihat _ThousandsSeparatorFormatter): buang pemisah
-    // tampilan supaya yang terbaca tetap angka murninya.
-    final text = _amountController.text
-        .trim()
-        .replaceAll('.', '')
-        .replaceAll(',', '.');
-    final nusan = double.tryParse(text);
-    if (nusan == null || nusan <= 0) {
+    // Kolom nominal diketik dalam satuan tampilan aktif (saklar
+    // Profil): parse eksak ke msat oleh parser terpusat — tanpa
+    // floating point, presisi melewati batas satuan ditolak.
+    final unit = UnitController.unit.value;
+    final locale = LocaleController.locale.value.languageCode;
+    final amountMsat = parseAmountInputToMsat(
+        _amountController.text, unit,
+        locale: locale);
+    if (amountMsat == null) {
       setState(() => _error = context.l10n.invalidAmount);
       return;
     }
@@ -228,10 +248,8 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
       _restored = false;
     });
 
-    // 1 nusan = 1000 msat
-    final amountMsat = BigInt.from((nusan * 1000).round());
-    final description =
-        context.l10n.receiveInvoiceDesc(nusan.toString());
+    final description = context.l10n.receiveInvoiceDesc(
+        formatAmountWithUnit(amountMsat, unit, locale: locale));
 
     // Pilih jalur dari kapasitas terima yang sudah ada. Gagal
     // membaca kapasitas (node sesaat tidak siap) tidak boleh
@@ -298,19 +316,14 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
     }
   }
 
-  /// Selaraskan pengawas event dengan keadaan layar: jalankan
-  /// bila ada yang ditunggu (invoice pending, panel Kode Bayar
-  /// Statis terbuka, atau panel sukses sedang tampil) dan hentikan
-  /// bila tidak ada — keputusan murninya di
-  /// [receiveWatcherShouldRun]. Aman dipanggil berulang: pengawas
-  /// yang sudah sesuai keadaan tidak diutak-atik, jadi tidak ada
-  /// timer ganda dan tidak ada kuras antrean berulang.
+  /// Selaraskan pengawas event dengan keadaan layar: pengawas
+  /// berjalan selama layar aktif dan berhenti sesudah layar
+  /// ditutup — keputusan murninya di [receiveWatcherShouldRun].
+  /// Aman dipanggil berulang: pengawas yang sudah sesuai keadaan
+  /// tidak diutak-atik, jadi tidak ada timer ganda dan tidak ada
+  /// kuras antrean berulang.
   void _syncWatcher() {
-    final shouldRun = receiveWatcherShouldRun(
-      invoicePending: _invoice != null,
-      staticPanelOpen: _staticOpen,
-      celebrating: _received,
-    );
+    final shouldRun = receiveWatcherShouldRun(screenActive: !_disposed);
     if (shouldRun && !_watching) {
       _startWatching();
     } else if (!shouldRun && _watching) {
@@ -387,8 +400,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   /// (di)mulai: penerimaan lain yang tiba selama jendela tampil
   /// menggantikan nominal panel dan memulai ulang jedanya, jadi
   /// tidak ada penerimaan yang hilang diam-diam. Pengawas TIDAK
-  /// dimatikan di sini — ia terus membaca selama perayaan dan
-  /// selama ada yang ditunggu sesudahnya.
+  /// dimatikan di sini — ia terus membaca selama layar aktif.
   void _handleReceived(Event_PaymentReceived e, int gen) {
     // Rayakan di sini juga (bunyi + getar), bersamaan dengan
     // tanda centang: pengawas event layar ini adalah pemicu
@@ -420,7 +432,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
       _restored = false;
       _amountController.clear();
     });
-    _scrollToTop();
+    _scrollToCelebration();
     _celebrationTimer?.cancel();
     _celebrationTimer = Timer(receiveCelebrationDuration, _finishCelebration);
     _syncWatcher();
@@ -428,10 +440,9 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
 
   /// Jeda tampil panel sukses selesai: reset panel supaya layar
   /// siap menerima pembayaran berikutnya tanpa user keluar
-  /// halaman, lalu selaraskan pengawas — ia berhenti bila tidak
-  /// ada lagi yang ditunggu (panel statis tertutup dan tidak ada
-  /// invoice), dan tetap berjalan bila panel statis masih terbuka
-  /// (offer memang untuk dibayar berulang).
+  /// halaman, lalu selaraskan pengawas — ia tetap berjalan selama
+  /// layar aktif (offer memang untuk dibayar berulang, dan
+  /// pembayaran berikutnya bisa tiba kapan saja).
   void _finishCelebration() {
     if (!mounted) return;
     setState(() {
@@ -440,6 +451,28 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
     });
     _scrollToTop();
     _syncWatcher();
+  }
+
+  /// Gulir halus sampai blok perayaan terlihat di layar.
+  /// Dipanggil sesudah perayaan terpicu & frame ter-render:
+  /// ensureVisible mengantar tepat ke blok perayaan (fokusnya
+  /// perayaan itu sendiri). Blok belum terpasang (sangat jarang)
+  /// → jatuh ke gulir ke atas seperti perilaku lama.
+  void _scrollToCelebration() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final celebrationContext = _celebrationKey.currentContext;
+      if (celebrationContext != null) {
+        Scrollable.ensureVisible(
+          celebrationContext,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOut,
+          alignment: 0.1,
+        );
+      } else {
+        _scrollToTop();
+      }
+    });
   }
 
   /// Gulir halus ke atas: panel sukses dirender dekat atas kolom,
@@ -498,7 +531,13 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _amountController,
-              inputFormatters: [_ThousandsSeparatorFormatter()],
+              inputFormatters: [
+                _ThousandsSeparatorFormatter(
+                  thousandsSep:
+                      context.l10n.localeName == 'en' ? ',' : '.',
+                  decimalSep: context.l10n.localeName == 'en' ? '.' : ',',
+                ),
+              ],
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               style: const TextStyle(
@@ -513,12 +552,31 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
                 ),
-                suffixText: 'nusan',
+                suffixText: context.displayUnit.label,
                 suffixStyle: TextStyle(
                     fontSize: 16,
                     color: context.palette.muted,
                     fontWeight: FontWeight.w600),
               ),
+            ),
+            // Konversi ke satuan lawan dari nominal yang diketik —
+            // tampil hanya bila isian terbaca sebagai nominal sah.
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _amountController,
+              builder: (context, value, _) {
+                final parsed = parseAmountInputToMsat(value.text,
+                    UnitController.unit.value,
+                    locale: LocaleController.locale.value.languageCode);
+                if (parsed == null) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    context.formatWalletConversion(parsed),
+                    style: TextStyle(
+                        fontSize: 13, color: context.palette.muted),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 16),
             // Create button
@@ -552,6 +610,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
             if (_received) ...[
               const SizedBox(height: 24),
               Container(
+                key: _celebrationKey,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: const Color(0x2610B981),
@@ -571,8 +630,8 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                             color: Color(0xFF34D399))),
                     const SizedBox(height: 6),
                     Text(
-                        context.l10n.receivedAmount(
-                            formatNusan(_receivedMsat ?? BigInt.zero)),
+                        context.l10n.receivedAmount(context.formatWalletAmount(
+                            _receivedMsat ?? BigInt.zero)),
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 6),
@@ -763,14 +822,28 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   }
 }
 
-/// Pemformat kolom nominal Terima: terapkan pemisah ribuan '.'
-/// gaya id secara langsung saat user mengetik, supaya tampilan
-/// selalu rapi — bukan hanya saat nilai diisi program (mis. pulihan
-/// invoice pending yang terisi "1.000", lalu rusak formatnya begitu
-/// user mengedit). Pecahan memakai koma desimal, sama seperti
-/// [formatNusan]. Format hanya tampilan: nilai angka murninya
-/// dipulihkan saat parsing di _ReceiveScreenState._createInvoice.
+/// Pemformat kolom nominal Terima: terapkan pemisah ribuan
+/// secara langsung saat user mengetik, supaya tampilan selalu
+/// rapi — bukan hanya saat nilai diisi program (mis. pulihan
+/// invoice pending yang terisi "1.000", lalu rusak formatnya
+/// begitu user mengedit). Pemisah mengikuti locale aplikasi
+/// (id: '.' ribuan & ',' desimal; en sebaliknya) — pasangan
+/// pemisah yang sama dengan parser terpusat
+/// [parseAmountInputToMsat]. Format hanya tampilan: nilai angka
+/// murninya dipulihkan saat parsing di
+/// _ReceiveScreenState._createInvoice. Pecahan TIDAK dipotong di
+/// sini: batas presisi satuan ditegakkan parser saat pembuatan
+/// invoice, jadi pemformat tidak pernah diam-diam mengubah angka
+/// yang diketik user.
 class _ThousandsSeparatorFormatter extends TextInputFormatter {
+  final String thousandsSep;
+  final String decimalSep;
+
+  const _ThousandsSeparatorFormatter({
+    this.thousandsSep = '.',
+    this.decimalSep = ',',
+  });
+
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
@@ -779,9 +852,10 @@ class _ThousandsSeparatorFormatter extends TextInputFormatter {
     final raw = newValue.text;
     if (raw.isEmpty) return newValue;
 
-    // Pisah bagian bulat dan pecahan pada koma desimal pertama;
-    // selain digit dibuang (termasuk '.' pemisah ribuan lama).
-    final comma = raw.indexOf(',');
+    // Pisah bagian bulat dan pecahan pada pemisah desimal
+    // pertama; selain digit dibuang (termasuk pemisah ribuan
+    // lama).
+    final comma = raw.indexOf(decimalSep);
     var intDigits = (comma >= 0 ? raw.substring(0, comma) : raw)
         .replaceAll(RegExp(r'[^0-9]'), '');
     final fracDigits = comma >= 0
@@ -791,15 +865,14 @@ class _ThousandsSeparatorFormatter extends TextInputFormatter {
     // Buang nol di depan yang berlebih: "05" -> "5", "00" -> "0".
     intDigits = intDigits.replaceFirst(RegExp(r'^0+(?=\d)'), '');
 
-    // Kelompokkan ribuan dengan '.', pola yang sama seperti
-    // formatNusan di utils/format.dart.
+    // Kelompokkan ribuan dengan pemisah locale.
     final buf = StringBuffer();
     for (var i = 0; i < intDigits.length; i++) {
-      if (i > 0 && (intDigits.length - i) % 3 == 0) buf.write('.');
+      if (i > 0 && (intDigits.length - i) % 3 == 0) buf.write(thousandsSep);
       buf.write(intDigits[i]);
     }
     var text = buf.toString();
-    if (fracDigits != null) text = '$text,$fracDigits';
+    if (fracDigits != null) text = '$text$decimalSep$fracDigits';
 
     // Kursor selalu di akhir teks hasil format.
     return TextEditingValue(
