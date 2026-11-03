@@ -71,6 +71,19 @@ class ReceiptData {
   /// ESC/POS; null berarti tanpa QR.
   final String? invoice;
 
+  /// Baris rincian bebas (teks monospace apa adanya, satu baris
+  /// per entri) yang dicetak di badan struk sesudah baris
+  /// jenis/status/waktu — dipakai struk Mode Toko untuk rincian
+  /// item pesanan. Null (bawaan) = tanpa rincian: keluaran struk
+  /// pemanggil lain TIDAK berubah sama sekali.
+  final List<String>? detailLines;
+
+  /// Teks kop struk yang menggantikan header pengaturan printer
+  /// untuk struk ini saja — dipakai Mode Toko untuk nama toko.
+  /// Null/kosong (bawaan) = kop dari pengaturan printer apa
+  /// adanya: keluaran struk pemanggil lain TIDAK berubah.
+  final String? headerText;
+
   const ReceiptData({
     required this.typeText,
     required this.statusText,
@@ -79,6 +92,8 @@ class ReceiptData {
     this.hashLabel,
     this.hashValue,
     this.invoice,
+    this.detailLines,
+    this.headerText,
   });
 }
 
@@ -132,8 +147,12 @@ class PrintService {
     required String defaultFooter,
   }) async {
     if (!settings.hasPrinter) return PrintOutcome.noPrinter;
+    final kop = receipt.headerText?.trim() ?? '';
+    final effectiveSettings = kop.isEmpty
+        ? settings
+        : settings.copyWith(headerText: kop);
     final bytes = await _receiptBytes(
-      settings: settings,
+      settings: effectiveSettings,
       defaultFooter: defaultFooter,
       body: (gen) {
         var b = <int>[];
@@ -158,6 +177,13 @@ class PrintService {
           PosColumn(text: timeLabel, width: 4),
           PosColumn(text: receipt.timeText, width: 8),
         ]);
+        final details = receipt.detailLines;
+        if (details != null && details.isNotEmpty) {
+          b += gen.hr();
+          for (final line in details) {
+            b += gen.text(_asciiSafe(line.isEmpty ? ' ' : line));
+          }
+        }
         if (receipt.hashValue != null) {
           b += gen.hr();
           if (receipt.hashLabel != null) b += gen.text(receipt.hashLabel!);

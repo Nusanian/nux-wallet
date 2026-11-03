@@ -8,14 +8,14 @@ import '../utils/store_mode_logic.dart';
 ///
 /// [code] adalah isi barcode/QR produk apa adanya (EAN, UPC,
 /// Code128, QR — pemindai aplikasi tidak membatasi format), [name]
-/// nama tampil untuk kasir, [priceNusan] harga satuan dalam nusan
-/// bulat. [defaultDiscount] diskon bawaan produk (persen atau
+/// nama tampil untuk kasir, [priceRp] harga satuan dalam rupiah
+/// bulat (v2: seluruh harga Mode Toko berdenominasi rupiah). [defaultDiscount] diskon bawaan produk (persen atau
 /// nominal, boleh null): otomatis terisi ke baris pesanan saat
 /// produk ditambahkan, dan kasir tetap bisa mengubahnya di baris.
 class CatalogItem {
   final String code;
   final String name;
-  final int priceNusan;
+  final int priceRp;
   final Discount? defaultDiscount;
 
   /// Kategori produk untuk pengelompokan laporan penjualan
@@ -27,7 +27,7 @@ class CatalogItem {
   const CatalogItem({
     required this.code,
     required this.name,
-    required this.priceNusan,
+    required this.priceRp,
     this.defaultDiscount,
     this.category = '',
   });
@@ -35,7 +35,7 @@ class CatalogItem {
   Map<String, Object?> toJson() => {
     'code': code,
     'name': name,
-    'priceNusan': priceNusan,
+    'priceRp': priceRp,
     if (category.isNotEmpty) 'category': category,
     if (defaultDiscount != null) ...{
       'discountKind': defaultDiscount!.kind.name,
@@ -51,7 +51,9 @@ class CatalogItem {
     if (raw is! Map) return null;
     final code = raw['code'];
     final name = raw['name'];
-    final price = raw['priceNusan'];
+    // Kunci v2 'priceRp'; 'priceNusan' hanya cadangan baca untuk
+    // simpanan uji lama — store produksi v2 adalah kunci baru.
+    final price = raw['priceRp'] ?? raw['priceNusan'];
     if (code is! String || code.trim().isEmpty) return null;
     if (name is! String || name.trim().isEmpty) return null;
     if (price is! num || price < 0 || price != price.roundToDouble()) {
@@ -71,7 +73,7 @@ class CatalogItem {
     return CatalogItem(
       code: code.trim(),
       name: name.trim(),
-      priceNusan: price.toInt(),
+      priceRp: price.toInt(),
       defaultDiscount: discount,
       category: category is String ? category.trim() : '',
     );
@@ -82,13 +84,13 @@ class CatalogItem {
       other is CatalogItem &&
       other.code == code &&
       other.name == name &&
-      other.priceNusan == priceNusan &&
+      other.priceRp == priceRp &&
       other.defaultDiscount == defaultDiscount &&
       other.category == category;
 
   @override
   int get hashCode =>
-      Object.hash(code, name, priceNusan, defaultDiscount, category);
+      Object.hash(code, name, priceRp, defaultDiscount, category);
 }
 
 /// Serialkan katalog ke string JSON untuk simpanan lokal.
@@ -129,6 +131,41 @@ CatalogItem? findCatalogItemByCode(List<CatalogItem> items, String code) {
   return null;
 }
 
+/// Daftar kategori yang sudah ada di katalog — bahan saran
+/// isian field Kategori di lembar Kelola, supaya kasir tidak
+/// mengetik ulang dan ejaan kategori seragam antar produk
+/// (kategori adalah kunci pengelompokan laporan). Unik sesudah
+/// trim, tak peka huruf besar/kecil (bentuk pertama yang
+/// ditemukan yang dipertahankan), kosong dilewati, urut abjad
+/// tak peka huruf besar/kecil.
+List<String> catalogCategories(List<CatalogItem> items) {
+  final seen = <String>{};
+  final categories = <String>[];
+  for (final item in items) {
+    final category = item.category.trim();
+    if (category.isEmpty) continue;
+    if (seen.add(category.toLowerCase())) categories.add(category);
+  }
+  categories.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  return categories;
+}
+
+/// Saring katalog untuk kolom cari kasir: item lolos bila NAMA
+/// atau KODE-nya mengandung [query] (sesudah trim, tak peka huruf
+/// besar/kecil, cocok sebagian — bukan harus persis seperti
+/// pencarian scan). Query kosong/spasi saja → seluruh katalog
+/// apa adanya (urutan asli dipertahankan).
+List<CatalogItem> filterCatalogItems(List<CatalogItem> items, String query) {
+  final needle = query.trim().toLowerCase();
+  if (needle.isEmpty) return items;
+  return [
+    for (final item in items)
+      if (item.name.toLowerCase().contains(needle) ||
+          item.code.toLowerCase().contains(needle))
+        item,
+  ];
+}
+
 /// Penyimpanan katalog Mode Toko di SharedPreferences.
 ///
 /// Pola sama seperti Bolt12OfferStore/SavedInvoiceStore: kegagalan
@@ -136,7 +173,7 @@ CatalogItem? findCatalogItemByCode(List<CatalogItem> items, String code) {
 /// ditelan — katalog adalah data kasir yang bisa dibangun ulang,
 /// bukan sumber kebenaran dana.
 class StoreCatalogStore {
-  static const String storageKey = 'store_catalog_items_v1';
+  static const String storageKey = 'store_catalog_items_v2';
 
   Future<List<CatalogItem>> load() async {
     try {
