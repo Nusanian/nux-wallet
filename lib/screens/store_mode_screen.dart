@@ -10,8 +10,10 @@ import '../theme.dart';
 import '../services/lsp_service.dart';
 import '../services/print_service.dart';
 import '../services/store_catalog.dart';
+import '../services/store_customers.dart';
 import '../services/store_draft.dart';
 import '../services/store_hold.dart';
+import '../services/store_operators.dart';
 import '../services/store_order_history.dart';
 import '../services/store_settings.dart';
 import '../services/store_shift.dart';
@@ -27,8 +29,11 @@ import '../utils/store_mode_logic.dart';
 import '../utils/store_receipt.dart';
 import '../utils/store_report.dart';
 import 'scan_screen.dart';
+import 'store_customers_screen.dart';
+import 'store_operator_gate.dart';
 import 'store_receipt_preview.dart';
 import 'store_point_rules_screen.dart';
+import 'store_sales_history_screen.dart';
 import 'store_settings_screen.dart';
 import 'store_shift_report_screen.dart';
 
@@ -129,6 +134,16 @@ class _StoreModeScreenState extends State<StoreModeScreen>
   // --- Pengaturan toko & program poin ---
   final _settingsStore = StoreSettingsStore();
   StoreSettings _settings = StoreSettings.defaults;
+
+  // --- Operator & peran (Fase A) ---
+  final _operatorStore = StoreOperatorStore();
+  final _auditStore = StoreAuditStore();
+
+  /// Sesi operator yang sedang login; null = belum login —
+  /// badan layar digantikan gerbang operator (login / buat
+  /// owner pertama). Sesi hanya hidup di ingatan: proses
+  /// aplikasi mati = login ulang, memang disengaja.
+  StoreOperator? _operator;
 
   /// ID outlet perangkat ini untuk struk: 6 karakter pertama
   /// node_id ELNUX perangkat (identitas cabang dari node_id —
@@ -371,14 +386,77 @@ class _StoreModeScreenState extends State<StoreModeScreen>
       context.l10n.localeName.startsWith('en') ? 'en' : 'id';
 
   // ------------------------------------------------------------------
+  // Operator & gerbang admin (Fase A)
+  // ------------------------------------------------------------------
+
+  /// Ganti operator: sesi sekarang ditutup (tercatat di audit
+  /// sebagai logout) dan gerbang login tampil lagi. Shift yang
+  /// sedang berjalan TIDAK ikut tertutup — stempel pembukanya
+  /// tetap, penjualan berikutnya berstempel operator baru.
+  Future<void> _switchOperator() async {
+    final current = _operator;
+    if (current == null) return;
+    await _auditStore.append(
+      operator: current,
+      action: StoreAuditAction.logout,
+    );
+    if (!mounted) return;
+    setState(() => _operator = null);
+  }
+
+  /// Gerbang PIN admin di tempat untuk aksi sensitif
+  /// (keputusan NUX (a)): owner yang sedang login lolos
+  /// langsung; kasir memicu dialog PIN — owner mana pun boleh
+  /// menyetujui TANPA mengganti sesi kasir. Persetujuan
+  /// tercatat di audit atas nama kasir peminta + nama
+  /// penyetuju. Mengembalikan true bila aksi boleh jalan.
+  Future<bool> _requireAdminApproval(String actionLabel) async {
+    final me = _operator;
+    if (me == null) return false;
+    if (me.isOwner) return true;
+    final pin = await showStorePinDialog(
+      context,
+      title: context.l10n.storeAdminPinTitle,
+      body: context.l10n.storeAdminPinBody,
+    );
+    if (pin == null || !mounted) return false;
+    final approver = await _operatorStore.verifyAnyOwnerPin(pin);
+    if (!mounted) return false;
+    if (approver == null) {
+      _snack(context.l10n.storeOperatorWrongPin);
+      return false;
+    }
+    await _auditStore.append(
+      operator: me,
+      action: StoreAuditAction.adminOverride,
+      detail: '$actionLabel — approved by ${approver.name}',
+    );
+    if (!mounted) return false;
+    _snack(context.l10n.storeAdminApproved);
+    return true;
+  }
+
+  // ------------------------------------------------------------------
   // Shift kasir (alur NUX: Open Shift dulu, Close Shift penutup)
   // ------------------------------------------------------------------
 
   Future<void> _openShiftAction() async {
     if (_openShift != null) return;
-    final shift = StoreShift(openedAt: DateTime.now(), era: storeEraRupiah);
+    final me = _operator;
+    final shift = StoreShift(
+      openedAt: DateTime.now(),
+      era: storeEraRupiah,
+      operatorId: me?.id ?? '',
+      operatorName: me?.name ?? '',
+    );
     final next = [..._shifts, shift];
     await _shiftStore.save(next);
+    if (me != null) {
+      await _auditStore.append(
+        operator: me,
+        action: StoreAuditAction.shiftOpen,
+      );
+    }
     if (!mounted) return;
     setState(() {
       _shifts = next;
@@ -466,6 +544,13 @@ class _StoreModeScreenState extends State<StoreModeScreen>
       for (final s in _shifts) s == shift ? closed : s,
     ];
     await _shiftStore.save(next);
+    final me = _operator;
+    if (me != null) {
+      await _auditStore.append(
+        operator: me,
+        action: StoreAuditAction.shiftClose,
+      );
+    }
     if (!mounted) return;
     setState(() {
       _shifts = next;
@@ -492,7 +577,24 @@ class _StoreModeScreenState extends State<StoreModeScreen>
     if (view == true && mounted) _openShiftReport(closed);
   }
 
-  void _openShiftReport(StoreShift shift) {
+  /// Apakah shift ini "milik" operator sesi untuk keperluan
+  /// laporan (keputusan NUX (b): kasir hanya melihat laporan
+  /// shift-nya sendiri)? Owner melihat semua; shift warisan
+  /// tanpa stempel operator dianggap milik siapa pun yang
+  /// sedang bertugas (ia lahir sebelum ada peran).
+  bool _isOwnShift(StoreShift shift) {
+    final me = _operator;
+    if (me == null) return false;
+    if (me.isOwner) return true;
+    return shift.operatorId.isEmpty || shift.operatorId == me.id;
+  }
+
+  Future<void> _openShiftReport(StoreShift shift) async {
+    if (!_isOwnShift(shift) &&
+        !await _requireAdminApproval('report:${shift.openedAt}')) {
+      return;
+    }
+    if (!mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -502,6 +604,13 @@ class _StoreModeScreenState extends State<StoreModeScreen>
   }
 
   Future<void> _pickDayReport() async {
+    // Laporan per tanggal melintasi shift & operator: khusus
+    // owner; kasir wajib persetujuan PIN admin (keputusan (b)).
+    if (!(_operator?.isOwner ?? false) &&
+        !await _requireAdminApproval('report:day')) {
+      return;
+    }
+    if (!mounted) return;
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -1049,6 +1158,10 @@ class _StoreModeScreenState extends State<StoreModeScreen>
   }
 
   Future<void> _openCatalogManager({String? initialCode}) async {
+    // Katalog & harga adalah wilayah admin (keputusan (a)):
+    // kasir wajib persetujuan PIN admin untuk membukanya.
+    if (!await _requireAdminApproval('catalog')) return;
+    if (!mounted) return;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -1077,6 +1190,24 @@ class _StoreModeScreenState extends State<StoreModeScreen>
       current: _lines[index].discount,
     );
     if (result == null || !mounted) return;
+    // Gerbang diskon Fase A: diskon baris BARU di atas ambang
+    // pengaturan wajib persetujuan PIN admin sebelum diterapkan.
+    if (!result.cleared && result.discount != null) {
+      final line = _lines[index];
+      final discountRp = discountAmountFor(
+        line.unitPriceRp * line.qty,
+        result.discount,
+      );
+      if (discountExceedsAdminThreshold(
+            discountRp: discountRp,
+            baseRp: line.unitPriceRp * line.qty,
+            thresholdPercent: _settings.adminDiscountThresholdPercent,
+          ) &&
+          !await _requireAdminApproval('discount:line')) {
+        return;
+      }
+      if (!mounted) return;
+    }
     setState(() {
       _lines = orderSetLineDiscount(
         _lines,
@@ -1144,6 +1275,20 @@ class _StoreModeScreenState extends State<StoreModeScreen>
       current: _orderDiscount,
     );
     if (result == null || !mounted) return;
+    // Gerbang diskon Fase A (sama seperti diskon baris, basis =
+    // subtotal sesudah diskon baris).
+    if (!result.cleared && result.discount != null) {
+      final base = orderSubtotalRp(_lines);
+      if (discountExceedsAdminThreshold(
+            discountRp: discountAmountFor(base, result.discount),
+            baseRp: base,
+            thresholdPercent: _settings.adminDiscountThresholdPercent,
+          ) &&
+          !await _requireAdminApproval('discount:order')) {
+        return;
+      }
+      if (!mounted) return;
+    }
     setState(() => _orderDiscount = result.cleared ? null : result.discount);
   }
 
@@ -1265,9 +1410,15 @@ class _StoreModeScreenState extends State<StoreModeScreen>
       ),
     );
     if (result == null || !mounted) return;
-    if (result.isVoid) {
+    // Stempel operator Fase A: record tercatat atas nama
+    // operator yang sedang login — lunas maupun VOID.
+    final me = _operator;
+    final result2 = me == null
+        ? result
+        : result.withOperator(operatorId: me.id, operatorName: me.name);
+    if (result2.isVoid) {
       await _historyStore.append(
-        result.withReceiptMeta(
+        result2.withReceiptMeta(
           shiftOpenedMs: _openShift?.openedAt.millisecondsSinceEpoch,
         ),
       );
@@ -1286,17 +1437,17 @@ class _StoreModeScreenState extends State<StoreModeScreen>
     // sekali per transaksi lunas, hanya bila pengaturan toko
     // menampilkannya), tulis record + bersihkan draf — atomik,
     // tidak ada lagi penulisan setengah jadi antar-store.
-    var settled = result;
+    var settled = result2;
     final shift = _openShift;
     if (shift != null) {
       settled = await _historyStore.recordSettledSale(
-        result,
+        result2,
         stampMeta: true,
         issueToken: _settings.showTokenNumber,
         shiftOpenedMs: shift.openedAt.millisecondsSinceEpoch,
       );
     } else {
-      await _historyStore.append(result);
+      await _historyStore.append(result2);
     }
     if (!mounted) return;
     setState(() {
@@ -1390,13 +1541,79 @@ class _StoreModeScreenState extends State<StoreModeScreen>
   /// record ditandai 'issued'; gagal/masih berjalan → tetap
   /// 'pending' (antre Poin Tertunda), penjualan rupiahnya tidak
   /// terpengaruh sama sekali.
+  /// Sumber kode tujuan penerbitan poin: bila ada pelanggan
+  /// tersimpan, kasir memilih — offer statis pelanggan dari
+  /// daftar, atau pindai kode seperti biasa. Tanpa pelanggan
+  /// tersimpan langsung ke pemindai (perilaku lama).
+  Future<String?> _pickIssueCode() async {
+    final customers = await StoreCustomerStore().loadAll();
+    if (!mounted) return null;
+    if (customers.isEmpty) {
+      return Navigator.push<String>(
+        context,
+        MaterialPageRoute(builder: (_) => const ScanScreen()),
+      );
+    }
+    final l10n = context.l10n;
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: context.palette.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 6),
+                child: Text(
+                  l10n.storeCustomerChoose,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              for (final customer in customers)
+                ListTile(
+                  leading: const Icon(
+                    Icons.person_rounded,
+                    color: Color(0xFF34D399),
+                  ),
+                  title: Text(
+                    customer.name,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  onTap: () => Navigator.pop(ctx, customer.offer),
+                ),
+              const Divider(height: 16),
+              ListTile(
+                leading: const Icon(Icons.qr_code_scanner_rounded),
+                title: Text(l10n.storeCustomerScan),
+                onTap: () => Navigator.pop(ctx, '__scan__'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return null;
+    if (picked == '__scan__') {
+      return Navigator.push<String>(
+        context,
+        MaterialPageRoute(builder: (_) => const ScanScreen()),
+      );
+    }
+    return picked;
+  }
+
   Future<void> _issuePoints(CompletedOrder record) async {
     if (_issuing || record.pointsEarned <= 0) return;
     final l10n = context.l10n;
-    final raw = await Navigator.push<String>(
-      context,
-      MaterialPageRoute(builder: (_) => const ScanScreen()),
-    );
+    final raw = await _pickIssueCode();
     if (raw == null || !mounted) return;
     final code = raw.trim();
     if (code.isEmpty) return;
@@ -1647,6 +1864,9 @@ class _StoreModeScreenState extends State<StoreModeScreen>
       qrisLabel: l10n.storeQris,
       promoLabel: l10n.storeReceiptPromo,
       noteWord: l10n.storeNoteWord,
+      reprintBanner: l10n.storeReceiptReprintBanner,
+      reprintLabel: l10n.storeReceiptReprintLabel,
+      cashierLabel: l10n.storeReceiptCashier,
       pointsDiscountLabel: (points) =>
           l10n.storeReceiptPointsDiscountLabel(_fmtRp(points)),
       pointsRuleText: (rate) => l10n.storeReceiptPointsRule(rate),
@@ -1660,8 +1880,9 @@ class _StoreModeScreenState extends State<StoreModeScreen>
   /// dompet pelanggan — pedoman §4).
   StoreReceiptData _receiptData(
     CompletedOrder record,
-    PrinterSettings printerSettings,
-  ) {
+    PrinterSettings printerSettings, {
+    DateTime? reprintAt,
+  }) {
     final shopName = _settings.storeName.isNotEmpty
         ? _settings.storeName
         : printerSettings.headerText.trim().isNotEmpty
@@ -1676,7 +1897,70 @@ class _StoreModeScreenState extends State<StoreModeScreen>
       shopName: shopName,
       footerText: footer,
       outletId: _outletId,
+      reprintAt: reprintAt,
     );
+  }
+
+  /// Buka Pengaturan Toko — wilayah admin (keputusan (a)):
+  /// kasir wajib persetujuan PIN admin. Pengaturan dibaca
+  /// ulang sesudah kembali, seperti sebelumnya.
+  Future<void> _openSettings() async {
+    if (!await _requireAdminApproval('settings')) return;
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const StoreSettingsScreen()),
+    );
+    if (!mounted) return;
+    final s = await _settingsStore.load();
+    if (mounted) setState(() => _settings = s);
+  }
+
+  /// Buka Riwayat Penjualan: daftar transaksi selesai yang bisa
+  /// ditinjau satu per satu — salinan struknya (cetak ulang /
+  /// bagikan) selalu bertanda REPRINT.
+  Future<void> _openSalesHistory() async {
+    final printerSettings = await PrintService.loadSettings();
+    if (!mounted) return;
+    final labels = _receiptLabels();
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => StoreSalesHistoryScreen(
+          receiptLabels: labels,
+          receiptDataFor: (record, reprintAt) =>
+              _receiptData(record, printerSettings, reprintAt: reprintAt),
+          onVoidApproval: () => _requireAdminApproval('sale-void'),
+          onVoidSale: _voidSettledSale,
+        ),
+      ),
+    );
+    // Riwayat mungkin berubah dari layar itu (VOID penjualan
+    // lunas) — segarkan antre poin tertunda yang membacanya.
+    if (mounted) await _loadPendingIssues();
+  }
+
+  /// VOID penjualan LUNAS dari Riwayat Penjualan (Fase A):
+  /// persetujuan PIN admin sudah lolos lewat gerbang layar
+  /// riwayat; di sini record ditandai VOID (fakta penjualan
+  /// utuh, status berbalik — laporan & jurnal poin otomatis
+  /// mengecualikannya) dan kejadian + alasannya masuk audit.
+  Future<void> _voidSettledSale(CompletedOrder record, String reason) async {
+    final voided = record.markVoid();
+    await _historyStore.replace(voided);
+    final me = _operator;
+    if (me != null) {
+      final bill = record.billNo > 0
+          ? formatBillNo(record.time, record.billNo)
+          : record.id;
+      await _auditStore.append(
+        operator: me,
+        action: StoreAuditAction.saleVoid,
+        detail: '$bill — $reason',
+      );
+    }
+    if (!mounted) return;
+    _snack(context.l10n.storeVoidDone);
   }
 
   /// Cetak struk penjualan terakhir ke printer thermal lewat
@@ -1779,8 +2063,36 @@ class _StoreModeScreenState extends State<StoreModeScreen>
           title: Text(context.l10n.storeMode),
           backgroundColor: Colors.transparent,
           elevation: 0,
+          // Chip operator sesi (Fase A): nama + peran operator
+          // yang sedang login; ketuk = ganti operator (kembali
+          // ke gerbang login). Hanya tampil sesudah login.
+          actions: [
+            if (_operator != null)
+              TextButton.icon(
+                onPressed: _switchOperator,
+                icon: const Icon(Icons.person_rounded, size: 19),
+                label: Text(
+                  '${_operator!.name} · ${_operator!.isOwner ? context.l10n.storeOperatorRoleOwner : context.l10n.storeOperatorRoleCashier}',
+                ),
+              ),
+          ],
         ),
-        body: LayoutBuilder(
+        // Gerbang operator Fase A: belum login → badan layar
+        // adalah panel login / pembuatan owner pertama; tidak
+        // ada jalur menyusun pesanan sebelum sesi dimulai.
+        body: _operator == null
+            ? SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+                child: StoreOperatorGate(
+                  operatorStore: _operatorStore,
+                  auditStore: _auditStore,
+                  onExit: () => Navigator.of(context).pop(),
+                  onLoggedIn: (op) {
+                    if (mounted) setState(() => _operator = op);
+                  },
+                ),
+              )
+            : LayoutBuilder(
         builder: (context, constraints) {
           if (storeModeUsesTwoPanels(constraints.maxWidth)) {
             return Row(
@@ -2322,17 +2634,7 @@ class _StoreModeScreenState extends State<StoreModeScreen>
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const StoreSettingsScreen(),
-                    ),
-                  );
-                  if (!mounted) return;
-                  final s = await _settingsStore.load();
-                  if (mounted) setState(() => _settings = s);
-                },
+                onPressed: _openSettings,
                 icon: const Icon(Icons.settings_rounded, size: 19),
                 label: Text(l10n.storeSettingsTitle),
                 style: OutlinedButton.styleFrom(
@@ -2664,6 +2966,18 @@ class _StoreModeScreenState extends State<StoreModeScreen>
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
+            onPressed: _openSalesHistory,
+            icon: const Icon(Icons.receipt_long_rounded, size: 19),
+            label: Text(l10n.storeSalesHistory),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
             onPressed: _requestCloseShift,
             icon: const Icon(Icons.stop_circle_outlined, size: 19),
             label: Text(l10n.storeShiftClose),
@@ -2708,6 +3022,18 @@ class _StoreModeScreenState extends State<StoreModeScreen>
           onPressed: () => _pickDayReport(),
           icon: const Icon(Icons.calendar_month_rounded, size: 19),
           label: Text(l10n.storeReportByDate),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _openSalesHistory,
+          icon: const Icon(Icons.receipt_long_rounded, size: 19),
+          label: Text(l10n.storeSalesHistory),
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 13),
             shape: RoundedRectangleBorder(
@@ -2979,6 +3305,10 @@ class _StorePaymentPageState extends State<_StorePaymentPage> {
   // debit jurnal baru tercatat pada record lunas di _settle.
   // Tidak ada invoice dan tidak ada pembayaran dari pelanggan.
   String? _redeemOffer;
+
+  /// Nama pelanggan tersimpan yang offer-nya sedang dipakai
+  /// (null bila offer datang dari pindai langsung).
+  String? _redeemCustomerName;
   int _journalBalance = 0;
   bool _redeemApplied = false;
   int _redeemPoints = 0;
@@ -3055,15 +3385,36 @@ class _StorePaymentPageState extends State<_StorePaymentPage> {
       setState(() => _redeemError = l10n.storeRedeemNeedOffer);
       return;
     }
-    final offer = normalizePointsOffer(code);
+    _useRedeemOffer(normalizePointsOffer(code));
+  }
+
+  /// Pakai satu offer sebagai dasar penukaran (dari pindai
+  /// atau dari pelanggan tersimpan): baca saldo jurnalnya dan
+  /// reset klaim yang sedang disusun.
+  void _useRedeemOffer(String offer, {String? customerName}) {
     setState(() {
       _redeemOffer = offer;
+      _redeemCustomerName = customerName;
       _journalBalance = pointsJournalBalanceFor(widget.history, offer);
       _redeemApplied = false;
       _redeemPoints = 0;
       _redeemError = null;
       _pointsController.clear();
     });
+  }
+
+  /// Pilih pelanggan tersimpan untuk penukaran (alternatif
+  /// memindai kode bayar pelanggan): offer pelanggan terpilih
+  /// langsung menjadi dasar penukaran.
+  Future<void> _chooseCustomerForRedeem() async {
+    final customer = await showStoreCustomerPicker(
+      context,
+      subtitleFor: (c) => context.l10n.storeRedeemBalance(
+        pointsJournalBalanceFor(widget.history, c.offer),
+      ),
+    );
+    if (customer == null || !mounted) return;
+    _useRedeemOffer(customer.offer, customerName: customer.name);
   }
 
   /// Terapkan klaim penukaran: kunci jumlah poin (dijepit ke
@@ -3521,7 +3872,32 @@ class _StorePaymentPageState extends State<_StorePaymentPage> {
                 ),
               ),
             ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _chooseCustomerForRedeem,
+              icon: const Icon(Icons.person_rounded, size: 19),
+              label: Text(l10n.storeCustomerChoose),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 13,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
           ] else ...[
+            if (_redeemCustomerName != null) ...[
+              Text(
+                '${l10n.storeCustomerTitle}: ${_redeemCustomerName!}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+            ],
             Text(
               l10n.storeRedeemBalance(_journalBalance),
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
@@ -3559,7 +3935,17 @@ class _StorePaymentPageState extends State<_StorePaymentPage> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 6),
+                // Tombol Max (permintaan NUX 4 Nov 2026): isi
+                // kolom dengan hak tukar penuh yang berlaku
+                // (saldo jurnal dibatasi plafon tagihan).
+                TextButton(
+                  onPressed: _maxPoints > 0
+                      ? () => _pointsController.text = '$_maxPoints'
+                      : null,
+                  child: const Text('Max'),
+                ),
+                const SizedBox(width: 2),
                 ElevatedButton(
                   onPressed: _journalBalance > 0 ? _applyRedeem : null,
                   style: ElevatedButton.styleFrom(
@@ -3586,12 +3972,18 @@ class _StorePaymentPageState extends State<_StorePaymentPage> {
                   ),
                 ),
               ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: _scanCustomerOffer,
-                child: Text(l10n.storeRedeemScanAgain),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                  onPressed: _chooseCustomerForRedeem,
+                  child: Text(l10n.storeCustomerChoose),
+                ),
+                TextButton(
+                  onPressed: _scanCustomerOffer,
+                  child: Text(l10n.storeRedeemScanAgain),
+                ),
+              ],
             ),
           ],
           if (_redeemError != null)

@@ -5,6 +5,8 @@ import '../locale_controller.dart';
 import '../theme.dart';
 import '../services/store_settings.dart';
 import '../utils/format.dart';
+import 'store_customers_screen.dart';
+import 'store_operators_screen.dart';
 import 'store_point_rules_screen.dart';
 
 /// Layar Pengaturan Toko Mode Toko v2: nama toko (kop struk)
@@ -34,6 +36,7 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
   final _rateController = TextEditingController();
   final _maxPercentController = TextEditingController();
   final _footerController = TextEditingController();
+  final _thresholdController = TextEditingController();
   bool _pointsEnabled = true;
   bool _showToken = true;
   bool _loading = true;
@@ -62,6 +65,7 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
     _rateController.dispose();
     _maxPercentController.dispose();
     _footerController.dispose();
+    _thresholdController.dispose();
     super.dispose();
   }
 
@@ -80,6 +84,8 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
           settings.maxRedeemPercent?.toString() ?? '';
       _footerController.text = settings.receiptFooterText;
       _showToken = settings.showTokenNumber;
+      _thresholdController.text =
+          settings.adminDiscountThresholdPercent.toString();
       _loading = false;
     });
   }
@@ -94,6 +100,7 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
     final rate = _parseField(_rateController);
     final maxRaw = _maxPercentController.text.trim();
     final maxPercent = maxRaw.isEmpty ? null : int.tryParse(maxRaw);
+    final threshold = _parseField(_thresholdController);
     final invalid =
         step == null ||
         step <= 0 ||
@@ -101,6 +108,9 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
         perStep < 0 ||
         rate == null ||
         rate <= 0 ||
+        threshold == null ||
+        threshold < 0 ||
+        threshold > 100 ||
         (maxRaw.isNotEmpty &&
             (maxPercent == null || maxPercent < 1 || maxPercent > 100));
     if (invalid) {
@@ -118,6 +128,7 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
       storeCity: _cityController.text.trim(),
       showTokenNumber: _showToken,
       receiptFooterText: _footerController.text.trim(),
+      adminDiscountThresholdPercent: threshold,
     );
     await _store.save(settings);
     if (!mounted) return;
@@ -165,7 +176,11 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
               child: CircularProgressIndicator(color: Color(0xFF34D399)),
             )
           : ListView(
-              padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
+              // Atas 18 (bukan 4): field pertama tidak tertutup
+              // AppBar transparan — pelajaran yang sama seperti
+              // halaman Penyelesaian Pembayaran (temuan NUX
+              // 4 Nov 2026).
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
               children: [
                 TextField(
                   controller: _nameController,
@@ -295,6 +310,25 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
                   l10n.storeSettingsShowTokenHint,
                   style: TextStyle(fontSize: 12, color: context.palette.muted),
                 ),
+                const SizedBox(height: 22),
+                Text(
+                  l10n.storeSettingsAdminSection,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _numberField(
+                  controller: _thresholdController,
+                  label: l10n.storeSettingsDiscountThresholdLabel,
+                  suffix: '%',
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  l10n.storeSettingsDiscountThresholdHint,
+                  style: TextStyle(fontSize: 12, color: context.palette.muted),
+                ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
                   Text(
@@ -334,6 +368,39 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
                   ),
                   icon: const Icon(Icons.info_outline_rounded, size: 19),
                   label: Text(l10n.storeRulesButton),
+                ),
+                // Kelola operator & log aktivitas (Fase A) —
+                // layar ini sendiri sudah di balik gerbang PIN
+                // admin dari layar Mode Toko.
+                TextButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const StoreOperatorsScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.people_rounded, size: 19),
+                  label: Text(l10n.storeOperatorsTitle),
+                ),
+                TextButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const StoreAuditScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.fact_check_rounded, size: 19),
+                  label: Text(l10n.storeAuditTitle),
+                ),
+                TextButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const StoreCustomersScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.person_rounded, size: 19),
+                  label: Text(l10n.storeCustomerTitle),
                 ),
               ],
             ),

@@ -997,6 +997,200 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storeSalesReport => 'Sales Report';
 
   @override
+  String get storeSalesHistory => 'Sales History';
+
+  @override
+  String get storeSalesHistoryEmpty => 'No sales recorded yet.';
+
+  @override
+  String get storeSaleDetailTitle => 'Sale Details';
+
+  @override
+  String get storeSalePaymentLabel => 'Payment';
+
+  @override
+  String get storeSaleReceiptUnavailable =>
+      'Receipt not available for this record.';
+
+  @override
+  String get storeReprintReceipt => 'Reprint Receipt';
+
+  @override
+  String get storePreviewShareReceipt => 'Preview & Share';
+
+  @override
+  String get storeOperatorLoginTitle => 'Operator Login';
+
+  @override
+  String get storeOperatorSetupTitle => 'Create Owner Account';
+
+  @override
+  String get storeOperatorSetupBody =>
+      'Store Mode now uses operator logins. Create the first owner account: this account manages other operators and approves sensitive actions.';
+
+  @override
+  String get storeOperatorNameLabel => 'Operator Name';
+
+  @override
+  String get storeOperatorPinLabel => 'PIN (6 digits)';
+
+  @override
+  String get storeOperatorPinConfirmLabel => 'Repeat PIN';
+
+  @override
+  String get storeOperatorPinMismatch => 'PINs do not match.';
+
+  @override
+  String get storeOperatorPinInvalid => 'PIN must be 6 digits.';
+
+  @override
+  String get storeOperatorNameRequired => 'Operator name is required.';
+
+  @override
+  String get storeOperatorLoginButton => 'Log In';
+
+  @override
+  String get storeOperatorWrongPin => 'Wrong PIN.';
+
+  @override
+  String get storeOperatorSwitch => 'Switch Operator';
+
+  @override
+  String get storeOperatorRoleOwner => 'Owner';
+
+  @override
+  String get storeOperatorRoleCashier => 'Cashier';
+
+  @override
+  String get storeAdminPinTitle => 'Admin PIN';
+
+  @override
+  String get storeAdminPinBody =>
+      'This action needs owner approval. Ask the owner to enter their PIN.';
+
+  @override
+  String get storeAdminApproved => 'Admin approval accepted.';
+
+  @override
+  String get storeVoidSaleButton => 'Void Sale';
+
+  @override
+  String get storeVoidSaleTitle => 'Void Settled Sale?';
+
+  @override
+  String get storeVoidSaleBody =>
+      'The sale is marked VOID: it leaves report totals and its points journal entries are reversed. The original record stays, marked VOID. This cannot be undone.';
+
+  @override
+  String get storeVoidReasonLabel => 'Void reason (required)';
+
+  @override
+  String get storeVoidDone => 'Sale marked VOID.';
+
+  @override
+  String get storeOperatorsTitle => 'Manage Operators';
+
+  @override
+  String get storeOperatorLastOwner =>
+      'Cannot deactivate the last active owner.';
+
+  @override
+  String get storeOperatorAdd => 'Add Operator';
+
+  @override
+  String get storeOperatorRoleLabel => 'Role';
+
+  @override
+  String get storeOperatorDeactivate => 'Deactivate';
+
+  @override
+  String get storeOperatorActivate => 'Activate';
+
+  @override
+  String get storeOperatorResetPin => 'Change PIN';
+
+  @override
+  String get storeOperatorInactiveBadge => 'Inactive';
+
+  @override
+  String get storeAuditTitle => 'Activity Log';
+
+  @override
+  String get storeAuditEmpty => 'No activity recorded yet.';
+
+  @override
+  String get storeSettingsAdminSection => 'Operators & Security';
+
+  @override
+  String get storeSettingsDiscountThresholdLabel =>
+      'Cashier discount limit (%)';
+
+  @override
+  String get storeSettingsDiscountThresholdHint =>
+      'Manual discounts above this limit must be approved with an admin PIN.';
+
+  @override
+  String get storeCustomerTitle => 'Customers';
+
+  @override
+  String get storeCustomerChoose => 'Choose Customer';
+
+  @override
+  String get storeCustomerAdd => 'Add Customer';
+
+  @override
+  String get storeCustomerNameLabel => 'Customer Name (optional)';
+
+  @override
+  String get storeCustomerOfferLabel => 'Static Payment Code (Bolt12)';
+
+  @override
+  String get storeCustomerScan => 'Scan';
+
+  @override
+  String get storeCustomerInvalidOffer =>
+      'Invalid payment code — must be a Bolt12 offer (lno1…).';
+
+  @override
+  String get storeCustomerEmpty => 'No saved customers yet.';
+
+  @override
+  String get storeCustomerEdit => 'Edit';
+
+  @override
+  String get storeCustomerDelete => 'Delete';
+
+  @override
+  String get storeCustomerManage => 'Manage Customers';
+
+  @override
+  String get storeAuditLogin => 'Login';
+
+  @override
+  String get storeAuditLogout => 'Log out';
+
+  @override
+  String get storeAuditOperatorCreated => 'Operator created';
+
+  @override
+  String get storeAuditOperatorUpdated => 'Operator updated';
+
+  @override
+  String get storeAuditPinChanged => 'PIN changed';
+
+  @override
+  String get storeAuditShiftOpen => 'Shift opened';
+
+  @override
+  String get storeAuditShiftClose => 'Shift closed';
+
+  @override
+  String get storeAuditAdminOverride => 'Admin override';
+
+  @override
+  String get storeAuditSaleVoid => 'Sale voided';
+
+  @override
   String get storeReportCurrentShift => 'Current Shift';
 
   @override
@@ -1321,6 +1515,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storeReceiptGrandTotal => 'Pay';
 
   @override
+  String get storeReceiptReprintBanner => '*** REPRINT ***';
+
+  @override
+  String get storeReceiptReprintLabel => 'Reprint';
+
+  @override
+  String get storeReceiptCashier => 'Cashier';
+
+  @override
+  String get staticCodeLabelTitle => 'Payment Code Label';
+
+  @override
+  String get staticCodeLabelEdit => 'Edit Label';
+
+  @override
+  String get staticCodeLabelHint =>
+      'This label is written into the payment code and seen by payers. Changing it creates a NEW payment code — share the new code again. Leave empty to return to the default label.';
+
+  @override
   String storeReceiptPointsDiscountLabel(String points) {
     return 'Disc. ($points nusan)';
   }
@@ -1336,9 +1549,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storeShareReceiptFailed => 'Could not create the receipt image.';
-
-  @override
-  String get storeCustomerNameLabel => 'Customer Name (optional)';
 
   @override
   String get storeSettingsAddress => 'Store Address (receipt header line)';

@@ -20,6 +20,9 @@ StoreReceiptLabels idLabels() => StoreReceiptLabels(
   qrisLabel: 'QRIS',
   promoLabel: 'Tanpa pembayaran (promosi)',
   noteWord: 'Cat.',
+  reprintBanner: '*** REPRINT ***',
+  reprintLabel: 'Reprint',
+  cashierLabel: 'Kasir',
   pointsDiscountLabel: (p) => 'Pot. (${formatRupiah(p)} nusan)',
   pointsRuleText: (rate) => '1 nusan = pot. Rp$rate',
 );
@@ -54,7 +57,10 @@ CompletedOrder richRecord() {
   return base.withReceiptMeta(billNo: 1, tokenNo: 15);
 }
 
-StoreReceiptData richData({StoreSettings settings = StoreSettings.defaults}) {
+StoreReceiptData richData({
+  StoreSettings settings = StoreSettings.defaults,
+  DateTime? reprintAt,
+}) {
   return buildStoreReceiptData(
     record: richRecord(),
     settings: settings.copyWith(
@@ -64,6 +70,7 @@ StoreReceiptData richData({StoreSettings settings = StoreSettings.defaults}) {
     shopName: 'Kafe Nusantara',
     footerText: 'Terima kasih & silakan berkunjung kembali',
     outletId: '02a3c4',
+    reprintAt: reprintAt,
   );
 }
 
@@ -117,6 +124,18 @@ void main() {
       expect(plain.showBillNo, isFalse);
       expect(plain.showTokenNo, isFalse);
     });
+
+    test('reprintAt mengisi reprintText; tanpa itu null', () {
+      final reprinted = richData(reprintAt: DateTime(2026, 11, 4, 20, 15));
+      expect(reprinted.reprintText, '04/11/2026 20:15');
+      expect(richData().reprintText, isNull);
+    });
+
+    test('receiptMetaHead: kolom 10, label panjang satu spasi', () {
+      expect(receiptMetaHead('Tanggal'), 'Tanggal:  ');
+      expect(receiptMetaHead('No. Bill'), 'No. Bill: ');
+      expect(receiptMetaHead('Order/Outlet'), 'Order/Outlet: ');
+    });
   });
 
   group('snapshot baris teks struk', () {
@@ -131,8 +150,8 @@ void main() {
         '-' * 32,
         'Pelanggan:${' ' * 11}Advika Mate',
         '-' * 32,
-        'Tanggal:    03/11/2026 13:45',
-        'No. Bill:   INV261103-0001',
+        'Tanggal:  03/11/2026 13:45',
+        'No. Bill: INV261103-0001',
         'Order/Outlet: 15/02a3c4',
         '-' * 32,
         'Item${' ' * 22}Jumlah',
@@ -156,6 +175,71 @@ void main() {
         '     Terima kasih & silakan',
         '       berkunjung kembali',
       ]);
+    });
+
+    test('salinan reprint: banner + waktu cetak ulang tepat '
+        'di bawah kop, sebelum Pelanggan', () {
+      final lines = storeReceiptTextLines(
+        buildStoreReceiptElements(
+          richData(reprintAt: DateTime(2026, 11, 4, 20, 15)),
+          idLabels(),
+        ),
+      );
+      // Kop 3 baris + garis, lalu banner terpusat & baris
+      // Reprint, baru blok Pelanggan seperti struk asli.
+      expect(lines[3], '-' * 32);
+      expect(lines[4], '        *** REPRINT ***');
+      expect(lines[5], 'Reprint:  04/11/2026 20:15');
+      expect(lines[6], 'Pelanggan:${' ' * 11}Advika Mate');
+      // Struk asli (tanpa reprintAt) tidak punya banner.
+      final original = storeReceiptTextLines(
+        buildStoreReceiptElements(richData(), idLabels()),
+      );
+      expect(original.any((l) => l.contains('REPRINT')), isFalse);
+    });
+
+    test('baris Kasir tampil dari stempel operator record, '
+        'tepat sesudah Order/Outlet; tanpa stempel tidak ada', () {
+      final stamped = buildCompletedOrder(
+        time: DateTime(2026, 11, 3, 9, 0),
+        lines: const [OrderLine(label: 'Teh', unitPriceRp: 3000, qty: 1)],
+        orderDiscount: null,
+        paymentHashHex: null,
+        payMethod: payMethodCash,
+        cashReceivedRp: 3000,
+        operatorId: 'op-1',
+        operatorName: 'Sari',
+      ).withReceiptMeta(billNo: 1, tokenNo: 15);
+      List<String> linesFor(CompletedOrder r) => storeReceiptTextLines(
+            buildStoreReceiptElements(
+              buildStoreReceiptData(
+                record: r,
+                settings: StoreSettings.defaults,
+                shopName: 'Toko',
+                footerText: '',
+                outletId: '02a3c4',
+              ),
+              idLabels(),
+            ),
+          );
+      final lines = linesFor(stamped);
+      final tokenIdx = lines.indexWhere((l) => l.startsWith('Order/Outlet'));
+      expect(tokenIdx, greaterThanOrEqualTo(0));
+      expect(lines[tokenIdx + 1], 'Kasir:    Sari');
+      // Record tanpa stempel operator (era sebelum Fase A):
+      // tidak ada baris Kasir sama sekali.
+      final unstamped = buildCompletedOrder(
+        time: DateTime(2026, 11, 3, 9, 0),
+        lines: const [OrderLine(label: 'Teh', unitPriceRp: 3000, qty: 1)],
+        orderDiscount: null,
+        paymentHashHex: null,
+        payMethod: payMethodCash,
+        cashReceivedRp: 3000,
+      ).withReceiptMeta(billNo: 1, tokenNo: 15);
+      expect(
+        linesFor(unstamped).any((l) => l.startsWith('Kasir')),
+        isFalse,
+      );
     });
 
     test('tanpa nama pelanggan tidak ada baris Customer; info '
@@ -254,7 +338,12 @@ void main() {
   });
 
   group('penomoran bill per tanggal & format INV', () {
-    CompletedOrder paidAt(DateTime t, {bool voided = false, String? era}) {
+    CompletedOrder paidAt(
+      DateTime t, {
+      bool voided = false,
+      String? era,
+      int billNo = 0,
+    }) {
       final base = buildCompletedOrder(
         time: t,
         lines: const [OrderLine(label: 'X', unitPriceRp: 1000, qty: 1)],
@@ -264,7 +353,8 @@ void main() {
         cashReceivedRp: 1000,
         isVoid: voided,
       );
-      if (era == null) return base;
+      final numbered = billNo > 0 ? base.withReceiptMeta(billNo: billNo) : base;
+      if (era == null) return numbered;
       return CompletedOrder(
         time: base.time,
         lines: base.lines,
@@ -277,17 +367,19 @@ void main() {
         isVoid: base.isVoid,
         payMethod: base.payMethod,
         cashReceivedRp: base.cashReceivedRp,
+        billNo: billNo,
       );
     }
 
-    test('urut dari record lunas era rupiah pada tanggal yang '
-        'sama, lintas shift; VOID & era nusan tak dihitung', () {
+    test('urut dari nomor yang terpakai pada tanggal yang sama, '
+        'lintas shift; VOID pra-lunas & era nusan tak dihitung', () {
       final orders = [
-        paidAt(DateTime(2026, 11, 2, 20, 0)), // kemarin
-        paidAt(DateTime(2026, 11, 3, 8, 30)), // shift pagi
-        paidAt(DateTime(2026, 11, 3, 9, 0), voided: true), // VOID
+        paidAt(DateTime(2026, 11, 2, 20, 0), billNo: 1), // kemarin
+        paidAt(DateTime(2026, 11, 3, 8, 30), billNo: 1), // pagi
+        // VOID pra-lunas: tidak pernah bernomor.
+        paidAt(DateTime(2026, 11, 3, 9, 0), voided: true),
         paidAt(DateTime(2026, 11, 3, 9, 15), era: storeEraNusan),
-        paidAt(DateTime(2026, 11, 3, 13, 30)), // shift siang
+        paidAt(DateTime(2026, 11, 3, 13, 30), billNo: 2), // siang
       ];
       // Dua shift di hari yang sama: urut BERLANJUT (bukan
       // mulai lagi per shift) supaya nomor INV tak ganda.
@@ -296,10 +388,20 @@ void main() {
       expect(nextBillSeqForDate(const [], DateTime(2026, 11, 3)), 1);
     });
 
+    test('VOID sesudah lunas: nomornya tetap terhitung — INV '
+        'tidak dipakai ulang', () {
+      final orders = [
+        paidAt(DateTime(2026, 11, 3, 8, 30), billNo: 1),
+        paidAt(DateTime(2026, 11, 3, 9, 0), billNo: 2).markVoid(),
+        paidAt(DateTime(2026, 11, 3, 13, 30), billNo: 3),
+      ];
+      expect(nextBillSeqForDate(orders, DateTime(2026, 11, 3, 14, 0)), 4);
+    });
+
     test('ganti tanggal kalender: urut kembali ke 1', () {
       final orders = [
-        paidAt(DateTime(2026, 11, 3, 23, 55)),
-        paidAt(DateTime(2026, 11, 3, 23, 59)),
+        paidAt(DateTime(2026, 11, 3, 23, 55), billNo: 1),
+        paidAt(DateTime(2026, 11, 3, 23, 59), billNo: 2),
       ];
       expect(nextBillSeqForDate(orders, DateTime(2026, 11, 4, 0, 5)), 1);
     });
