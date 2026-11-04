@@ -422,6 +422,12 @@ abstract class AppLocalizations {
   /// **'Hash Pembayaran'**
   String get txPaymentHash;
 
+  /// No description provided for @txNote.
+  ///
+  /// In id, this message translates to:
+  /// **'Catatan'**
+  String get txNote;
+
   /// No description provided for @txSucceeded.
   ///
   /// In id, this message translates to:
@@ -589,6 +595,18 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Terima {amount}'**
   String receiveInvoiceDesc(String amount);
+
+  /// No description provided for @receiveNoteLabel.
+  ///
+  /// In id, this message translates to:
+  /// **'Catatan (opsional)'**
+  String get receiveNoteLabel;
+
+  /// No description provided for @receiveNoteHint.
+  ///
+  /// In id, this message translates to:
+  /// **'cth. untuk SPP bulan November'**
+  String get receiveNoteHint;
 
   /// No description provided for @createInvoiceFailed.
   ///
@@ -1403,7 +1421,7 @@ abstract class AppLocalizations {
   /// No description provided for @storeNoteWord.
   ///
   /// In id, this message translates to:
-  /// **'Catatan'**
+  /// **'Cat.'**
   String get storeNoteWord;
 
   /// No description provided for @storeClearNote.
@@ -2351,7 +2369,7 @@ abstract class AppLocalizations {
   /// No description provided for @storeReceiptPointsRule.
   ///
   /// In id, this message translates to:
-  /// **'1 poin nusan = potongan Rp{rate} (ketentuan toko)'**
+  /// **'1 nusan = pot. Rp{rate}'**
   String storeReceiptPointsRule(String rate);
 
   /// No description provided for @storeReceiptPromo.
@@ -2381,7 +2399,7 @@ abstract class AppLocalizations {
   /// No description provided for @storeReceiptTokenNo.
   ///
   /// In id, this message translates to:
-  /// **'No. Token'**
+  /// **'Order/Outlet'**
   String get storeReceiptTokenNo;
 
   /// No description provided for @storeReceiptItemHeader.
@@ -2402,16 +2420,22 @@ abstract class AppLocalizations {
   /// **'Diskon Order'**
   String get storeReceiptOrderDiscount;
 
+  /// No description provided for @storeReceiptLineDiscount.
+  ///
+  /// In id, this message translates to:
+  /// **'Diskon Item'**
+  String get storeReceiptLineDiscount;
+
   /// No description provided for @storeReceiptGrandTotal.
   ///
   /// In id, this message translates to:
-  /// **'TOTAL BAYAR'**
+  /// **'Bayar'**
   String get storeReceiptGrandTotal;
 
   /// No description provided for @storeReceiptPointsDiscountLabel.
   ///
   /// In id, this message translates to:
-  /// **'Diskon poin nusan ({points} poin)'**
+  /// **'Pot. ({points} nusan)'**
   String storeReceiptPointsDiscountLabel(String points);
 
   /// No description provided for @storeReceiptFooterDefault.
@@ -2449,6 +2473,12 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Alamat Toko (baris kop struk)'**
   String get storeSettingsAddress;
+
+  /// No description provided for @storeSettingsCity.
+  ///
+  /// In id, this message translates to:
+  /// **'Kota Toko (baris kop struk)'**
+  String get storeSettingsCity;
 
   /// No description provided for @storeSettingsShowToken.
   ///

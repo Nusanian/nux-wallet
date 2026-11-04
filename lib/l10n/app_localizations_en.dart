@@ -180,6 +180,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get txPaymentHash => 'Payment Hash';
 
   @override
+  String get txNote => 'Note';
+
+  @override
   String get txSucceeded => 'Succeeded';
 
   @override
@@ -275,6 +278,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String receiveInvoiceDesc(String amount) {
     return 'Receive $amount';
   }
+
+  @override
+  String get receiveNoteLabel => 'Note (optional)';
+
+  @override
+  String get receiveNoteHint => 'e.g. for November school fees';
 
   @override
   String get createInvoiceFailed => 'Failed to create invoice. Try again.';
@@ -1278,7 +1287,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String storeReceiptPointsRule(String rate) {
-    return '1 nusan point = Rp$rate discount (store policy)';
+    return '1 nusan = Disc. Rp$rate';
   }
 
   @override
@@ -1294,7 +1303,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storeReceiptBillNo => 'Bill No';
 
   @override
-  String get storeReceiptTokenNo => 'Token No';
+  String get storeReceiptTokenNo => 'Order/Outlet';
 
   @override
   String get storeReceiptItemHeader => 'Item';
@@ -1306,11 +1315,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storeReceiptOrderDiscount => 'Order Discount';
 
   @override
-  String get storeReceiptGrandTotal => 'GRAND TOTAL';
+  String get storeReceiptLineDiscount => 'Item Disc.';
+
+  @override
+  String get storeReceiptGrandTotal => 'Pay';
 
   @override
   String storeReceiptPointsDiscountLabel(String points) {
-    return 'Nusan points discount ($points pts)';
+    return 'Disc. ($points nusan)';
   }
 
   @override
@@ -1330,6 +1342,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storeSettingsAddress => 'Store Address (receipt header line)';
+
+  @override
+  String get storeSettingsCity => 'Store City (receipt header line)';
 
   @override
   String get storeSettingsShowToken => 'Show Token Number on Receipt';

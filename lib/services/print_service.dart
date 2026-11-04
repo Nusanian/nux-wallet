@@ -278,9 +278,11 @@ class PrintService {
               ),
             ]);
           } else {
-            bytes += gen.text(
-              _asciiSafe('${'$label:'.padRight(12)}$value'),
-            );
+            // Label panjang (mis. "No. Token/Outlet ID:") melewati
+            // kolom label 12: beri SATU spasi, jangan rapat.
+            final raw = '$label:';
+            final head = raw.length >= 12 ? '$raw ' : raw.padRight(12);
+            bytes += gen.text(_asciiSafe('$head$value'));
           }
         case ReceiptItemsHeader(:final itemLabel, :final amountLabel):
           bytes += gen.row([
@@ -296,7 +298,12 @@ class PrintService {
             ),
           ]);
         case ReceiptItemRow(:final name, :final amountText):
-          if (name.length <= 20 && amountText.length <= 11) {
+          // Nama SUDAH terpangkas ≤20 karakter oleh pembangun
+          // elemen (receiptItemLineText) → selalu muat kolom
+          // nama, SATU baris, kolom jumlah tak tergeser. Hanya
+          // jumlah yang luar biasa panjang yang jatuh ke
+          // baris sendiri seperti perilaku lama.
+          if (amountText.length <= 11) {
             bytes += gen.row([
               PosColumn(text: _asciiSafe(name), width: 8),
               PosColumn(
@@ -317,28 +324,33 @@ class PrintService {
         case ReceiptRow(:final label, :final amountText, :final bold):
           bytes += rowLine(label, amountText, bold: bold);
         case ReceiptGrandTotal(:final label, :final amountText):
-          // Ukuran ganda (tinggi+lebar size2 = 16 kolom efektif):
-          // label & jumlah dua baris supaya keduanya terbaca
-          // penuh, jumlah rata kanan seperti contoh.
-          bytes += gen.text(
-            _asciiSafe(label),
-            styles: const PosStyles(
-              bold: true,
-              height: PosTextSize.size2,
-              width: PosTextSize.size2,
+          // SATU baris (permintaan NUX 4 Nov 2026): label kiri,
+          // jumlah rata kanan. Tebal + tinggi ganda, tapi lebar
+          // tetap size1 supaya label & jumlah muat sebaris
+          // penuh (32 kolom) — bukan dua baris seperti dulu.
+          bytes += gen.row([
+            PosColumn(
+              text: _asciiSafe(label),
+              width: 8,
+              styles: const PosStyles(
+                bold: true,
+                height: PosTextSize.size2,
+              ),
             ),
-          );
-          bytes += gen.text(
-            _asciiSafe(amountText),
-            styles: const PosStyles(
-              align: PosAlign.right,
-              bold: true,
-              height: PosTextSize.size2,
-              width: PosTextSize.size2,
+            PosColumn(
+              text: _asciiSafe(amountText),
+              width: 4,
+              styles: const PosStyles(
+                align: PosAlign.right,
+                bold: true,
+                height: PosTextSize.size2,
+              ),
             ),
-          );
+          ]);
         case ReceiptTextLine(:final text):
           bytes += gen.text(_asciiSafe(text));
+        case ReceiptSpacer():
+          bytes += gen.feed(1);
       }
     }
     bytes += gen.feed(3);

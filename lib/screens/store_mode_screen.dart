@@ -130,6 +130,13 @@ class _StoreModeScreenState extends State<StoreModeScreen>
   final _settingsStore = StoreSettingsStore();
   StoreSettings _settings = StoreSettings.defaults;
 
+  /// ID outlet perangkat ini untuk struk: 6 karakter pertama
+  /// node_id ELNUX perangkat (identitas cabang dari node_id —
+  /// ide NUX 4 Nov 2026), tampil sesudah nomor token.
+  /// '' selagi node belum terbaca; struk lalu hanya
+  /// menampilkan nomor token.
+  String _outletId = '';
+
   // --- Penjualan terakhir & panel sukses ---
   // (Penghitung token kini dinaikkan di dalam transaksi
   // pelunasan basis data — lihat recordSettledSale.)
@@ -206,7 +213,21 @@ class _StoreModeScreenState extends State<StoreModeScreen>
 
   /// Muat semua keadaan lokal, lalu jalankan migrasi v1 → v2
   /// satu kali (rancangan §7) sebelum layar dipakai.
+  /// Baca node_id dompet untuk ID outlet struk. Gagal (node
+  /// belum jalan) tidak menghalangi Mode Toko: struk cukup
+  /// tanpa ID outlet.
+  Future<void> _loadOutletId() async {
+    try {
+      final nodeId = await widget.lspService.ownNodeId();
+      if (!mounted) return;
+      setState(() => _outletId = outletIdFromNodeId(nodeId));
+    } catch (_) {
+      // Node belum berjalan — biarkan kosong.
+    }
+  }
+
   Future<void> _init() async {
+    unawaited(_loadOutletId());
     final settings = await _settingsStore.load();
     var shifts = await _shiftStore.load();
     final held = await _holdStore.load();
@@ -1618,7 +1639,7 @@ class _StoreModeScreenState extends State<StoreModeScreen>
       tokenNoLabel: l10n.storeReceiptTokenNo,
       itemHeader: l10n.storeReceiptItemHeader,
       amountHeader: l10n.storeReceiptAmountHeader,
-      discountLabel: l10n.storeDiscount,
+      discountLabel: l10n.storeReceiptLineDiscount,
       orderDiscountLabel: l10n.storeReceiptOrderDiscount,
       grandTotalLabel: l10n.storeReceiptGrandTotal,
       cashLabel: l10n.storeCash,
@@ -1628,8 +1649,6 @@ class _StoreModeScreenState extends State<StoreModeScreen>
       noteWord: l10n.storeNoteWord,
       pointsDiscountLabel: (points) =>
           l10n.storeReceiptPointsDiscountLabel(_fmtRp(points)),
-      pointsEarnedText: (points) => l10n.storeReceiptPointsEarned(points),
-      pointsPendingText: (points) => l10n.storeReceiptPointsPending(points),
       pointsRuleText: (rate) => l10n.storeReceiptPointsRule(rate),
     );
   }
@@ -1656,6 +1675,7 @@ class _StoreModeScreenState extends State<StoreModeScreen>
       settings: _settings,
       shopName: shopName,
       footerText: footer,
+      outletId: _outletId,
     );
   }
 
@@ -3173,7 +3193,9 @@ class _StorePaymentPageState extends State<_StorePaymentPage> {
           elevation: 0,
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
+          // Ruang atas disamakan sisi lain (18) agar label melayang
+          // field pertama (Nama Pelanggan) tidak tertutup AppBar.
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -3297,6 +3319,10 @@ class _StorePaymentPageState extends State<_StorePaymentPage> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
+                      ActionChip(
+                        label: const Text('Rp0'),
+                        onPressed: () => _setCash(0),
+                      ),
                       ActionChip(
                         label: Text(l10n.storeCashExact),
                         onPressed: () => _setCash(remaining),
@@ -3726,11 +3752,11 @@ class _CatalogManagerSheetState extends State<_CatalogManagerSheet> {
                     segments: [
                       ButtonSegment(
                         value: null,
-                        label: Text(l10n.storeNoDiscount),
+                        label: const Text('0'),
                       ),
                       ButtonSegment(
                         value: DiscountKind.percent,
-                        label: Text(l10n.storeDiscountPercent),
+                        label: const Text('%'),
                       ),
                       ButtonSegment(
                         value: DiscountKind.fixed,

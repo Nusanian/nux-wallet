@@ -11,9 +11,13 @@
 ///
 /// Yang TIDAK dikorbankan oleh layout itu (pedoman miniPOS §4
 /// tetap wajib): baris diskon (baris/order), baris diskon poin
-/// nusan, TOTAL BAYAR sebagai Grand Total, Tunai/Kembalian atau
-/// metode QRIS, "Poin nusan diperoleh", dan baris ketentuan
-/// nilai potongan per poin. Dan struk WAJIB selalu rekonsiliasi:
+/// nusan, "Bayar" sebagai Grand Total, Tunai/Kembalian atau
+/// metode QRIS, dan baris ketentuan nilai potongan per poin.
+/// Perolehan poin tampil ringkas saja ("+20.000 nusan") di
+/// bawah baris pembayaran bila pelanggan memang memperoleh
+/// poin — tanpa label & tanpa status terbit (keputusan NUX
+/// 4 Nov 2026; status penerbitan hidup di aplikasi).
+/// Dan struk WAJIB selalu rekonsiliasi:
 /// Σ item (kotor) − diskon baris − diskon order − diskon poin
 /// = Grand Total (cacat contoh — Grand Total tak sama dengan
 /// jumlah item — tidak ditiru).
@@ -26,6 +30,38 @@ import 'format.dart';
 /// Lebar struk teks (kolom monospace, kertas 58mm) — sama
 /// dengan lebar dokumen laporan shift.
 const storeReceiptWidth = 32;
+
+/// Lebar maksimum teks baris item ("<qty> <nama>") supaya
+/// baris item SELALU satu baris dan tidak menggeser kolom
+/// jumlah di ketiga keluaran. Batas paling ketat adalah
+/// kolom nama cetak kertas: 8 dari 12 kolom pada 58mm
+/// terbukti muat 20 karakter (ambang yang sama dengan yang
+/// dipakai perender kertas sejak awal).
+const storeReceiptItemNameMaxChars = 20;
+
+/// Pangkas [text] menjadi maksimal [max] karakter; bila
+/// dipotong, akhiri dengan '...' supaya kasir/pelanggan
+/// tahu teksnya terpotong, bukan nama aslinya.
+String fitReceiptEllipsis(String text, int max) {
+  if (text.length <= max) return text;
+  if (max <= 3) return text.substring(0, max);
+  return '${text.substring(0, max - 3)}...';
+}
+
+/// Teks baris item struk: qty disisipkan di awal sebelum
+/// nama ("1 Kopi Tubruk", "5 Roti Bakar" — permintaan NUX
+/// 4 Nov 2026), lalu dipangkas ke
+/// [storeReceiptItemNameMaxChars].
+String receiptItemLineText(int qty, String label) =>
+    fitReceiptEllipsis('$qty $label', storeReceiptItemNameMaxChars);
+
+/// ID outlet perangkat: 6 karakter hex pertama node_id
+/// ELNUX perangkat ini — identitas cabang yang mengikuti
+/// dompet (node_id lahir dari frasa, jadi restore frasa =
+/// ID outlet yang sama; ide NUX 4 Nov 2026). Tampil di
+/// struk sesudah nomor token: "15/02a3c4".
+String outletIdFromNodeId(String nodeId) =>
+    nodeId.length <= 6 ? nodeId : nodeId.substring(0, 6);
 
 /// Label teks struk, diisi layar dari l10n bahasa aplikasi.
 /// Struktur & tata letak tetap; yang mengikuti bahasa hanya
@@ -46,12 +82,8 @@ class StoreReceiptLabels {
   final String promoLabel;
   final String noteWord;
 
-  /// Label baris diskon poin: "Diskon poin nusan (2.000 poin)".
+  /// Label baris diskon poin: "Pot. (2.000 nusan)".
   final String Function(int points) pointsDiscountLabel;
-
-  /// Baris perolehan poin (sudah diterbitkan / belum).
-  final String Function(int points) pointsEarnedText;
-  final String Function(int points) pointsPendingText;
 
   /// Baris ketentuan nilai potongan: menerima nilai per poin
   /// yang SUDAH terformat ("1.000"), mengembalikan kalimat
@@ -74,8 +106,6 @@ class StoreReceiptLabels {
     required this.promoLabel,
     required this.noteWord,
     required this.pointsDiscountLabel,
-    required this.pointsEarnedText,
-    required this.pointsPendingText,
     required this.pointsRuleText,
   });
 }
@@ -109,9 +139,13 @@ class StoreReceiptItem {
 class StoreReceiptData {
   final String shopName;
   final String shopAddress;
+
+  /// Baris ketiga kop struk (kota); '' = tanpa baris kota.
+  final String shopCity;
   final String customerName;
 
-  /// Tanggal transaksi terformat 'dd/MM/yyyy' (gaya contoh).
+  /// Tanggal transaksi terformat 'dd/MM/yyyy HH:mm'
+  /// (jam:menit disertakan — permintaan NUX 4 Nov 2026).
   final String dateText;
   final int billNo;
 
@@ -119,6 +153,10 @@ class StoreReceiptData {
   /// [billNo] + tanggal record via [formatBillNo].
   final String billNoText;
   final int tokenNo;
+
+  /// ID outlet perangkat (6 karakter pertama node_id);
+  /// '' = tak terbaca — baris token tampil tanpa '/id'.
+  final String outletId;
   final bool showBillNo;
   final bool showTokenNo;
   final List<StoreReceiptItem> items;
@@ -149,11 +187,13 @@ class StoreReceiptData {
   const StoreReceiptData({
     required this.shopName,
     required this.shopAddress,
+    required this.shopCity,
     required this.customerName,
     required this.dateText,
     required this.billNo,
     required this.billNoText,
     required this.tokenNo,
+    required this.outletId,
     required this.showBillNo,
     required this.showTokenNo,
     required this.items,
@@ -186,6 +226,7 @@ StoreReceiptData buildStoreReceiptData({
   required StoreSettings settings,
   required String shopName,
   required String footerText,
+  required String outletId,
 }) {
   final items = [
     for (final line in record.lines)
@@ -209,15 +250,19 @@ StoreReceiptData buildStoreReceiptData({
   final t = record.time;
   final dateText =
       '${t.day.toString().padLeft(2, '0')}/'
-      '${t.month.toString().padLeft(2, '0')}/${t.year}';
+      '${t.month.toString().padLeft(2, '0')}/${t.year} '
+      '${t.hour.toString().padLeft(2, '0')}:'
+      '${t.minute.toString().padLeft(2, '0')}';
   return StoreReceiptData(
     shopName: shopName,
     shopAddress: settings.storeAddress,
+    shopCity: settings.storeCity,
     customerName: record.customerName,
     dateText: dateText,
     billNo: record.billNo,
     billNoText: formatBillNo(t, record.billNo),
     tokenNo: record.tokenNo,
+    outletId: outletId,
     showBillNo: record.billNo > 0,
     showTokenNo: settings.showTokenNumber && record.tokenNo > 0,
     items: items,
@@ -319,7 +364,9 @@ class ReceiptItemsHeader extends StoreReceiptElement {
   const ReceiptItemsHeader(this.itemLabel, this.amountLabel);
 }
 
-/// Baris item: nama kiri, jumlah (kotor) rata kanan.
+/// Baris item: "<qty> <nama>" kiri (SUDAH terpangkas ≤
+/// [storeReceiptItemNameMaxChars] oleh pembangun, jadi
+/// selalu satu baris), jumlah (kotor) rata kanan.
 class ReceiptItemRow extends StoreReceiptElement {
   final String name;
   final String amountText;
@@ -356,6 +403,13 @@ class ReceiptTextLine extends StoreReceiptElement {
   const ReceiptTextLine(this.text);
 }
 
+/// Baris kosong: jeda satu baris — pemisah visual antara
+/// keterangan nilai potongan dan footer (permintaan NUX
+/// 4 Nov 2026).
+class ReceiptSpacer extends StoreReceiptElement {
+  const ReceiptSpacer();
+}
+
 String _rp(int rp) => 'Rp${formatRupiah(rp)}';
 
 /// Susun urutan elemen struk dari [data] + [labels] — urutan
@@ -369,6 +423,9 @@ List<StoreReceiptElement> buildStoreReceiptElements(
   if (data.shopAddress.isNotEmpty) {
     out.add(ReceiptCenterText(data.shopAddress));
   }
+  if (data.shopCity.isNotEmpty) {
+    out.add(ReceiptCenterText(data.shopCity));
+  }
   out.add(const ReceiptDashedRule());
   if (data.customerName.isNotEmpty) {
     out.add(
@@ -381,14 +438,28 @@ List<StoreReceiptElement> buildStoreReceiptElements(
     out.add(ReceiptMetaRow(labels.billNoLabel, data.billNoText));
   }
   if (data.showTokenNo) {
-    out.add(ReceiptMetaRow(labels.tokenNoLabel, '${data.tokenNo}'));
+    out.add(
+      ReceiptMetaRow(
+        labels.tokenNoLabel,
+        data.outletId.isNotEmpty
+            ? '${data.tokenNo}/${data.outletId}'
+            : '${data.tokenNo}',
+      ),
+    );
   }
   out.add(const ReceiptDashedRule());
   out.add(ReceiptItemsHeader(labels.itemHeader, labels.amountHeader));
   for (final item in data.items) {
-    out.add(ReceiptItemRow(item.label, _rp(item.grossRp)));
+    out.add(
+      ReceiptItemRow(
+        receiptItemLineText(item.qty, item.label),
+        _rp(item.grossRp),
+      ),
+    );
     if (item.qty > 1) {
-      out.add(ReceiptItemSub('${item.qty} x ${_rp(item.unitPriceRp)}'));
+      // Harga satuan gaya nota: "@Rp5.000" (permintaan NUX
+      // 4 Nov 2026, menggantikan "2 x Rp5.000").
+      out.add(ReceiptItemSub('@${_rp(item.unitPriceRp)}'));
     }
     if (item.discountRp > 0) {
       out.add(
@@ -437,13 +508,11 @@ List<StoreReceiptElement> buildStoreReceiptElements(
     out.add(ReceiptRow(labels.promoLabel, _rp(0)));
   }
   if (data.pointsEnabled && data.pointsEarned > 0) {
-    out.add(
-      ReceiptTextLine(
-        data.pointsIssueStatus == issueStatusIssued
-            ? labels.pointsEarnedText(data.pointsEarned)
-            : labels.pointsPendingText(data.pointsEarned),
-      ),
-    );
+    // Info perolehan ringkas tepat di bawah baris pembayaran
+    // (di bawah Kembalian): "+20.000 nusan" — cukup itu saja,
+    // tanpa label dan tanpa status terbit (keputusan NUX
+    // 4 Nov 2026).
+    out.add(ReceiptTextLine('+${formatRupiah(data.pointsEarned)} nusan'));
   }
   if (data.pointsEnabled) {
     out.add(
@@ -453,6 +522,9 @@ List<StoreReceiptElement> buildStoreReceiptElements(
     );
   }
   if (data.footerText.isNotEmpty) {
+    // Jeda satu baris antara keterangan nilai potongan
+    // (baris program poin terakhir) dan footer.
+    if (data.pointsEnabled) out.add(const ReceiptSpacer());
     out.add(ReceiptCenterText(data.footerText));
   }
   return out;
@@ -522,22 +594,25 @@ List<String> storeReceiptTextLines(List<StoreReceiptElement> elements) {
         if (spread) {
           out.add(_spread('$label:', value, width));
         } else {
-          final head = '$label:'.padRight(12);
-          out.add(
-            '$head$value'.length > width
-                ? '$head$value'.substring(0, width)
-                : '$head$value',
-          );
+          // Label panjang (mis. "No. Token/Outlet ID:") melewati
+          // kolom label 12: beri SATU spasi, jangan rapat ke nilai.
+          final raw = '$label:';
+          final head = raw.length >= 12 ? '$raw ' : raw.padRight(12);
+          final line = '$head$value';
+          out.add(line.length > width ? line.substring(0, width) : line);
         }
       case ReceiptItemsHeader(:final itemLabel, :final amountLabel):
         out.add(_spread(itemLabel, amountLabel, width));
       case ReceiptItemRow(:final name, :final amountText):
-        if (name.length + 1 + amountText.length <= width) {
-          out.add(_spread(name, amountText, width));
-        } else {
-          out.addAll(_wrap(name, width));
-          out.add(amountText.padLeft(width));
-        }
+        // Selalu SATU baris: nama sudah terpangkas oleh
+        // pembangun; pangkas sekali lagi hanya bila jumlah
+        // rupiahnya sendiri luar biasa panjang, supaya kolom
+        // jumlah tidak pernah terdorong.
+        final fitted = fitReceiptEllipsis(
+          name,
+          width - amountText.length - 1,
+        );
+        out.add(_spread(fitted, amountText, width));
       case ReceiptItemSub(:final text):
         out.addAll(_wrap(text, width, indent: '  '));
       case ReceiptRow(:final label, :final amountText):
@@ -554,6 +629,8 @@ List<String> storeReceiptTextLines(List<StoreReceiptElement> elements) {
         out.add(_spread(label, amountText, width));
       case ReceiptTextLine(:final text):
         out.addAll(_wrap(text, width));
+      case ReceiptSpacer():
+        out.add('');
     }
   }
   return out;

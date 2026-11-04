@@ -9,22 +9,19 @@ StoreReceiptLabels idLabels() => StoreReceiptLabels(
   customerLabel: 'Pelanggan',
   dateLabel: 'Tanggal',
   billNoLabel: 'No. Bill',
-  tokenNoLabel: 'No. Token',
+  tokenNoLabel: 'Order/Outlet',
   itemHeader: 'Item',
   amountHeader: 'Jumlah',
-  discountLabel: 'Diskon',
+  discountLabel: 'Diskon Item',
   orderDiscountLabel: 'Diskon Order',
-  grandTotalLabel: 'TOTAL BAYAR',
+  grandTotalLabel: 'Bayar',
   cashLabel: 'Tunai',
   changeLabel: 'Kembalian',
   qrisLabel: 'QRIS',
   promoLabel: 'Tanpa pembayaran (promosi)',
-  noteWord: 'Catatan',
-  pointsDiscountLabel: (p) => 'Diskon poin nusan (${formatRupiah(p)} poin)',
-  pointsEarnedText: (p) => 'Poin nusan diperoleh: +${formatRupiah(p)} poin',
-  pointsPendingText: (p) =>
-      'Poin nusan diperoleh: +${formatRupiah(p)} poin (belum diterbitkan)',
-  pointsRuleText: (rate) => '1 poin nusan = potongan Rp$rate (ketentuan toko)',
+  noteWord: 'Cat.',
+  pointsDiscountLabel: (p) => 'Pot. (${formatRupiah(p)} nusan)',
+  pointsRuleText: (rate) => '1 nusan = pot. Rp$rate',
 );
 
 /// Transaksi contoh lengkap: diskon baris (persen) + diskon
@@ -60,9 +57,13 @@ CompletedOrder richRecord() {
 StoreReceiptData richData({StoreSettings settings = StoreSettings.defaults}) {
   return buildStoreReceiptData(
     record: richRecord(),
-    settings: settings.copyWith(storeAddress: 'Jl. Merdeka No. 1'),
+    settings: settings.copyWith(
+      storeAddress: 'Jl. Merdeka No. 1',
+      storeCity: 'Jakarta',
+    ),
     shopName: 'Kafe Nusantara',
     footerText: 'Terima kasih & silakan berkunjung kembali',
+    outletId: '02a3c4',
   );
 }
 
@@ -86,7 +87,9 @@ void main() {
       expect(data.changeRp, 30000);
       expect(data.totalQty, 3);
       expect(data.lineCount, 2);
-      expect(data.dateText, '03/11/2026');
+      expect(data.shopCity, 'Jakarta');
+      expect(data.dateText, '03/11/2026 13:45');
+      expect(data.outletId, '02a3c4');
       expect(data.billNoText, 'INV261103-0001');
       expect(data.showBillNo, isTrue);
       expect(data.showTokenNo, isTrue);
@@ -109,6 +112,7 @@ void main() {
         settings: StoreSettings.defaults,
         shopName: 'Toko',
         footerText: '',
+        outletId: '',
       );
       expect(plain.showBillNo, isFalse);
       expect(plain.showTokenNo, isFalse);
@@ -123,40 +127,39 @@ void main() {
       expect(lines, [
         '         Kafe Nusantara',
         '       Jl. Merdeka No. 1',
+        '            Jakarta',
         '-' * 32,
         'Pelanggan:${' ' * 11}Advika Mate',
         '-' * 32,
-        'Tanggal:    03/11/2026',
+        'Tanggal:    03/11/2026 13:45',
         'No. Bill:   INV261103-0001',
-        'No. Token:  15',
+        'Order/Outlet: 15/02a3c4',
         '-' * 32,
         'Item${' ' * 22}Jumlah',
-        'Kopi Tubruk${' ' * 13}Rp10.000',
-        '  2 x Rp5.000',
+        '2 Kopi Tubruk${' ' * 11}Rp10.000',
+        '  @Rp5.000',
         '  (Disc) -Rp1.000 = Rp9.000',
-        '  Catatan: tanpa gula',
-        'Roti Bakar${' ' * 14}Rp15.000',
+        '  Cat.: tanpa gula',
+        '1 Roti Bakar${' ' * 12}Rp15.000',
         '-' * 32,
         '3/2${' ' * 21}Rp25.000',
-        'Diskon${' ' * 18}-Rp1.000',
+        'Diskon Item${' ' * 13}-Rp1.000',
         'Diskon Order${' ' * 12}-Rp2.000',
-        'Diskon poin nusan (2.000 poin)',
-        '${' ' * 24}-Rp2.000',
+        'Pot. (2.000 nusan)${' ' * 6}-Rp2.000',
         '-' * 32,
-        'TOTAL BAYAR${' ' * 13}Rp20.000',
+        'Bayar${' ' * 19}Rp20.000',
         'Tunai${' ' * 19}Rp50.000',
         'Kembalian${' ' * 15}Rp30.000',
-        'Poin nusan diperoleh: +20.000',
-        'poin',
-        '1 poin nusan = potongan Rp1',
-        '(ketentuan toko)',
+        '+20.000 nusan',
+        '1 nusan = pot. Rp1',
+        '',
         '     Terima kasih & silakan',
         '       berkunjung kembali',
       ]);
     });
 
-    test('tanpa nama pelanggan tidak ada baris Customer; poin '
-        'tertunda memakai teks belum diterbitkan', () {
+    test('tanpa nama pelanggan tidak ada baris Customer; info '
+        'perolehan ringkas tampil walau poin tertunda', () {
       final record = buildCompletedOrder(
         time: DateTime(2026, 11, 3, 9, 0),
         lines: const [OrderLine(label: 'Teh', unitPriceRp: 3000, qty: 1)],
@@ -172,6 +175,7 @@ void main() {
           settings: StoreSettings.defaults,
           shopName: 'Toko',
           footerText: '',
+          outletId: '',
         ),
         idLabels(),
       );
@@ -185,7 +189,67 @@ void main() {
           .whereType<ReceiptTextLine>()
           .map((e) => e.text)
           .toList();
-      expect(texts.first, contains('belum diterbitkan'));
+      // Baris kalimat = info perolehan ringkas (tanpa status,
+      // walau poinnya tertunda) + keterangan nilai potongan.
+      expect(texts, ['+3.000 nusan', '1 nusan = pot. Rp1']);
+    });
+  });
+
+  group('ID outlet dari node_id', () {
+    test('6 karakter pertama node_id; string pendek apa adanya', () {
+      expect(
+        outletIdFromNodeId(
+          '02a3c442a933b1f0a630d56151e84a19f17b662541b2e305a3878b825'
+          '5c572981a',
+        ),
+        '02a3c4',
+      );
+      expect(outletIdFromNodeId('02ab'), '02ab');
+      expect(outletIdFromNodeId(''), '');
+    });
+  });
+
+  group('baris item: qty di awal & nama satu baris', () {
+    test('receiptItemLineText: qty selalu tampil, nama panjang '
+        'terpangkas 20 karakter berakhiran ...', () {
+      expect(receiptItemLineText(1, 'Kopi Tubruk'), '1 Kopi Tubruk');
+      expect(receiptItemLineText(5, 'Roti Bakar'), '5 Roti Bakar');
+      expect(
+        receiptItemLineText(12, 'Kopi Tubruk Spesial Gula Aren'),
+        '12 Kopi Tubruk Sp...',
+      );
+    });
+
+    test('baris item nama panjang tetap SATU baris teks, kolom '
+        'jumlah tidak terdorong', () {
+      final record = buildCompletedOrder(
+        time: DateTime(2026, 11, 3, 10, 0),
+        lines: const [
+          OrderLine(
+            label: 'Kopi Tubruk Spesial Gula Aren',
+            unitPriceRp: 7000,
+            qty: 12,
+          ),
+        ],
+        orderDiscount: null,
+        paymentHashHex: null,
+        payMethod: payMethodCash,
+        cashReceivedRp: 84000,
+      );
+      final elements = buildStoreReceiptElements(
+        buildStoreReceiptData(
+          record: record,
+          settings: StoreSettings.defaults,
+          shopName: 'Toko',
+          footerText: '',
+          outletId: '',
+        ),
+        idLabels(),
+      );
+      final row = elements.whereType<ReceiptItemRow>().single;
+      expect(row.name, '12 Kopi Tubruk Sp...');
+      final lines = storeReceiptTextLines(elements);
+      expect(lines, contains('12 Kopi Tubruk Sp...    Rp84.000'));
     });
   });
 

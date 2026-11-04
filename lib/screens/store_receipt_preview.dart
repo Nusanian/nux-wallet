@@ -145,7 +145,13 @@ class _ReceiptCard extends StatelessWidget {
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(width: 98, child: Text('$label:', style: _base)),
+            // Label panjang ("No. Token/Outlet ID:") mendapat
+            // kotak lebih lebar — label pendek tetap sejajar
+            // seperti sebelumnya.
+            SizedBox(
+              width: label.length >= 12 ? 164 : 98,
+              child: Text('$label:', style: _base, maxLines: 1),
+            ),
             Expanded(child: Text(value, style: _base)),
           ],
         );
@@ -167,7 +173,17 @@ class _ReceiptCard extends StatelessWidget {
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: Text(name, style: _base)),
+            Expanded(
+              child: Text(
+                name,
+                style: _base,
+                // Nama item selalu satu baris — tidak mendorong
+                // kolom jumlah (nama sudah terpangkas dari
+                // pembangun; elipsis hanya pengaman tampilan).
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             const SizedBox(width: 10),
             Text(amountText, style: _base),
           ],
@@ -204,6 +220,8 @@ class _ReceiptCard extends StatelessWidget {
         );
       case ReceiptTextLine(:final text):
         return Text(text, style: _base);
+      case ReceiptSpacer():
+        return const SizedBox(height: 18);
     }
   }
 

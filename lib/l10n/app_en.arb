@@ -64,6 +64,7 @@
   "txTime": "Time",
   "txPaymentId": "Payment ID",
   "txPaymentHash": "Payment Hash",
+  "txNote": "Note",
   "txSucceeded": "Succeeded",
   "txExpiredBadge": "Expired",
   "txInvoiceExpiredNote": "This invoice has expired and can no longer be paid. Create a new invoice to receive a payment.",
@@ -102,6 +103,8 @@
   "done": "Done",
   "invalidAmount": "Enter a valid amount",
   "receiveInvoiceDesc": "Receive {amount}",
+  "receiveNoteLabel": "Note (optional)",
+  "receiveNoteHint": "e.g. for November school fees",
   "@receiveInvoiceDesc": {
     "placeholders": {
       "amount": {
@@ -663,7 +666,7 @@
       }
     }
   },
-  "storeReceiptPointsRule": "1 nusan point = Rp{rate} discount (store policy)",
+  "storeReceiptPointsRule": "1 nusan = Disc. Rp{rate}",
   "@storeReceiptPointsRule": {
     "placeholders": {
       "rate": {
@@ -675,12 +678,13 @@
   "storeReceiptCustomer": "Customer",
   "storeReceiptDate": "Date",
   "storeReceiptBillNo": "Bill No",
-  "storeReceiptTokenNo": "Token No",
+  "storeReceiptTokenNo": "Order/Outlet",
   "storeReceiptItemHeader": "Item",
   "storeReceiptAmountHeader": "Amount",
   "storeReceiptOrderDiscount": "Order Discount",
-  "storeReceiptGrandTotal": "GRAND TOTAL",
-  "storeReceiptPointsDiscountLabel": "Nusan points discount ({points} pts)",
+  "storeReceiptLineDiscount": "Item Disc.",
+  "storeReceiptGrandTotal": "Pay",
+  "storeReceiptPointsDiscountLabel": "Disc. ({points} nusan)",
   "@storeReceiptPointsDiscountLabel": {
     "placeholders": {
       "points": {
@@ -694,6 +698,7 @@
   "storeShareReceiptFailed": "Could not create the receipt image.",
   "storeCustomerNameLabel": "Customer Name (optional)",
   "storeSettingsAddress": "Store Address (receipt header line)",
+  "storeSettingsCity": "Store City (receipt header line)",
   "storeSettingsShowToken": "Show Token Number on Receipt",
   "storeSettingsShowTokenHint": "Daily queue number on the receipt; restarts from 1 each day.",
   "storeSettingsFooterText": "Receipt Footer Text",

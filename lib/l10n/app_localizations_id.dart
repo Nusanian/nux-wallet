@@ -179,6 +179,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get txPaymentHash => 'Hash Pembayaran';
 
   @override
+  String get txNote => 'Catatan';
+
+  @override
   String get txSucceeded => 'Berhasil';
 
   @override
@@ -275,6 +278,12 @@ class AppLocalizationsId extends AppLocalizations {
   String receiveInvoiceDesc(String amount) {
     return 'Terima $amount';
   }
+
+  @override
+  String get receiveNoteLabel => 'Catatan (opsional)';
+
+  @override
+  String get receiveNoteHint => 'cth. untuk SPP bulan November';
 
   @override
   String get createInvoiceFailed => 'Gagal membuat invoice. Coba lagi.';
@@ -730,7 +739,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get storeLineNoteTitle => 'Catatan Item';
 
   @override
-  String get storeNoteWord => 'Catatan';
+  String get storeNoteWord => 'Cat.';
 
   @override
   String get storeClearNote => 'Hapus Catatan';
@@ -1280,7 +1289,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String storeReceiptPointsRule(String rate) {
-    return '1 poin nusan = potongan Rp$rate (ketentuan toko)';
+    return '1 nusan = pot. Rp$rate';
   }
 
   @override
@@ -1296,7 +1305,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get storeReceiptBillNo => 'No. Bill';
 
   @override
-  String get storeReceiptTokenNo => 'No. Token';
+  String get storeReceiptTokenNo => 'Order/Outlet';
 
   @override
   String get storeReceiptItemHeader => 'Item';
@@ -1308,11 +1317,14 @@ class AppLocalizationsId extends AppLocalizations {
   String get storeReceiptOrderDiscount => 'Diskon Order';
 
   @override
-  String get storeReceiptGrandTotal => 'TOTAL BAYAR';
+  String get storeReceiptLineDiscount => 'Diskon Item';
+
+  @override
+  String get storeReceiptGrandTotal => 'Bayar';
 
   @override
   String storeReceiptPointsDiscountLabel(String points) {
-    return 'Diskon poin nusan ($points poin)';
+    return 'Pot. ($points nusan)';
   }
 
   @override
@@ -1333,6 +1345,9 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get storeSettingsAddress => 'Alamat Toko (baris kop struk)';
+
+  @override
+  String get storeSettingsCity => 'Kota Toko (baris kop struk)';
 
   @override
   String get storeSettingsShowToken => 'Tampilkan Nomor Token di Struk';
