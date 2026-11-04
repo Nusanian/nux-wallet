@@ -769,6 +769,27 @@ class AppLocalizationsId extends AppLocalizations {
   String get storeHeldResumed => 'Pesanan ditahan dilanjutkan.';
 
   @override
+  String get storeExitHoldTitle => 'Pesanan Belum Selesai';
+
+  @override
+  String get storeExitHoldBody =>
+      'Pesanan yang sedang disusun belum selesai. Bila keluar sekarang, pesanan ini ditahan otomatis dan bisa dilanjutkan kapan saja dari daftar Ditahan.';
+
+  @override
+  String get storeExitStay => 'Tetap di Sini';
+
+  @override
+  String get storeExitHoldLeave => 'Tahan & Keluar';
+
+  @override
+  String get storeExitHoldFailed =>
+      'Pesanan gagal ditahan — tetap di layar ini supaya pesanan tidak hilang.';
+
+  @override
+  String get storeDraftRestored =>
+      'Draf pesanan terakhir dipulihkan — lanjutkan dari tempat terakhir.';
+
+  @override
   String get storeDeleteHeldTitle => 'Hapus Pesanan Ditahan?';
 
   @override
@@ -1455,4 +1476,87 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get storeReportPointsRedeemed => 'Poin Ditukar';
+
+  @override
+  String get offlineSpike => 'Uji Offline Lightning';
+
+  @override
+  String get offlineSpikeSubtitle =>
+      'Sambung dua HP lewat Bluetooth (eksperimental)';
+
+  @override
+  String get offlineIntro =>
+      'Uji tahap 1: dua node ELNUX tersambung sebagai peer lewat jembatan Bluetooth, tanpa internet. Channel dan pembayaran menyusul di tahap berikutnya. Nyalakan Bluetooth dan layanan Lokasi di kedua HP sebelum mulai.';
+
+  @override
+  String get offlineOwnNodeId => 'ID Node HP Ini';
+
+  @override
+  String get offlineNodeNotRunning => 'Node belum berjalan';
+
+  @override
+  String get offlineCopy => 'Salin';
+
+  @override
+  String get offlineCopied => 'ID node tersalin';
+
+  @override
+  String get offlineChooseRole => 'Peran HP Ini';
+
+  @override
+  String get offlineRoleHost => 'Host (menunggu tamu)';
+
+  @override
+  String get offlineRoleGuest => 'Tamu (mencari host)';
+
+  @override
+  String get offlineStop => 'Berhenti';
+
+  @override
+  String get offlineDiscoveredHosts => 'Host Ditemukan';
+
+  @override
+  String get offlineConnect => 'Sambung';
+
+  @override
+  String get offlineHostNodeIdLabel => 'ID Node Host';
+
+  @override
+  String get offlineHostNodeIdHint => 'Tempel ID node dari HP host';
+
+  @override
+  String get offlineConnectNode => 'Sambungkan Node Lightning';
+
+  @override
+  String get offlinePeersTitle => 'Peer Lightning';
+
+  @override
+  String get offlinePeerConnected => 'Terhubung';
+
+  @override
+  String get offlinePeerDisconnected => 'Putus';
+
+  @override
+  String get offlineNoPeers => 'Belum ada peer.';
+
+  @override
+  String get offlineLogTitle => 'Catatan Uji';
+
+  @override
+  String get offlineStatusIdle => 'Belum mulai';
+
+  @override
+  String get offlineStatusAdvertising => 'Mengiklankan sebagai host…';
+
+  @override
+  String get offlineStatusDiscovering => 'Mencari host…';
+
+  @override
+  String get offlineStatusConnecting => 'Menyambungkan jembatan…';
+
+  @override
+  String get offlineStatusLinked => 'Jembatan terhubung';
+
+  @override
+  String get offlineStatusError => 'Kesalahan';
 }

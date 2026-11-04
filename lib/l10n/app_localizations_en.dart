@@ -768,6 +768,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storeHeldResumed => 'Held order resumed.';
 
   @override
+  String get storeExitHoldTitle => 'Order Not Finished';
+
+  @override
+  String get storeExitHoldBody =>
+      'The order you are putting together is not finished. If you leave now, it will be held automatically and can be resumed any time from the Held list.';
+
+  @override
+  String get storeExitStay => 'Stay Here';
+
+  @override
+  String get storeExitHoldLeave => 'Hold & Exit';
+
+  @override
+  String get storeExitHoldFailed =>
+      'Could not hold the order — staying on this screen so the order is not lost.';
+
+  @override
+  String get storeDraftRestored =>
+      'Your last order draft was restored — pick up right where you left off.';
+
+  @override
   String get storeDeleteHeldTitle => 'Delete Held Order?';
 
   @override
@@ -1452,4 +1473,87 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storeReportPointsRedeemed => 'Points Redeemed';
+
+  @override
+  String get offlineSpike => 'Lightning Offline Test';
+
+  @override
+  String get offlineSpikeSubtitle =>
+      'Connect two phones over Bluetooth (experimental)';
+
+  @override
+  String get offlineIntro =>
+      'Stage 1 test: two ELNUX nodes connect as peers over a Bluetooth bridge, without internet. Channels and payments come in later stages. Turn on Bluetooth and Location services on both phones before starting.';
+
+  @override
+  String get offlineOwnNodeId => 'This Phone\'s Node ID';
+
+  @override
+  String get offlineNodeNotRunning => 'Node is not running yet';
+
+  @override
+  String get offlineCopy => 'Copy';
+
+  @override
+  String get offlineCopied => 'Node ID copied';
+
+  @override
+  String get offlineChooseRole => 'This Phone\'s Role';
+
+  @override
+  String get offlineRoleHost => 'Host (waits for a guest)';
+
+  @override
+  String get offlineRoleGuest => 'Guest (searches for a host)';
+
+  @override
+  String get offlineStop => 'Stop';
+
+  @override
+  String get offlineDiscoveredHosts => 'Discovered Hosts';
+
+  @override
+  String get offlineConnect => 'Connect';
+
+  @override
+  String get offlineHostNodeIdLabel => 'Host Node ID';
+
+  @override
+  String get offlineHostNodeIdHint => 'Paste the node ID from the host phone';
+
+  @override
+  String get offlineConnectNode => 'Connect Lightning Node';
+
+  @override
+  String get offlinePeersTitle => 'Lightning Peers';
+
+  @override
+  String get offlinePeerConnected => 'Connected';
+
+  @override
+  String get offlinePeerDisconnected => 'Disconnected';
+
+  @override
+  String get offlineNoPeers => 'No peers yet.';
+
+  @override
+  String get offlineLogTitle => 'Test Log';
+
+  @override
+  String get offlineStatusIdle => 'Not started';
+
+  @override
+  String get offlineStatusAdvertising => 'Advertising as host…';
+
+  @override
+  String get offlineStatusDiscovering => 'Searching for hosts…';
+
+  @override
+  String get offlineStatusConnecting => 'Connecting the bridge…';
+
+  @override
+  String get offlineStatusLinked => 'Bridge linked';
+
+  @override
+  String get offlineStatusError => 'Error';
 }
