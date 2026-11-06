@@ -3011,7 +3011,7 @@ abstract class AppLocalizations {
   /// No description provided for @storeReceiptFooterDefault.
   ///
   /// In id, this message translates to:
-  /// **'Terima kasih & silakan berkunjung kembali'**
+  /// **'Terima Kasih\nSilakan berkunjung kembali'**
   String get storeReceiptFooterDefault;
 
   /// No description provided for @storeShareReceipt.
@@ -3445,6 +3445,12 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Buka Channel'**
   String get offlineOpenChannel;
+
+  /// No description provided for @offlineOpenBlockedOfflineSession.
+  ///
+  /// In id, this message translates to:
+  /// **'Sesi ini dimulai tanpa internet, jadi node tidak punya akses ke rantai dan siaran pendanaan channel baru tidak akan sampai ke jaringan. Mulai ulang aplikasi dengan internet untuk membuka channel.'**
+  String get offlineOpenBlockedOfflineSession;
 
   /// No description provided for @offlineChannelPending.
   ///

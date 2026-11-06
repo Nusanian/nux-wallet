@@ -1628,7 +1628,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get storeReceiptFooterDefault =>
-      'Terima kasih & silakan berkunjung kembali';
+      'Terima Kasih\nSilakan berkunjung kembali';
 
   @override
   String get storeShareReceipt => 'Bagikan Struk';
@@ -1868,6 +1868,10 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get offlineOpenChannel => 'Buka Channel';
+
+  @override
+  String get offlineOpenBlockedOfflineSession =>
+      'Sesi ini dimulai tanpa internet, jadi node tidak punya akses ke rantai dan siaran pendanaan channel baru tidak akan sampai ke jaringan. Mulai ulang aplikasi dengan internet untuk membuka channel.';
 
   @override
   String get offlineChannelPending => 'Menunggu konfirmasi';
