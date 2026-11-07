@@ -15,6 +15,7 @@ class LspService {
   bool _running = false;
   bool _offlineMode = false;
   String? _lspHost;
+  String? _lspNodeId;
 
   bool get isRunning => _running;
 
@@ -45,11 +46,13 @@ class LspService {
     final sep = lspAddress.lastIndexOf(':');
     if (sep < 0) {
       throw StateError(
-          'Format lspAddress salah: "$lspAddress" (mesti host:port)');
+        'Format lspAddress salah: "$lspAddress" (mesti host:port)',
+      );
     }
     final lspHost = lspAddress.substring(0, sep);
     final lspPort = int.parse(lspAddress.substring(sep + 1));
     _lspHost = lspHost;
+    _lspNodeId = lspNodeId;
     // Mode offline (kondisi ekstrem tanpa internet): resolusi DNS host
     // LSP pasti gagal dan LSPS2 memang tidak terjangkau, jadi resolusi
     // dan konfigurasi likuiditas dilewati — node dibangun TANPA sumber
@@ -69,10 +72,7 @@ class LspService {
       );
       liquidityConfig = LiquiditySourceConfig(
         lsps2Service: (
-          SocketAddress.tcpIpV4(
-            addr: U8Array4(ipv4.rawAddress),
-            port: lspPort,
-          ),
+          SocketAddress.tcpIpV4(addr: U8Array4(ipv4.rawAddress), port: lspPort),
           PublicKey(hex: lspNodeId),
           lspToken,
         ),
@@ -110,9 +110,7 @@ class LspService {
       tolerateOfflineStart: offlineMode,
     );
 
-    final chainConfig = ChainDataSourceConfig.electrum(
-      serverUrl: electrumUrl,
-    );
+    final chainConfig = ChainDataSourceConfig.electrum(serverUrl: electrumUrl);
 
     final builder = FfiBuilder.createBuilder(
       config: config,
@@ -124,8 +122,7 @@ class LspService {
     // dan mengembalikan builder baru — nilai kembalinya WAJIB yang
     // dipakai. Memanggil build() pada builder lama melempar
     // DroppableDisposedException (RustArc sudah di-dispose).
-    final configuredBuilder =
-        builder.setEntropySeedBytes(seedBytes: seedBytes);
+    final configuredBuilder = builder.setEntropySeedBytes(seedBytes: seedBytes);
 
     _node = await configuredBuilder.build();
     await _node!.start();
@@ -337,11 +334,15 @@ class LspService {
   /// sebesar [amountMsat]. Pasangan [payOffer] — keterangan
   /// hasil akhir di sana berlaku sama.
   Future<PaymentId> payOfferUsingAmount(
-      String offerStr, BigInt amountMsat) async {
+    String offerStr,
+    BigInt amountMsat,
+  ) async {
     _ensureRunning();
     final payment = await FfiNode.bolt12Payment(ptr: _node!);
     return await payment.sendUsingAmount(
-        offer: Offer(s: offerStr), amountMsat: amountMsat);
+      offer: Offer(s: offerStr),
+      amountMsat: amountMsat,
+    );
   }
 
   /// Tunggu hasil akhir pembayaran [paymentId] dengan memeriksa
@@ -389,11 +390,22 @@ class LspService {
     // rekonsiliasi riwayat testnet 2 Nov 2026).
     var total = BigInt.zero;
     for (final channel in await listChannels()) {
-      total += channel.outboundCapacityMsat +
-          (channel.unspendablePunishmentReserve ?? BigInt.zero) *
-              BigInt.from(1000);
+      total += countedChannelBalanceMsat(channel);
     }
     return total;
+  }
+
+  /// Rincian saldo Lightning per sumber channel: subtotal channel
+  /// yang pihak seberangnya node LSP dan subtotal channel langsung
+  /// (antar-HP). Jumlah keduanya selalu sama dengan
+  /// [getLightningBalance]. Rincian ini penting karena kemampuan
+  /// belanja tidak melebur seperti angkanya: saat offline, hanya
+  /// porsi channel langsung yang bisa bergerak, jadi kartu saldo
+  /// yang hanya menampilkan total gabungan menyesatkan.
+  Future<({BigInt lspMsat, BigInt directMsat})>
+  getLightningBalanceBreakdown() async {
+    _ensureRunning();
+    return splitBalanceBySource(await listChannels(), _lspNodeId ?? '');
   }
 
   /// Ambil seluruh riwayat pembayaran dari node, terbaru di depan.
@@ -405,8 +417,9 @@ class LspService {
   Future<List<PaymentDetails>> listPayments() async {
     _ensureRunning();
     final payments = await _node!.listPayments();
-    payments.sort((a, b) =>
-        b.latestUpdateTimestamp.compareTo(a.latestUpdateTimestamp));
+    payments.sort(
+      (a, b) => b.latestUpdateTimestamp.compareTo(a.latestUpdateTimestamp),
+    );
     return payments;
   }
 
@@ -458,6 +471,49 @@ class LspService {
   }
 }
 
+/// Saldo satu channel yang dihitung ke kartu saldo, dalam msat:
+/// kapasitas keluar ditambah cadangan hukuman milik sendiri
+/// (unspendablePunishmentReserve, berdenominasi sat, dikonversi ke
+/// msat) — tetapi cadangan hanya dihitung sebatas kapasitas keluar
+/// channel itu. Cadangan adalah syarat tercetak atas saldo milik
+/// sendiri ("kelak wajib menyisakan sekian"), bukan uang yang sedang
+/// dipegang: pada channel yang saldonya nol (mis. channel langsung
+/// yang seluruhnya didanai pihak seberang) cadangan penuh akan tampil
+/// sebagai saldo hantu di kartu penerima. Pada channel bersaldo,
+/// cadangan memang bagian dari saldo (kembali saat channel ditutup),
+/// jadi rumus lama tidak berubah hasilnya di sana.
+BigInt countedChannelBalanceMsat(ChannelDetails channel) {
+  final outboundMsat = channel.outboundCapacityMsat;
+  var reserveMsat =
+      (channel.unspendablePunishmentReserve ?? BigInt.zero) * BigInt.from(1000);
+  if (reserveMsat > outboundMsat) reserveMsat = outboundMsat;
+  return outboundMsat + reserveMsat;
+}
+
+/// Pisahkan total saldo channel menjadi subtotal per sumber:
+/// channel yang pihak seberangnya node LSP [lspNodeIdHex] masuk
+/// lspMsat, sisanya (channel langsung antar-HP) masuk directMsat.
+/// Per channel memakai [countedChannelBalanceMsat], jadi subtotal
+/// mewarisi batas cadangan yang sama dan jumlah kedua subtotal
+/// selalu sama dengan total kartu saldo.
+({BigInt lspMsat, BigInt directMsat}) splitBalanceBySource(
+  List<ChannelDetails> channels,
+  String lspNodeIdHex,
+) {
+  final lsp = lspNodeIdHex.toLowerCase();
+  var lspMsat = BigInt.zero;
+  var directMsat = BigInt.zero;
+  for (final channel in channels) {
+    final amount = countedChannelBalanceMsat(channel);
+    if (channel.counterpartyNodeId.hex.toLowerCase() == lsp) {
+      lspMsat += amount;
+    } else {
+      directMsat += amount;
+    }
+  }
+  return (lspMsat: lspMsat, directMsat: directMsat);
+}
+
 /// Bentuk hex ID pembayaran. Pencocokan pembayaran antar-panggilan
 /// memakai hex ini, bukan equality objek PaymentId, supaya tidak
 /// bergantung pada identitas objek data di binding.
@@ -471,8 +527,7 @@ String paymentHashHex(PaymentHash hash) =>
 
 /// Status pembayaran ber-ID [idHex] dalam daftar [payments];
 /// null bila catatannya belum muncul.
-PaymentStatus? findPaymentStatus(
-    List<PaymentDetails> payments, String idHex) {
+PaymentStatus? findPaymentStatus(List<PaymentDetails> payments, String idHex) {
   for (final p in payments) {
     if (paymentIdHex(p.id) == idHex) return p.status;
   }
