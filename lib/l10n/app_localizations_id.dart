@@ -121,12 +121,6 @@ class AppLocalizationsId extends AppLocalizations {
   String get receive => 'Terima';
 
   @override
-  String get buy => 'Beli';
-
-  @override
-  String get swap => 'Tukar';
-
-  @override
   String get activity => 'Aktivitas';
 
   @override
@@ -136,10 +130,55 @@ class AppLocalizationsId extends AppLocalizations {
   String get noActivity => 'Belum ada aktivitas';
 
   @override
-  String get market => 'Pasar';
+  String get market => 'Jelajah';
 
   @override
-  String get marketSoon => 'Info pasar NUX — segera hadir.';
+  String get jelajahSource => 'Harga pasar — qutrade.io';
+
+  @override
+  String jelajahUpdated(String time) {
+    return 'Diperbarui $time';
+  }
+
+  @override
+  String get jelajahChange24h => 'Perubahan 24 jam';
+
+  @override
+  String get jelajahBlockHeight => 'Tinggi blok';
+
+  @override
+  String get jelajahDirectory => 'Direktori Toko';
+
+  @override
+  String get jelajahSearchHint => 'Cari toko atau barang…';
+
+  @override
+  String get jelajahAllCities => 'Semua kota';
+
+  @override
+  String get jelajahPointsProgram => 'Program Poin Mode Toko';
+
+  @override
+  String get jelajahCopyOffer => 'Salin Offer';
+
+  @override
+  String get jelajahOfferCopied => 'Offer tersalin';
+
+  @override
+  String get jelajahEmpty =>
+      'Belum ada toko terdaftar. Pemilik toko dapat mendaftarkan tokonya lewat kanal komunitas Nusacoin.';
+
+  @override
+  String get jelajahNoResults => 'Tidak ada toko yang cocok dengan pencarian.';
+
+  @override
+  String get jelajahDisclaimer =>
+      'Informasi pasar dari sumber publik. Bukan nasihat keuangan.';
+
+  @override
+  String jelajahDirectoryUpdated(String time) {
+    return 'Direktori diperbarui $time';
+  }
 
   @override
   String get home => 'Beranda';
@@ -909,6 +948,18 @@ class AppLocalizationsId extends AppLocalizations {
   String get storeProductCode => 'Kode Produk';
 
   @override
+  String get storeProductCodeHint =>
+      'Terisi otomatis — boleh diganti dengan barcode produk.';
+
+  @override
+  String get storeProductCodeLocked =>
+      'Kode tidak bisa diubah setelah produk dibuat.';
+
+  @override
+  String get storeProductCodeDuplicate =>
+      'Kode produk ini sudah dipakai produk lain.';
+
+  @override
   String get storeProductName => 'Nama Produk';
 
   @override
@@ -1004,6 +1055,71 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get storeSalesReport => 'Laporan Penjualan';
+
+  @override
+  String get storeReportsTitle => 'Daftar Laporan';
+
+  @override
+  String get storeReportPaymentsTitle => 'Laporan Pembayaran';
+
+  @override
+  String get storeReportPaymentsSubtitle =>
+      'Penerimaan per tanggal, dirinci per shift.';
+
+  @override
+  String get storePaymentReportBreakdown => 'Rincian per Shift';
+
+  @override
+  String storePaymentReportInvoices(int count) {
+    return '$count nota';
+  }
+
+  @override
+  String storePaymentReportTotalLine(int count, String amount) {
+    return 'Total $count nota • Rp$amount';
+  }
+
+  @override
+  String get storeReportProductSalesTitle => 'Laporan Penjualan Produk';
+
+  @override
+  String get storeReportProductSalesSubtitle =>
+      'Semua penjualan per produk pada periode terpilih.';
+
+  @override
+  String get storeProductSalesGross => 'Bruto';
+
+  @override
+  String get storeReportBestsellersTitle => 'Produk Terlaris';
+
+  @override
+  String get storeReportBestsellersSubtitle =>
+      'Urutan produk dari yang paling banyak terjual.';
+
+  @override
+  String get storeBestsellersEmpty => 'Belum ada penjualan pada periode ini.';
+
+  @override
+  String get storePeriod7Days => '7 Hari Terakhir';
+
+  @override
+  String get storePeriod30Days => '30 Hari Terakhir';
+
+  @override
+  String get storePeriodAll => 'Semua';
+
+  @override
+  String get storePeriodCustom => 'Pilih Tanggal';
+
+  @override
+  String storeBestsellersSoldQty(int qty) {
+    return 'Terjual $qty';
+  }
+
+  @override
+  String storeBestsellersTotalLine(int qty, String amount) {
+    return 'Total terjual $qty • Rp$amount';
+  }
 
   @override
   String get storeSalesHistory => 'Riwayat Penjualan';

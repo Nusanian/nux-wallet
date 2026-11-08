@@ -45,13 +45,38 @@
   "legacyStrip": "Dompet ini belum punya frasa backup. Buka tab Profil untuk membuat dompet baru dengan frasa sebelum menerima dana.",
   "send": "Kirim",
   "receive": "Terima",
-  "buy": "Beli",
-  "swap": "Tukar",
   "activity": "Aktivitas",
   "seeAll": "Lihat semua",
   "noActivity": "Belum ada aktivitas",
-  "market": "Pasar",
-  "marketSoon": "Info pasar NUX — segera hadir.",
+  "market": "Jelajah",
+  "jelajahSource": "Harga pasar — qutrade.io",
+  "jelajahUpdated": "Diperbarui {time}",
+  "@jelajahUpdated": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "jelajahChange24h": "Perubahan 24 jam",
+  "jelajahBlockHeight": "Tinggi blok",
+  "jelajahDirectory": "Direktori Toko",
+  "jelajahSearchHint": "Cari toko atau barang…",
+  "jelajahAllCities": "Semua kota",
+  "jelajahPointsProgram": "Program Poin Mode Toko",
+  "jelajahCopyOffer": "Salin Offer",
+  "jelajahOfferCopied": "Offer tersalin",
+  "jelajahEmpty": "Belum ada toko terdaftar. Pemilik toko dapat mendaftarkan tokonya lewat kanal komunitas Nusacoin.",
+  "jelajahNoResults": "Tidak ada toko yang cocok dengan pencarian.",
+  "jelajahDisclaimer": "Informasi pasar dari sumber publik. Bukan nasihat keuangan.",
+  "jelajahDirectoryUpdated": "Direktori diperbarui {time}",
+  "@jelajahDirectoryUpdated": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "home": "Beranda",
   "history": "Riwayat",
   "profile": "Profil",
@@ -417,6 +442,9 @@
   "storeCodeNotRegistered": "Kode ini belum terdaftar di katalog.",
   "storeRegisterNow": "Daftarkan Sekarang",
   "storeProductCode": "Kode Produk",
+  "storeProductCodeHint": "Terisi otomatis — boleh diganti dengan barcode produk.",
+  "storeProductCodeLocked": "Kode tidak bisa diubah setelah produk dibuat.",
+  "storeProductCodeDuplicate": "Kode produk ini sudah dipakai produk lain.",
   "storeProductName": "Nama Produk",
   "storeProductPrice": "Harga (Rp)",
   "storeProductDiscount": "Diskon Bawaan (opsional)",
@@ -476,6 +504,58 @@
   "storeLater": "Nanti",
   "storeViewReport": "Lihat Laporan",
   "storeSalesReport": "Laporan Penjualan",
+  "storeReportsTitle": "Daftar Laporan",
+  "storeReportPaymentsTitle": "Laporan Pembayaran",
+  "storeReportPaymentsSubtitle": "Penerimaan per tanggal, dirinci per shift.",
+  "storePaymentReportBreakdown": "Rincian per Shift",
+  "storePaymentReportInvoices": "{count} nota",
+  "@storePaymentReportInvoices": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "storePaymentReportTotalLine": "Total {count} nota • Rp{amount}",
+  "@storePaymentReportTotalLine": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "storeReportProductSalesTitle": "Laporan Penjualan Produk",
+  "storeReportProductSalesSubtitle": "Semua penjualan per produk pada periode terpilih.",
+  "storeProductSalesGross": "Bruto",
+  "storeReportBestsellersTitle": "Produk Terlaris",
+  "storeReportBestsellersSubtitle": "Urutan produk dari yang paling banyak terjual.",
+  "storeBestsellersEmpty": "Belum ada penjualan pada periode ini.",
+  "storePeriod7Days": "7 Hari Terakhir",
+  "storePeriod30Days": "30 Hari Terakhir",
+  "storePeriodAll": "Semua",
+  "storePeriodCustom": "Pilih Tanggal",
+  "storeBestsellersSoldQty": "Terjual {qty}",
+  "@storeBestsellersSoldQty": {
+    "placeholders": {
+      "qty": {
+        "type": "int"
+      }
+    }
+  },
+  "storeBestsellersTotalLine": "Total terjual {qty} • Rp{amount}",
+  "@storeBestsellersTotalLine": {
+    "placeholders": {
+      "qty": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "storeSalesHistory": "Riwayat Penjualan",
   "storeSalesHistoryEmpty": "Belum ada penjualan yang tercatat.",
   "storeSaleDetailTitle": "Detail Penjualan",

@@ -580,6 +580,285 @@ List<MenuSalesGroup> aggregateMenuDetails(
   ];
 }
 
+/// Satu entri Laporan Produk Terlaris: semua baris lunas untuk
+/// satu produk teragregasi lintas pesanan. Identitas produk =
+/// kode baris bila ada (kode adalah identitas stabil produk —
+/// nama boleh berubah di katalog, kode tidak); baris tanpa kode
+/// (baris bebas keypad) berkelompok menurut labelnya.
+class ProductSalesEntry {
+  /// Kode produk; '' untuk kelompok baris bebas tanpa kode.
+  final String code;
+
+  /// Nama tampil — label dari baris terbaru dalam kelompok.
+  final String label;
+  final int qty;
+  final int grossRp;
+
+  /// Σ diskon baris kelompok ini (angka dari record).
+  final int discountRp;
+
+  const ProductSalesEntry({
+    required this.code,
+    required this.label,
+    required this.qty,
+    required this.grossRp,
+    required this.discountRp,
+  });
+
+  /// Omzet bersih kelompok: bruto − diskon baris. (Diskon level
+  /// pesanan tidak dialokasikan ke produk — angka ini memang
+  /// "penjualan produk", bukan bagian dari total tagihan.)
+  int get netRp => grossRp - discountRp;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ProductSalesEntry &&
+      other.code == code &&
+      other.label == label &&
+      other.qty == qty &&
+      other.grossRp == grossRp &&
+      other.discountRp == discountRp;
+
+  @override
+  int get hashCode => Object.hash(code, label, qty, grossRp, discountRp);
+}
+
+/// Cara mengurutkan hasil [aggregateProductSales].
+enum ProductSalesSort {
+  /// Terlaris dulu: qty terbanyak, lalu omzet bersih, lalu
+  /// nama — untuk Laporan Produk Terlaris.
+  byQty,
+
+  /// Abjad nama (tak peka huruf), seri → kode — untuk Laporan
+  /// Penjualan Produk yang daftarnya lengkap.
+  byName,
+}
+
+/// Agregasi murni penjualan per produk untuk jendela [from, to).
+/// Hanya pesanan LUNAS era rupiah; pesanan VOID & era nusan
+/// dikecualikan, sama seperti rincian menu. [sort] memilih
+/// urutan hasil (bawaan [ProductSalesSort.byQty]); [limit]
+/// membatasi hasil sesudah pengurutan (null = semua).
+List<ProductSalesEntry> aggregateProductSales(
+  List<CompletedOrder> orders, {
+  required DateTime from,
+  required DateTime to,
+  int? limit,
+  ProductSalesSort sort = ProductSalesSort.byQty,
+}) {
+  final qtyByKey = <String, int>{};
+  final grossByKey = <String, int>{};
+  final discountByKey = <String, int>{};
+  final codeByKey = <String, String>{};
+  final labelByKey = <String, String>{};
+  final latestByKey = <String, DateTime>{};
+
+  for (final order in orders) {
+    if (!order.isRupiahEra) continue;
+    if (order.isVoid) continue;
+    if (order.time.isBefore(from) || !order.time.isBefore(to)) continue;
+    for (final line in order.lines) {
+      final code = line.code?.trim() ?? '';
+      final key = code.isNotEmpty ? 'C$code' : 'N${line.label}';
+      codeByKey[key] = code;
+      qtyByKey[key] = (qtyByKey[key] ?? 0) + line.qty;
+      grossByKey[key] = (grossByKey[key] ?? 0) + line.lineGrossRp;
+      discountByKey[key] =
+          (discountByKey[key] ?? 0) + line.lineDiscountRp;
+      final latest = latestByKey[key];
+      if (latest == null || order.time.isAfter(latest)) {
+        latestByKey[key] = order.time;
+        labelByKey[key] = line.label;
+      }
+    }
+  }
+
+  final entries = [
+    for (final key in qtyByKey.keys)
+      ProductSalesEntry(
+        code: codeByKey[key]!,
+        label: labelByKey[key]!,
+        qty: qtyByKey[key]!,
+        grossRp: grossByKey[key]!,
+        discountRp: discountByKey[key]!,
+      ),
+  ]..sort((a, b) {
+      if (sort == ProductSalesSort.byName) {
+        final byLabel = a.label
+            .toLowerCase()
+            .compareTo(b.label.toLowerCase());
+        if (byLabel != 0) return byLabel;
+        return a.code.compareTo(b.code);
+      }
+      final byQty = b.qty.compareTo(a.qty);
+      if (byQty != 0) return byQty;
+      final byNet = b.netRp.compareTo(a.netRp);
+      if (byNet != 0) return byNet;
+      return a.label.toLowerCase().compareTo(b.label.toLowerCase());
+    });
+  if (limit != null && entries.length > limit) {
+    return entries.sublist(0, limit);
+  }
+  return entries;
+}
+
+/// Total penerimaan satu metode bayar (nama metode dari
+/// master metode bayar toko, mis. 'Tunai', 'QRIS', 'DANA').
+/// Jumlahnya adalah yang DITERAPKAN ke tagihan — untuk tunai
+/// tanpa kembalian (kembalian tercatat terpisah di record),
+/// jadi Σ per metode selalu rekonsiliasi dengan total tagihan.
+class PaymentMethodTotal {
+  final String method;
+  final int totalRp;
+
+  const PaymentMethodTotal({required this.method, required this.totalRp});
+
+  @override
+  bool operator ==(Object other) =>
+      other is PaymentMethodTotal &&
+      other.method == method &&
+      other.totalRp == totalRp;
+
+  @override
+  int get hashCode => Object.hash(method, totalRp);
+}
+
+/// Urutkan peta total per metode menjadi daftar: terbesar
+/// dulu, seri → nama metode menaik.
+List<PaymentMethodTotal> _sortedMethodTotals(Map<String, int> byMethod) {
+  return [
+    for (final e in byMethod.entries)
+      PaymentMethodTotal(method: e.key, totalRp: e.value),
+  ]..sort((a, b) {
+      final byTotal = b.totalRp.compareTo(a.totalRp);
+      return byTotal != 0 ? byTotal : a.method.compareTo(b.method);
+    });
+}
+
+/// Satu shift di Laporan Pembayaran: jumlah nota lunas dan
+/// total penerimaannya.
+class ShiftPaymentEntry {
+  final StoreShift shift;
+  final int invoiceCount;
+
+  /// Σ total tagihan (grandTotalRp) nota lunas shift ini —
+  /// angka yang sama dengan Total ORDER laporan shiftnya.
+  final int totalRp;
+
+  /// Rincian penerimaan per metode bayar shift ini
+  /// (Σ-nya = [totalRp]).
+  final List<PaymentMethodTotal> methodTotals;
+
+  const ShiftPaymentEntry({
+    required this.shift,
+    required this.invoiceCount,
+    required this.totalRp,
+    required this.methodTotals,
+  });
+}
+
+/// Satu tanggal di Laporan Pembayaran: rincian shift-shift
+/// yang DIBUKA pada tanggal itu + subtotal harinya.
+class DayPaymentEntry {
+  /// Tanggal kalender (jam 00:00 lokal) menurut jam buka shift.
+  final DateTime day;
+  final List<ShiftPaymentEntry> shifts;
+
+  const DayPaymentEntry({required this.day, required this.shifts});
+
+  int get totalRp => shifts.fold(0, (sum, e) => sum + e.totalRp);
+  int get invoiceCount => shifts.fold(0, (sum, e) => sum + e.invoiceCount);
+
+  /// Rincian penerimaan per metode bayar sepanjang hari ini
+  /// (gabungan semua shiftnya; Σ-nya = [totalRp]).
+  List<PaymentMethodTotal> get methodTotals {
+    final byMethod = <String, int>{};
+    for (final shift in shifts) {
+      for (final m in shift.methodTotals) {
+        byMethod[m.method] = (byMethod[m.method] ?? 0) + m.totalRp;
+      }
+    }
+    return _sortedMethodTotals(byMethod);
+  }
+}
+
+/// Agregasi murni Laporan Pembayaran: penerimaan per tanggal,
+/// dirinci per shift. Tanggal & keanggotaan ditentukan jam
+/// BUKA shift (keputusan NUX 8 Nov 2026 — bukan jam tutupnya):
+/// shift yang dibuka 22:00 dan ditutup lewat tengah malam
+/// tetap tercatat di tanggal bukanya, beserta seluruh
+/// penjualannya; jendela [from, to) pun menyaring menurut jam
+/// buka shift.
+///
+/// Penjualan yang dihitung: pesanan lunas era rupiah, bukan
+/// VOID, yang cap `shiftOpenedMs`-nya cocok dengan shift ybs.
+/// Shift tanpa penjualan lunas tidak tampil (ini laporan
+/// pembayaran, bukan daftar kehadiran shift), dan pesanan yang
+/// shiftnya sudah tidak tercatat ikut tidak terinci — laporan
+/// ini memang hanya bisa merinci shift yang catatannya ada.
+/// Urutan: tanggal terbaru dulu; dalam satu tanggal, shift
+/// urut jam buka menaik.
+List<DayPaymentEntry> aggregatePaymentsByDay(
+  List<CompletedOrder> orders,
+  List<StoreShift> shifts, {
+  required DateTime from,
+  required DateTime to,
+}) {
+  final totals = <int, ({int count, int total})>{};
+  final methodsByShiftMs = <int, Map<String, int>>{};
+  for (final order in orders) {
+    if (!order.isRupiahEra || order.isVoid) continue;
+    final ms = order.shiftOpenedMs;
+    if (ms == null) continue;
+    final current = totals[ms] ?? (count: 0, total: 0);
+    totals[ms] = (
+      count: current.count + 1,
+      total: current.total + order.grandTotalRp,
+    );
+    // Rincian metode lewat effectivePaymentsOf — dasar yang
+    // sama dengan tender laporan shift, termasuk promosi
+    // record lama satu-metode menjadi satu baris pembayaran.
+    final byMethod = methodsByShiftMs.putIfAbsent(ms, () => {});
+    for (final payment in effectivePaymentsOf(order)) {
+      byMethod[payment.method] =
+          (byMethod[payment.method] ?? 0) + payment.amountRp;
+    }
+  }
+  final byDay = <DateTime, List<ShiftPaymentEntry>>{};
+  for (final shift in shifts) {
+    if (shift.openedAt.isBefore(from) || !shift.openedAt.isBefore(to)) {
+      continue;
+    }
+    final ms = shift.openedAt.millisecondsSinceEpoch;
+    final t = totals[ms];
+    if (t == null) continue;
+    final day = DateTime(
+      shift.openedAt.year,
+      shift.openedAt.month,
+      shift.openedAt.day,
+    );
+    byDay
+        .putIfAbsent(day, () => [])
+        .add(
+          ShiftPaymentEntry(
+            shift: shift,
+            invoiceCount: t.count,
+            totalRp: t.total,
+            methodTotals: _sortedMethodTotals(methodsByShiftMs[ms] ?? {}),
+          ),
+        );
+  }
+  final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
+  return [
+    for (final day in days)
+      DayPaymentEntry(
+        day: day,
+        shifts: byDay[day]!
+          ..sort((a, b) => a.shift.openedAt.compareTo(b.shift.openedAt)),
+      ),
+  ];
+}
+
 /// Jumlah shift yang jendelanya bersinggungan dengan [from, to)
 /// — untuk catatan jujur mode laporan per tanggal ("Meliputi N
 /// shift") tanpa mengarang nomor shift.

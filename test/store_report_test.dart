@@ -517,4 +517,302 @@ void main() {
       }
     });
   });
+
+  group('produk terlaris (aggregateProductSales)', () {
+    CompletedOrder order(
+      DateTime time,
+      List<OrderLine> lines, {
+      bool isVoid = false,
+    }) => buildCompletedOrder(
+      time: time,
+      lines: lines,
+      orderDiscount: null,
+      paymentHashHex: 'xx',
+      payMethod: payMethodCash,
+      isVoid: isVoid,
+    );
+
+    final from = DateTime(2026, 11, 1);
+    final to = DateTime(2026, 12, 1);
+
+    test('kelompok menurut kode lintas pesanan, label dari yang terbaru',
+        () {
+      final entries = aggregateProductSales(
+        [
+          order(DateTime(2026, 11, 5, 9), const [
+            OrderLine(
+                code: 'PRD-001',
+                label: 'Kopi Sachet',
+                unitPriceRp: 5000,
+                qty: 2),
+          ]),
+          order(DateTime(2026, 11, 6, 9), const [
+            OrderLine(
+                code: 'PRD-001',
+                label: 'Kopi Sachet Baru',
+                unitPriceRp: 6000,
+                qty: 3),
+          ]),
+        ],
+        from: from,
+        to: to,
+      );
+      expect(entries, hasLength(1));
+      expect(entries.single.code, 'PRD-001');
+      expect(entries.single.label, 'Kopi Sachet Baru');
+      expect(entries.single.qty, 5);
+      expect(entries.single.grossRp, 2 * 5000 + 3 * 6000);
+      expect(entries.single.netRp, entries.single.grossRp);
+    });
+
+    test('baris tanpa kode berkelompok menurut label', () {
+      final entries = aggregateProductSales(
+        [
+          order(DateTime(2026, 11, 5), const [
+            OrderLine(label: 'Item Bebas', unitPriceRp: 1000, qty: 1),
+            OrderLine(label: 'Item Bebas', unitPriceRp: 2000, qty: 2),
+          ]),
+        ],
+        from: from,
+        to: to,
+      );
+      expect(entries, hasLength(1));
+      expect(entries.single.code, '');
+      expect(entries.single.qty, 3);
+    });
+
+    test('VOID dan di luar jendela tidak dihitung; diskon baris masuk net',
+        () {
+      final entries = aggregateProductSales(
+        [
+          order(DateTime(2026, 11, 5), const [
+            OrderLine(
+                code: 'A',
+                label: 'Teh',
+                unitPriceRp: 10000,
+                qty: 2,
+                discount: Discount.percent(10)),
+          ]),
+          order(
+            DateTime(2026, 11, 5),
+            const [
+              OrderLine(
+                  code: 'A', label: 'Teh', unitPriceRp: 10000, qty: 99),
+            ],
+            isVoid: true,
+          ),
+          order(DateTime(2026, 10, 1), const [
+            OrderLine(
+                code: 'A', label: 'Teh', unitPriceRp: 10000, qty: 50),
+          ]),
+        ],
+        from: from,
+        to: to,
+      );
+      expect(entries, hasLength(1));
+      expect(entries.single.qty, 2);
+      expect(entries.single.grossRp, 20000);
+      expect(entries.single.discountRp, 2000);
+      expect(entries.single.netRp, 18000);
+    });
+
+    test('urutan: qty desc, seri → net desc, seri lagi → nama; limit', () {
+      final orders = [
+        order(DateTime(2026, 11, 5), const [
+          OrderLine(code: 'B', label: 'Beta', unitPriceRp: 9000, qty: 4),
+          OrderLine(code: 'A', label: 'Alfa', unitPriceRp: 5000, qty: 4),
+          OrderLine(code: 'C', label: 'Ceri', unitPriceRp: 1000, qty: 9),
+        ]),
+      ];
+      final entries = aggregateProductSales(orders, from: from, to: to);
+      expect(entries.map((e) => e.label), ['Ceri', 'Beta', 'Alfa']);
+      final top2 = aggregateProductSales(orders, from: from, to: to, limit: 2);
+      expect(top2.map((e) => e.label), ['Ceri', 'Beta']);
+    });
+
+    test('tanpa penjualan pada jendela → daftar kosong', () {
+      expect(
+        aggregateProductSales(const [], from: from, to: to),
+        isEmpty,
+      );
+    });
+
+    test('sort byName: abjad tak peka huruf, bukan urutan qty', () {
+      final orders = [
+        order(DateTime(2026, 11, 5), const [
+          OrderLine(code: 'C', label: 'ceri', unitPriceRp: 1000, qty: 9),
+          OrderLine(code: 'B', label: 'Beta', unitPriceRp: 9000, qty: 4),
+          OrderLine(code: 'A', label: 'alfa', unitPriceRp: 5000, qty: 1),
+        ]),
+      ];
+      final entries = aggregateProductSales(
+        orders,
+        from: from,
+        to: to,
+        sort: ProductSalesSort.byName,
+      );
+      expect(entries.map((e) => e.label), ['alfa', 'Beta', 'ceri']);
+      // Bawaan tetap byQty (perilaku Produk Terlaris tidak berubah).
+      final ranked = aggregateProductSales(orders, from: from, to: to);
+      expect(ranked.map((e) => e.label), ['ceri', 'Beta', 'alfa']);
+    });
+  });
+
+  group('laporan pembayaran (aggregatePaymentsByDay)', () {
+    CompletedOrder sale({
+      required DateTime time,
+      required int totalRp,
+      required int? shiftOpenedMs,
+      bool isVoid = false,
+      String? payMethod,
+      List<OrderPayment> payments = const [],
+    }) => CompletedOrder(
+      time: time,
+      lines: const [
+        OrderLine(label: 'X', unitPriceRp: 1000, qty: 1),
+      ],
+      orderDiscount: null,
+      era: storeEraRupiah,
+      subtotalRp: totalRp,
+      totalDiscountRp: 0,
+      grandTotalRp: totalRp,
+      paymentHashHex: 'xx',
+      isVoid: isVoid,
+      payMethod: payMethod,
+      payments: payments,
+      shiftOpenedMs: shiftOpenedMs,
+    );
+
+    StoreShift shift(DateTime openedAt, {DateTime? closedAt}) =>
+        StoreShift(openedAt: openedAt, closedAt: closedAt, era: 'rp');
+
+    final from = DateTime(2026, 11, 1);
+    final to = DateTime(2026, 12, 1);
+
+    test('shift lewat tengah malam tercatat di tanggal BUKA-nya', () {
+      final night = shift(
+        DateTime(2026, 11, 7, 22),
+        closedAt: DateTime(2026, 11, 8, 2),
+      );
+      final ms = night.openedAt.millisecondsSinceEpoch;
+      final days = aggregatePaymentsByDay(
+        [
+          sale(time: DateTime(2026, 11, 7, 23), totalRp: 50000, shiftOpenedMs: ms),
+          sale(time: DateTime(2026, 11, 8, 1), totalRp: 30000, shiftOpenedMs: ms),
+        ],
+        [night],
+        from: from,
+        to: to,
+      );
+      expect(days, hasLength(1));
+      expect(days.single.day, DateTime(2026, 11, 7));
+      expect(days.single.totalRp, 80000);
+      expect(days.single.invoiceCount, 2);
+    });
+
+    test('subtotal hari = gabungan shift hari itu; tanggal terbaru dulu',
+        () {
+      final s1 = shift(DateTime(2026, 11, 8, 8));
+      final s2 = shift(DateTime(2026, 11, 8, 16));
+      final s0 = shift(DateTime(2026, 11, 6, 9));
+      int msOf(StoreShift s) => s.openedAt.millisecondsSinceEpoch;
+      final days = aggregatePaymentsByDay(
+        [
+          sale(time: DateTime(2026, 11, 8, 9), totalRp: 10000, shiftOpenedMs: msOf(s1)),
+          sale(time: DateTime(2026, 11, 8, 17), totalRp: 20000, shiftOpenedMs: msOf(s2)),
+          sale(time: DateTime(2026, 11, 6, 10), totalRp: 7000, shiftOpenedMs: msOf(s0)),
+        ],
+        [s2, s0, s1], // urutan masukan acak
+        from: from,
+        to: to,
+      );
+      expect(days.map((d) => d.day), [DateTime(2026, 11, 8), DateTime(2026, 11, 6)]);
+      expect(days.first.totalRp, 30000);
+      // Dalam satu tanggal: shift urut jam buka menaik.
+      expect(
+        days.first.shifts.map((e) => e.shift.openedAt),
+        [s1.openedAt, s2.openedAt],
+      );
+    });
+
+    test('jendela menyaring menurut jam buka; VOID & tanpa shift diabaikan; shift kosong tak tampil',
+        () {
+      final before = shift(DateTime(2026, 10, 31, 23));
+      final inside = shift(DateTime(2026, 11, 10, 8));
+      final empty = shift(DateTime(2026, 11, 11, 8));
+      int msOf(StoreShift s) => s.openedAt.millisecondsSinceEpoch;
+      final days = aggregatePaymentsByDay(
+        [
+          sale(time: DateTime(2026, 11, 1, 1), totalRp: 99000, shiftOpenedMs: msOf(before)),
+          sale(time: DateTime(2026, 11, 10, 9), totalRp: 15000, shiftOpenedMs: msOf(inside)),
+          sale(time: DateTime(2026, 11, 10, 10), totalRp: 99000, shiftOpenedMs: msOf(inside), isVoid: true),
+          sale(time: DateTime(2026, 11, 10, 11), totalRp: 99000, shiftOpenedMs: null),
+        ],
+        [before, inside, empty],
+        from: from,
+        to: to,
+      );
+      expect(days, hasLength(1));
+      expect(days.single.day, DateTime(2026, 11, 10));
+      expect(days.single.shifts, hasLength(1));
+      expect(days.single.totalRp, 15000);
+      expect(days.single.invoiceCount, 1);
+    });
+
+    test('rincian per metode bayar: split, record lama, gabungan hari',
+        () {
+      final s1 = shift(DateTime(2026, 11, 8, 8));
+      final s2 = shift(DateTime(2026, 11, 8, 16));
+      int msOf(StoreShift s) => s.openedAt.millisecondsSinceEpoch;
+      final days = aggregatePaymentsByDay(
+        [
+          // Split payment: satu nota, dua metode.
+          sale(
+            time: DateTime(2026, 11, 8, 9),
+            totalRp: 80000,
+            shiftOpenedMs: msOf(s1),
+            payments: const [
+              OrderPayment(method: 'Tunai', amountRp: 30000),
+              OrderPayment(method: 'QRIS', amountRp: 50000),
+            ],
+          ),
+          // Record lama satu metode (payments kosong → dipromosikan
+          // effectivePaymentsOf sebesar total tagihan).
+          sale(
+            time: DateTime(2026, 11, 8, 10),
+            totalRp: 20000,
+            shiftOpenedMs: msOf(s1),
+            payMethod: 'QRIS',
+          ),
+          sale(
+            time: DateTime(2026, 11, 8, 17),
+            totalRp: 10000,
+            shiftOpenedMs: msOf(s2),
+            payMethod: 'Tunai',
+          ),
+        ],
+        [s1, s2],
+        from: from,
+        to: to,
+      );
+      final day = days.single;
+      final first = day.shifts.first;
+      // Shift 1: QRIS 70.000 (50rb split + 20rb lama), Tunai 30.000;
+      // urut terbesar dulu; Σ metode = total shift.
+      expect(first.methodTotals, [
+        const PaymentMethodTotal(method: 'QRIS', totalRp: 70000),
+        const PaymentMethodTotal(method: 'Tunai', totalRp: 30000),
+      ]);
+      expect(
+        first.methodTotals.fold(0, (s, m) => s + m.totalRp),
+        first.totalRp,
+      );
+      // Hari: gabungan kedua shift.
+      expect(day.methodTotals, [
+        const PaymentMethodTotal(method: 'QRIS', totalRp: 70000),
+        const PaymentMethodTotal(method: 'Tunai', totalRp: 40000),
+      ]);
+      expect(day.methodTotals.fold(0, (s, m) => s + m.totalRp), day.totalRp);
+    });
+  });
 }

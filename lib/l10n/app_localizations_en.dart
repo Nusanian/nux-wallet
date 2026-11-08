@@ -122,12 +122,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get receive => 'Receive';
 
   @override
-  String get buy => 'Buy';
-
-  @override
-  String get swap => 'Swap';
-
-  @override
   String get activity => 'Activity';
 
   @override
@@ -137,10 +131,55 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noActivity => 'No activity yet';
 
   @override
-  String get market => 'Market';
+  String get market => 'Explore';
 
   @override
-  String get marketSoon => 'NUX market info — coming soon.';
+  String get jelajahSource => 'Market price — qutrade.io';
+
+  @override
+  String jelajahUpdated(String time) {
+    return 'Updated $time';
+  }
+
+  @override
+  String get jelajahChange24h => '24h change';
+
+  @override
+  String get jelajahBlockHeight => 'Block height';
+
+  @override
+  String get jelajahDirectory => 'Merchant Directory';
+
+  @override
+  String get jelajahSearchHint => 'Search merchants or goods…';
+
+  @override
+  String get jelajahAllCities => 'All cities';
+
+  @override
+  String get jelajahPointsProgram => 'Store Mode Points Program';
+
+  @override
+  String get jelajahCopyOffer => 'Copy Offer';
+
+  @override
+  String get jelajahOfferCopied => 'Offer copied';
+
+  @override
+  String get jelajahEmpty =>
+      'No merchants are listed yet. Merchant owners can register their shop through the Nusacoin community channels.';
+
+  @override
+  String get jelajahNoResults => 'No merchants match your search.';
+
+  @override
+  String get jelajahDisclaimer =>
+      'Market information from public sources. Not financial advice.';
+
+  @override
+  String jelajahDirectoryUpdated(String time) {
+    return 'Directory updated $time';
+  }
 
   @override
   String get home => 'Home';
@@ -909,6 +948,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storeProductCode => 'Product Code';
 
   @override
+  String get storeProductCodeHint =>
+      'Filled in automatically — you may replace it with the product\'s barcode.';
+
+  @override
+  String get storeProductCodeLocked =>
+      'The code can\'t be changed once the product exists.';
+
+  @override
+  String get storeProductCodeDuplicate =>
+      'This product code is already used by another product.';
+
+  @override
   String get storeProductName => 'Product Name';
 
   @override
@@ -1004,6 +1055,71 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storeSalesReport => 'Sales Report';
+
+  @override
+  String get storeReportsTitle => 'Reports';
+
+  @override
+  String get storeReportPaymentsTitle => 'Payment Report';
+
+  @override
+  String get storeReportPaymentsSubtitle =>
+      'Receipts by date, broken down by shift.';
+
+  @override
+  String get storePaymentReportBreakdown => 'Per-Shift Breakdown';
+
+  @override
+  String storePaymentReportInvoices(int count) {
+    return '$count invoices';
+  }
+
+  @override
+  String storePaymentReportTotalLine(int count, String amount) {
+    return 'Total $count invoices • Rp$amount';
+  }
+
+  @override
+  String get storeReportProductSalesTitle => 'Product Sales Report';
+
+  @override
+  String get storeReportProductSalesSubtitle =>
+      'All sales per product in the selected period.';
+
+  @override
+  String get storeProductSalesGross => 'Gross';
+
+  @override
+  String get storeReportBestsellersTitle => 'Best-Selling Products';
+
+  @override
+  String get storeReportBestsellersSubtitle =>
+      'Products ranked by how much they sold.';
+
+  @override
+  String get storeBestsellersEmpty => 'No sales in this period yet.';
+
+  @override
+  String get storePeriod7Days => 'Last 7 Days';
+
+  @override
+  String get storePeriod30Days => 'Last 30 Days';
+
+  @override
+  String get storePeriodAll => 'All Time';
+
+  @override
+  String get storePeriodCustom => 'Pick Dates';
+
+  @override
+  String storeBestsellersSoldQty(int qty) {
+    return 'Sold $qty';
+  }
+
+  @override
+  String storeBestsellersTotalLine(int qty, String amount) {
+    return 'Total sold $qty • Rp$amount';
+  }
 
   @override
   String get storeSalesHistory => 'Sales History';

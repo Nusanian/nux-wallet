@@ -308,18 +308,6 @@ abstract class AppLocalizations {
   /// **'Terima'**
   String get receive;
 
-  /// No description provided for @buy.
-  ///
-  /// In id, this message translates to:
-  /// **'Beli'**
-  String get buy;
-
-  /// No description provided for @swap.
-  ///
-  /// In id, this message translates to:
-  /// **'Tukar'**
-  String get swap;
-
   /// No description provided for @activity.
   ///
   /// In id, this message translates to:
@@ -341,14 +329,92 @@ abstract class AppLocalizations {
   /// No description provided for @market.
   ///
   /// In id, this message translates to:
-  /// **'Pasar'**
+  /// **'Jelajah'**
   String get market;
 
-  /// No description provided for @marketSoon.
+  /// No description provided for @jelajahSource.
   ///
   /// In id, this message translates to:
-  /// **'Info pasar NUX — segera hadir.'**
-  String get marketSoon;
+  /// **'Harga pasar — qutrade.io'**
+  String get jelajahSource;
+
+  /// No description provided for @jelajahUpdated.
+  ///
+  /// In id, this message translates to:
+  /// **'Diperbarui {time}'**
+  String jelajahUpdated(String time);
+
+  /// No description provided for @jelajahChange24h.
+  ///
+  /// In id, this message translates to:
+  /// **'Perubahan 24 jam'**
+  String get jelajahChange24h;
+
+  /// No description provided for @jelajahBlockHeight.
+  ///
+  /// In id, this message translates to:
+  /// **'Tinggi blok'**
+  String get jelajahBlockHeight;
+
+  /// No description provided for @jelajahDirectory.
+  ///
+  /// In id, this message translates to:
+  /// **'Direktori Toko'**
+  String get jelajahDirectory;
+
+  /// No description provided for @jelajahSearchHint.
+  ///
+  /// In id, this message translates to:
+  /// **'Cari toko atau barang…'**
+  String get jelajahSearchHint;
+
+  /// No description provided for @jelajahAllCities.
+  ///
+  /// In id, this message translates to:
+  /// **'Semua kota'**
+  String get jelajahAllCities;
+
+  /// No description provided for @jelajahPointsProgram.
+  ///
+  /// In id, this message translates to:
+  /// **'Program Poin Mode Toko'**
+  String get jelajahPointsProgram;
+
+  /// No description provided for @jelajahCopyOffer.
+  ///
+  /// In id, this message translates to:
+  /// **'Salin Offer'**
+  String get jelajahCopyOffer;
+
+  /// No description provided for @jelajahOfferCopied.
+  ///
+  /// In id, this message translates to:
+  /// **'Offer tersalin'**
+  String get jelajahOfferCopied;
+
+  /// No description provided for @jelajahEmpty.
+  ///
+  /// In id, this message translates to:
+  /// **'Belum ada toko terdaftar. Pemilik toko dapat mendaftarkan tokonya lewat kanal komunitas Nusacoin.'**
+  String get jelajahEmpty;
+
+  /// No description provided for @jelajahNoResults.
+  ///
+  /// In id, this message translates to:
+  /// **'Tidak ada toko yang cocok dengan pencarian.'**
+  String get jelajahNoResults;
+
+  /// No description provided for @jelajahDisclaimer.
+  ///
+  /// In id, this message translates to:
+  /// **'Informasi pasar dari sumber publik. Bukan nasihat keuangan.'**
+  String get jelajahDisclaimer;
+
+  /// No description provided for @jelajahDirectoryUpdated.
+  ///
+  /// In id, this message translates to:
+  /// **'Direktori diperbarui {time}'**
+  String jelajahDirectoryUpdated(String time);
 
   /// No description provided for @home.
   ///
@@ -1718,6 +1784,24 @@ abstract class AppLocalizations {
   /// **'Kode Produk'**
   String get storeProductCode;
 
+  /// No description provided for @storeProductCodeHint.
+  ///
+  /// In id, this message translates to:
+  /// **'Terisi otomatis — boleh diganti dengan barcode produk.'**
+  String get storeProductCodeHint;
+
+  /// No description provided for @storeProductCodeLocked.
+  ///
+  /// In id, this message translates to:
+  /// **'Kode tidak bisa diubah setelah produk dibuat.'**
+  String get storeProductCodeLocked;
+
+  /// No description provided for @storeProductCodeDuplicate.
+  ///
+  /// In id, this message translates to:
+  /// **'Kode produk ini sudah dipakai produk lain.'**
+  String get storeProductCodeDuplicate;
+
   /// No description provided for @storeProductName.
   ///
   /// In id, this message translates to:
@@ -1885,6 +1969,114 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Laporan Penjualan'**
   String get storeSalesReport;
+
+  /// No description provided for @storeReportsTitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Daftar Laporan'**
+  String get storeReportsTitle;
+
+  /// No description provided for @storeReportPaymentsTitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Laporan Pembayaran'**
+  String get storeReportPaymentsTitle;
+
+  /// No description provided for @storeReportPaymentsSubtitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Penerimaan per tanggal, dirinci per shift.'**
+  String get storeReportPaymentsSubtitle;
+
+  /// No description provided for @storePaymentReportBreakdown.
+  ///
+  /// In id, this message translates to:
+  /// **'Rincian per Shift'**
+  String get storePaymentReportBreakdown;
+
+  /// No description provided for @storePaymentReportInvoices.
+  ///
+  /// In id, this message translates to:
+  /// **'{count} nota'**
+  String storePaymentReportInvoices(int count);
+
+  /// No description provided for @storePaymentReportTotalLine.
+  ///
+  /// In id, this message translates to:
+  /// **'Total {count} nota • Rp{amount}'**
+  String storePaymentReportTotalLine(int count, String amount);
+
+  /// No description provided for @storeReportProductSalesTitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Laporan Penjualan Produk'**
+  String get storeReportProductSalesTitle;
+
+  /// No description provided for @storeReportProductSalesSubtitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Semua penjualan per produk pada periode terpilih.'**
+  String get storeReportProductSalesSubtitle;
+
+  /// No description provided for @storeProductSalesGross.
+  ///
+  /// In id, this message translates to:
+  /// **'Bruto'**
+  String get storeProductSalesGross;
+
+  /// No description provided for @storeReportBestsellersTitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Produk Terlaris'**
+  String get storeReportBestsellersTitle;
+
+  /// No description provided for @storeReportBestsellersSubtitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Urutan produk dari yang paling banyak terjual.'**
+  String get storeReportBestsellersSubtitle;
+
+  /// No description provided for @storeBestsellersEmpty.
+  ///
+  /// In id, this message translates to:
+  /// **'Belum ada penjualan pada periode ini.'**
+  String get storeBestsellersEmpty;
+
+  /// No description provided for @storePeriod7Days.
+  ///
+  /// In id, this message translates to:
+  /// **'7 Hari Terakhir'**
+  String get storePeriod7Days;
+
+  /// No description provided for @storePeriod30Days.
+  ///
+  /// In id, this message translates to:
+  /// **'30 Hari Terakhir'**
+  String get storePeriod30Days;
+
+  /// No description provided for @storePeriodAll.
+  ///
+  /// In id, this message translates to:
+  /// **'Semua'**
+  String get storePeriodAll;
+
+  /// No description provided for @storePeriodCustom.
+  ///
+  /// In id, this message translates to:
+  /// **'Pilih Tanggal'**
+  String get storePeriodCustom;
+
+  /// No description provided for @storeBestsellersSoldQty.
+  ///
+  /// In id, this message translates to:
+  /// **'Terjual {qty}'**
+  String storeBestsellersSoldQty(int qty);
+
+  /// No description provided for @storeBestsellersTotalLine.
+  ///
+  /// In id, this message translates to:
+  /// **'Total terjual {qty} • Rp{amount}'**
+  String storeBestsellersTotalLine(int qty, String amount);
 
   /// No description provided for @storeSalesHistory.
   ///
