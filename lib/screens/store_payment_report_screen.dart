@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../locale_controller.dart';
 import '../theme.dart';
 import '../services/store_order_history.dart';
+import '../services/store_report_export.dart';
 import '../services/store_report_filter.dart';
 import '../services/store_shift.dart';
 import '../utils/format.dart';
@@ -38,6 +39,7 @@ class _StorePaymentReportScreenState extends State<StorePaymentReportScreen> {
   List<CompletedOrder> _orders = const [];
   List<StoreShift> _shifts = const [];
   bool _loading = true;
+  bool _sharing = false;
 
   /// Bawaan sama dengan laporan lain: 30 hari terakhir.
   StoreReportFilter _filter =
@@ -63,6 +65,50 @@ class _StorePaymentReportScreenState extends State<StorePaymentReportScreen> {
     });
   }
 
+  /// Ekspor PDF laporan ini pada filter + saklar rincian yang
+  /// sedang aktif (pondasi ekspor bersama laporan Mode Toko):
+  /// yang diekspor sama dengan yang tampil di layar.
+  Future<void> _sharePdf() async {
+    if (_sharing) return;
+    setState(() => _sharing = true);
+    try {
+      final l10n = context.l10n;
+      final window = storeReportWindowFor(_filter, now: DateTime.now());
+      final days = aggregatePaymentsByDay(
+        _orders,
+        _shifts,
+        from: window.from,
+        to: window.to,
+      );
+      final totalCount = days.fold(0, (sum, d) => sum + d.invoiceCount);
+      final totalRp = days.fold(0, (sum, d) => sum + d.totalRp);
+      await shareReportPdf(
+        text: buildPaymentReportText(
+          title: l10n.storeReportPaymentsTitle,
+          periodLabel: storeReportFilterLabel(_filter, l10n),
+          generatedStamp: formatGeneratedStamp(DateTime.now(), l10n.localeName),
+          days: days,
+          includeBreakdown: _breakdown,
+          invoicesLabel: l10n.storePaymentReportInvoices,
+          stillOpenLabel: l10n.storeShiftStillOpen,
+          pointsUsedLabel: (points, discountRp) => l10n
+              .storeReportPointsUsed(points, 'Rp${formatRupiah(discountRp)}'),
+          totalLine: l10n.storePaymentReportTotalLine(
+            totalCount,
+            formatRupiah(totalRp),
+          ),
+          emptyLabel: l10n.storeBestsellersEmpty,
+          locale: l10n.localeName,
+        ),
+        fileStem: 'laporan-pembayaran',
+      );
+    } catch (_) {
+      // Gagal menyusun/membagikan PDF — diamkan; layar tetap tampil.
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -78,7 +124,16 @@ class _StorePaymentReportScreenState extends State<StorePaymentReportScreen> {
     final totalCount = days.fold(0, (sum, d) => sum + d.invoiceCount);
     final totalRp = days.fold(0, (sum, d) => sum + d.totalRp);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.storeReportPaymentsTitle)),
+      appBar: AppBar(
+        title: Text(l10n.storeReportPaymentsTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf_rounded, size: 21),
+            tooltip: l10n.storeExportPdf,
+            onPressed: _loading || _sharing ? null : _sharePdf,
+          ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Column(
@@ -185,6 +240,16 @@ class _StorePaymentReportScreenState extends State<StorePaymentReportScreen> {
               style: TextStyle(fontSize: 12, color: context.palette.muted),
             ),
           ],
+          if (entry.pointsRedeemed > 0) ...[
+            const SizedBox(height: 3),
+            Text(
+              l10n.storeReportPointsUsed(
+                entry.pointsRedeemed,
+                'Rp${formatRupiah(entry.pointsDiscountRp)}',
+              ),
+              style: TextStyle(fontSize: 12, color: context.palette.muted),
+            ),
+          ],
           if (_breakdown)
             for (final shiftEntry in entry.shifts) ...[
               const Divider(height: 18),
@@ -269,6 +334,23 @@ class _StorePaymentReportScreenState extends State<StorePaymentReportScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+        // Poin terpakai shift ini (bila ada penukaran): jumlah
+        // poin + nilai potongan rupiahnya — keterangan
+        // rekonsiliasi, bukan penerimaan.
+        if (entry.pointsRedeemed > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 3),
+            child: Text(
+              l10n.storeReportPointsUsed(
+                entry.pointsRedeemed,
+                'Rp${formatRupiah(entry.pointsDiscountRp)}',
+              ),
+              style: TextStyle(
+                fontSize: 12,
+                color: context.palette.muted,
+              ),
             ),
           ),
       ],

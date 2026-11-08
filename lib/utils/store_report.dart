@@ -749,11 +749,21 @@ class ShiftPaymentEntry {
   /// (Σ-nya = [totalRp]).
   final List<PaymentMethodTotal> methodTotals;
 
+  /// Poin terpakai (tertukar) pada nota-nota shift ini:
+  /// jumlah poinnya dan nilai potongan rupiahnya. Poin BUKAN
+  /// penerimaan — potongannya sudah mengurangi [totalRp] —
+  /// ia tampil sebagai keterangan rekonsiliasi (permintaan
+  /// NUX 8 Nov 2026).
+  final int pointsRedeemed;
+  final int pointsDiscountRp;
+
   const ShiftPaymentEntry({
     required this.shift,
     required this.invoiceCount,
     required this.totalRp,
     required this.methodTotals,
+    this.pointsRedeemed = 0,
+    this.pointsDiscountRp = 0,
   });
 }
 
@@ -768,6 +778,12 @@ class DayPaymentEntry {
 
   int get totalRp => shifts.fold(0, (sum, e) => sum + e.totalRp);
   int get invoiceCount => shifts.fold(0, (sum, e) => sum + e.invoiceCount);
+
+  /// Poin terpakai sepanjang hari ini (gabungan semua shift).
+  int get pointsRedeemed =>
+      shifts.fold(0, (sum, e) => sum + e.pointsRedeemed);
+  int get pointsDiscountRp =>
+      shifts.fold(0, (sum, e) => sum + e.pointsDiscountRp);
 
   /// Rincian penerimaan per metode bayar sepanjang hari ini
   /// (gabungan semua shiftnya; Σ-nya = [totalRp]).
@@ -804,16 +820,18 @@ List<DayPaymentEntry> aggregatePaymentsByDay(
   required DateTime from,
   required DateTime to,
 }) {
-  final totals = <int, ({int count, int total})>{};
+  final totals = <int, ({int count, int total, int points, int pointsRp})>{};
   final methodsByShiftMs = <int, Map<String, int>>{};
   for (final order in orders) {
     if (!order.isRupiahEra || order.isVoid) continue;
     final ms = order.shiftOpenedMs;
     if (ms == null) continue;
-    final current = totals[ms] ?? (count: 0, total: 0);
+    final current = totals[ms] ?? (count: 0, total: 0, points: 0, pointsRp: 0);
     totals[ms] = (
       count: current.count + 1,
       total: current.total + order.grandTotalRp,
+      points: current.points + order.pointsRedeemed,
+      pointsRp: current.pointsRp + order.pointsDiscountRp,
     );
     // Rincian metode lewat effectivePaymentsOf — dasar yang
     // sama dengan tender laporan shift, termasuk promosi
@@ -845,6 +863,8 @@ List<DayPaymentEntry> aggregatePaymentsByDay(
             invoiceCount: t.count,
             totalRp: t.total,
             methodTotals: _sortedMethodTotals(methodsByShiftMs[ms] ?? {}),
+            pointsRedeemed: t.points,
+            pointsDiscountRp: t.pointsRp,
           ),
         );
   }
@@ -857,6 +877,172 @@ List<DayPaymentEntry> aggregatePaymentsByDay(
           ..sort((a, b) => a.shift.openedAt.compareTo(b.shift.openedAt)),
       ),
   ];
+}
+
+/// Lebar teks ekspor laporan-laporan layar (PDF A4 fon
+/// Courier) — lebih lega dari lebar struk 58mm ([reportWidth]).
+const reportTextWidth = 56;
+
+String _textRule() => '-' * reportTextWidth;
+
+/// Satu baris "label .... nilai" selebar [reportTextWidth];
+/// bila tidak muat satu baris, nilai turun ke baris berikut
+/// rata kanan (nama produk panjang tidak pernah terpotong).
+String _textAmountRow(String left, String right) {
+  if (left.length + 1 + right.length <= reportTextWidth) {
+    return left.padRight(reportTextWidth - right.length) + right;
+  }
+  return '$left\n${right.padLeft(reportTextWidth)}';
+}
+
+String _hhmm(DateTime t) =>
+    '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+List<String> _textHeader({
+  required String title,
+  required String periodLabel,
+  required String generatedStamp,
+}) => [title, periodLabel, generatedStamp, _textRule()];
+
+/// Teks ekspor PDF Laporan Produk Terlaris: peringkat persis
+/// seperti di layar (urut & angka dari [aggregateProductSales]).
+String buildBestsellersText({
+  required String title,
+  required String periodLabel,
+  required String generatedStamp,
+  required List<ProductSalesEntry> entries,
+  required String Function(int qty) soldQtyLabel,
+  required String totalLine,
+  required String emptyLabel,
+}) {
+  final lines = _textHeader(
+    title: title,
+    periodLabel: periodLabel,
+    generatedStamp: generatedStamp,
+  );
+  if (entries.isEmpty) {
+    lines.add(emptyLabel);
+    return lines.join('\n');
+  }
+  for (var i = 0; i < entries.length; i++) {
+    final e = entries[i];
+    lines.add(_textAmountRow('${i + 1}. ${e.label}', 'Rp${_fmt(e.netRp)}'));
+    lines.add(
+      '   ${[if (e.code.isNotEmpty) e.code, soldQtyLabel(e.qty)].join(' • ')}',
+    );
+  }
+  lines.add(_textRule());
+  lines.add(totalLine);
+  return lines.join('\n');
+}
+
+/// Teks ekspor PDF Laporan Penjualan Produk: daftar lengkap
+/// persis seperti di layar (urut abjad dari pemanggil).
+String buildProductSalesText({
+  required String title,
+  required String periodLabel,
+  required String generatedStamp,
+  required List<ProductSalesEntry> entries,
+  required String Function(int qty) soldQtyLabel,
+  required String grossLabel,
+  required String discountLabel,
+  required String totalLine,
+  required String emptyLabel,
+}) {
+  final lines = _textHeader(
+    title: title,
+    periodLabel: periodLabel,
+    generatedStamp: generatedStamp,
+  );
+  if (entries.isEmpty) {
+    lines.add(emptyLabel);
+    return lines.join('\n');
+  }
+  for (final e in entries) {
+    lines.add(_textAmountRow(e.label, 'Rp${_fmt(e.netRp)}'));
+    lines.add(
+      '   ${[
+        if (e.code.isNotEmpty) e.code,
+        soldQtyLabel(e.qty),
+        '$grossLabel Rp${_fmt(e.grossRp)}',
+        if (e.discountRp > 0) '$discountLabel Rp${_fmt(e.discountRp)}',
+      ].join(' • ')}',
+    );
+  }
+  lines.add(_textRule());
+  lines.add(totalLine);
+  return lines.join('\n');
+}
+
+/// Teks ekspor PDF Laporan Pembayaran: per tanggal + rincian
+/// metodenya; baris shift hanya bila [includeBreakdown] —
+/// ekspor mengikuti saklar yang sedang aktif di layar, jadi
+/// yang diterima pembaca sama dengan yang dilihat owner.
+String buildPaymentReportText({
+  required String title,
+  required String periodLabel,
+  required String generatedStamp,
+  required List<DayPaymentEntry> days,
+  required bool includeBreakdown,
+  required String Function(int count) invoicesLabel,
+  required String stillOpenLabel,
+  required String Function(int points, int discountRp) pointsUsedLabel,
+  required String totalLine,
+  required String emptyLabel,
+  required String locale,
+}) {
+  final lines = _textHeader(
+    title: title,
+    periodLabel: periodLabel,
+    generatedStamp: generatedStamp,
+  );
+  if (days.isEmpty) {
+    lines.add(emptyLabel);
+    return lines.join('\n');
+  }
+  for (final day in days) {
+    lines.add(
+      _textAmountRow(
+        formatDayPeriod(day: day.day, locale: locale),
+        'Rp${_fmt(day.totalRp)}',
+      ),
+    );
+    if (day.methodTotals.isNotEmpty) {
+      lines.add(
+        '  ${day.methodTotals.map((m) => '${m.method} Rp${_fmt(m.totalRp)}').join(' • ')}',
+      );
+    }
+    if (day.pointsRedeemed > 0) {
+      lines.add('  ${pointsUsedLabel(day.pointsRedeemed, day.pointsDiscountRp)}');
+    }
+    if (includeBreakdown) {
+      for (final entry in day.shifts) {
+        final shift = entry.shift;
+        final hours = shift.closedAt != null
+            ? '${_hhmm(shift.openedAt)} - ${_hhmm(shift.closedAt!)}'
+            : '${_hhmm(shift.openedAt)} - $stillOpenLabel';
+        lines.add(_textAmountRow('  $hours', 'Rp${_fmt(entry.totalRp)}'));
+        lines.add(
+          '    ${[
+            if (shift.operatorName.isNotEmpty) shift.operatorName,
+            invoicesLabel(entry.invoiceCount),
+          ].join(' • ')}',
+        );
+        for (final m in entry.methodTotals) {
+          lines.add(_textAmountRow('    ${m.method}', 'Rp${_fmt(m.totalRp)}'));
+        }
+        if (entry.pointsRedeemed > 0) {
+          lines.add(
+            '    ${pointsUsedLabel(entry.pointsRedeemed, entry.pointsDiscountRp)}',
+          );
+        }
+      }
+    }
+    lines.add('');
+  }
+  lines.add(_textRule());
+  lines.add(totalLine);
+  return lines.join('\n');
 }
 
 /// Jumlah shift yang jendelanya bersinggungan dengan [from, to)

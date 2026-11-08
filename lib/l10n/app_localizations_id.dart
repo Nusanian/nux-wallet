@@ -939,6 +939,9 @@ class AppLocalizationsId extends AppLocalizations {
       'Katalog masih kosong — tambahkan produk pertama lewat tombol Kelola.';
 
   @override
+  String get storeCategoryAll => 'Semua';
+
+  @override
   String get storeCodeNotRegistered => 'Kode ini belum terdaftar di katalog.';
 
   @override
@@ -1060,6 +1063,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get storeReportsTitle => 'Daftar Laporan';
 
   @override
+  String get storeExportPdf => 'Ekspor PDF';
+
+  @override
   String get storeReportPaymentsTitle => 'Laporan Pembayaran';
 
   @override
@@ -1068,6 +1074,11 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get storePaymentReportBreakdown => 'Rincian per Shift';
+
+  @override
+  String storeReportPointsUsed(int points, String amount) {
+    return 'Poin terpakai: $points poin (−$amount)';
+  }
 
   @override
   String storePaymentReportInvoices(int count) {

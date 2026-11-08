@@ -938,6 +938,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'The catalog is still empty — add the first product via Manage.';
 
   @override
+  String get storeCategoryAll => 'All';
+
+  @override
   String get storeCodeNotRegistered =>
       'This code isn\'t registered in the catalog yet.';
 
@@ -1060,6 +1063,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storeReportsTitle => 'Reports';
 
   @override
+  String get storeExportPdf => 'Export PDF';
+
+  @override
   String get storeReportPaymentsTitle => 'Payment Report';
 
   @override
@@ -1068,6 +1074,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storePaymentReportBreakdown => 'Per-Shift Breakdown';
+
+  @override
+  String storeReportPointsUsed(int points, String amount) {
+    return 'Points used: $points points (−$amount)';
+  }
 
   @override
   String storePaymentReportInvoices(int count) {

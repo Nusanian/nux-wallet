@@ -439,6 +439,7 @@
   "storeCatalogTitle": "Katalog Produk",
   "storeManageCatalog": "Kelola",
   "storeCatalogEmpty": "Katalog masih kosong — tambahkan produk pertama lewat tombol Kelola.",
+  "storeCategoryAll": "Semua",
   "storeCodeNotRegistered": "Kode ini belum terdaftar di katalog.",
   "storeRegisterNow": "Daftarkan Sekarang",
   "storeProductCode": "Kode Produk",
@@ -505,9 +506,21 @@
   "storeViewReport": "Lihat Laporan",
   "storeSalesReport": "Laporan Penjualan",
   "storeReportsTitle": "Daftar Laporan",
+  "storeExportPdf": "Ekspor PDF",
   "storeReportPaymentsTitle": "Laporan Pembayaran",
   "storeReportPaymentsSubtitle": "Penerimaan per tanggal, dirinci per shift.",
   "storePaymentReportBreakdown": "Rincian per Shift",
+  "storeReportPointsUsed": "Poin terpakai: {points} poin (−{amount})",
+  "@storeReportPointsUsed": {
+    "placeholders": {
+      "points": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "storePaymentReportInvoices": "{count} nota",
   "@storePaymentReportInvoices": {
     "placeholders": {

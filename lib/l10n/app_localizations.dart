@@ -1766,6 +1766,12 @@ abstract class AppLocalizations {
   /// **'Katalog masih kosong — tambahkan produk pertama lewat tombol Kelola.'**
   String get storeCatalogEmpty;
 
+  /// No description provided for @storeCategoryAll.
+  ///
+  /// In id, this message translates to:
+  /// **'Semua'**
+  String get storeCategoryAll;
+
   /// No description provided for @storeCodeNotRegistered.
   ///
   /// In id, this message translates to:
@@ -1976,6 +1982,12 @@ abstract class AppLocalizations {
   /// **'Daftar Laporan'**
   String get storeReportsTitle;
 
+  /// No description provided for @storeExportPdf.
+  ///
+  /// In id, this message translates to:
+  /// **'Ekspor PDF'**
+  String get storeExportPdf;
+
   /// No description provided for @storeReportPaymentsTitle.
   ///
   /// In id, this message translates to:
@@ -1993,6 +2005,12 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Rincian per Shift'**
   String get storePaymentReportBreakdown;
+
+  /// No description provided for @storeReportPointsUsed.
+  ///
+  /// In id, this message translates to:
+  /// **'Poin terpakai: {points} poin (−{amount})'**
+  String storeReportPointsUsed(int points, String amount);
 
   /// No description provided for @storePaymentReportInvoices.
   ///

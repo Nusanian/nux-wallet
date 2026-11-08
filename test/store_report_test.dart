@@ -666,6 +666,8 @@ void main() {
       bool isVoid = false,
       String? payMethod,
       List<OrderPayment> payments = const [],
+      int pointsRedeemed = 0,
+      int pointsDiscountRp = 0,
     }) => CompletedOrder(
       time: time,
       lines: const [
@@ -680,6 +682,8 @@ void main() {
       isVoid: isVoid,
       payMethod: payMethod,
       payments: payments,
+      pointsRedeemed: pointsRedeemed,
+      pointsDiscountRp: pointsDiscountRp,
       shiftOpenedMs: shiftOpenedMs,
     );
 
@@ -813,6 +817,228 @@ void main() {
         const PaymentMethodTotal(method: 'Tunai', totalRp: 40000),
       ]);
       expect(day.methodTotals.fold(0, (s, m) => s + m.totalRp), day.totalRp);
+    });
+    test('poin terpakai teragregasi per shift & per hari; VOID dikecualikan', () {
+      final morning = shift(
+        DateTime(2026, 11, 8, 8),
+        closedAt: DateTime(2026, 11, 8, 12),
+      );
+      final evening = shift(
+        DateTime(2026, 11, 8, 13),
+        closedAt: DateTime(2026, 11, 8, 17),
+      );
+      final msM = morning.openedAt.millisecondsSinceEpoch;
+      final msE = evening.openedAt.millisecondsSinceEpoch;
+      final days = aggregatePaymentsByDay(
+        [
+          sale(
+            time: DateTime(2026, 11, 8, 9),
+            totalRp: 20000,
+            shiftOpenedMs: msM,
+            pointsRedeemed: 100,
+            pointsDiscountRp: 1000,
+          ),
+          sale(
+            time: DateTime(2026, 11, 8, 10),
+            totalRp: 30000,
+            shiftOpenedMs: msM,
+            pointsRedeemed: 150,
+            pointsDiscountRp: 1500,
+          ),
+          // VOID dengan poin — tidak terhitung.
+          sale(
+            time: DateTime(2026, 11, 8, 11),
+            totalRp: 99999,
+            shiftOpenedMs: msM,
+            isVoid: true,
+            pointsRedeemed: 500,
+            pointsDiscountRp: 5000,
+          ),
+          sale(
+            time: DateTime(2026, 11, 8, 14),
+            totalRp: 10000,
+            shiftOpenedMs: msE,
+          ),
+        ],
+        [morning, evening],
+        from: from,
+        to: to,
+      );
+      expect(days, hasLength(1));
+      final day = days.single;
+      expect(day.pointsRedeemed, 250);
+      expect(day.pointsDiscountRp, 2500);
+      final byOpen = {for (final e in day.shifts) e.shift.openedAt.hour: e};
+      expect(byOpen[8]!.pointsRedeemed, 250);
+      expect(byOpen[8]!.pointsDiscountRp, 2500);
+      expect(byOpen[13]!.pointsRedeemed, 0);
+      expect(byOpen[13]!.pointsDiscountRp, 0);
+    });
+  });
+
+  group('teks ekspor PDF laporan', () {
+    test('produk terlaris: peringkat, kode, total; kosong berlabel', () {
+      final text = buildBestsellersText(
+        title: 'Produk Terlaris',
+        periodLabel: '30 Hari Terakhir',
+        generatedStamp: 'STAMP',
+        entries: const [
+          ProductSalesEntry(
+            code: 'PRD-001',
+            label: 'Kopi Sachet',
+            qty: 25,
+            grossRp: 125000,
+            discountRp: 0,
+          ),
+        ],
+        soldQtyLabel: (q) => 'Terjual $q',
+        totalLine: 'Total terjual 25 • Rp125.000',
+        emptyLabel: 'KOSONG',
+      );
+      expect(text, contains('Produk Terlaris'));
+      expect(text, contains('1. Kopi Sachet'));
+      expect(text, contains('Rp125.000'));
+      expect(text, contains('PRD-001 • Terjual 25'));
+      expect(text, contains('Total terjual 25 • Rp125.000'));
+      for (final line in text.split('\n')) {
+        expect(line.length, lessThanOrEqualTo(reportTextWidth),
+            reason: line);
+      }
+      final empty = buildBestsellersText(
+        title: 'T',
+        periodLabel: 'P',
+        generatedStamp: 'S',
+        entries: const [],
+        soldQtyLabel: (q) => 'Terjual $q',
+        totalLine: 'TOT',
+        emptyLabel: 'KOSONG',
+      );
+      expect(empty, contains('KOSONG'));
+    });
+
+    test('penjualan produk: bruto tampil, diskon hanya bila ada', () {
+      final text = buildProductSalesText(
+        title: 'Laporan Penjualan Produk',
+        periodLabel: 'P',
+        generatedStamp: 'S',
+        entries: const [
+          ProductSalesEntry(
+            code: '',
+            label: 'Teh',
+            qty: 2,
+            grossRp: 20000,
+            discountRp: 2000,
+          ),
+          ProductSalesEntry(
+            code: '',
+            label: 'Kopi',
+            qty: 1,
+            grossRp: 5000,
+            discountRp: 0,
+          ),
+        ],
+        soldQtyLabel: (q) => 'Terjual $q',
+        grossLabel: 'Bruto',
+        discountLabel: 'Diskon',
+        totalLine: 'TOT',
+        emptyLabel: 'KOSONG',
+      );
+      expect(text, contains('Bruto Rp20.000'));
+      expect(text, contains('Diskon Rp2.000'));
+      final kopiLine = text
+          .split('\n')
+          .firstWhere((l) => l.contains('Bruto Rp5.000'));
+      expect(kopiLine, isNot(contains('Diskon')));
+    });
+
+    test('pembayaran: saklar rincian mengendalikan baris shift', () {
+      final shift = StoreShift(
+        openedAt: DateTime(2026, 11, 8, 8),
+        closedAt: DateTime(2026, 11, 8, 12),
+        era: 'rp',
+        operatorName: 'Ani',
+      );
+      final days = [
+        DayPaymentEntry(
+          day: DateTime(2026, 11, 8),
+          shifts: [
+            ShiftPaymentEntry(
+              shift: shift,
+              invoiceCount: 3,
+              totalRp: 100000,
+              methodTotals: const [
+                PaymentMethodTotal(method: 'Tunai', totalRp: 100000),
+              ],
+            ),
+          ],
+        ),
+      ];
+      String build(bool breakdown) => buildPaymentReportText(
+        title: 'Laporan Pembayaran',
+        periodLabel: 'P',
+        generatedStamp: 'S',
+        days: days,
+        includeBreakdown: breakdown,
+        invoicesLabel: (c) => '$c nota',
+        stillOpenLabel: 'Masih Berjalan',
+        pointsUsedLabel: (p, rp) => 'Poin terpakai: $p poin (−Rp$rp)',
+        totalLine: 'Total 3 nota • Rp100.000',
+        emptyLabel: 'KOSONG',
+        locale: 'id',
+      );
+      final withShifts = build(true);
+      expect(withShifts, contains('08:00 - 12:00'));
+      expect(withShifts, contains('Ani • 3 nota'));
+      expect(withShifts, contains('Tunai Rp100.000'));
+      // Tanpa penukaran poin, baris poin tidak muncul.
+      expect(withShifts, isNot(contains('Poin terpakai')));
+      final withoutShifts = build(false);
+      expect(withoutShifts, isNot(contains('08:00 - 12:00')));
+      // Metode gabungan hari tetap tampil walau rincian mati.
+      expect(withoutShifts, contains('Tunai Rp100.000'));
+    });
+
+
+    test('teks pembayaran memuat baris poin di hari & shift bila ada', () {
+      final shiftWithPoints = StoreShift(
+        openedAt: DateTime(2026, 11, 8, 8),
+        closedAt: DateTime(2026, 11, 8, 12),
+        era: 'rp',
+        operatorName: 'Ani',
+      );
+      final daysWithPoints = [
+        DayPaymentEntry(
+          day: DateTime(2026, 11, 8),
+          shifts: [
+            ShiftPaymentEntry(
+              shift: shiftWithPoints,
+              invoiceCount: 2,
+              totalRp: 50000,
+              methodTotals: const [
+                PaymentMethodTotal(method: 'Tunai', totalRp: 50000),
+              ],
+              pointsRedeemed: 250,
+              pointsDiscountRp: 2500,
+            ),
+          ],
+        ),
+      ];
+      final text = buildPaymentReportText(
+        title: 'Laporan Pembayaran',
+        periodLabel: 'P',
+        generatedStamp: 'S',
+        days: daysWithPoints,
+        includeBreakdown: true,
+        invoicesLabel: (c) => '$c nota',
+        stillOpenLabel: 'Masih Berjalan',
+        pointsUsedLabel: (p, rp) => 'Poin terpakai: $p poin (−Rp$rp)',
+        totalLine: 'Total 2 nota • Rp50.000',
+        emptyLabel: 'KOSONG',
+        locale: 'id',
+      );
+      // Baris hari (indent 2) dan baris shift (indent 4).
+      expect(text, contains('  Poin terpakai: 250 poin (−Rp2500)'));
+      expect(text, contains('    Poin terpakai: 250 poin (−Rp2500)'));
     });
   });
 }
