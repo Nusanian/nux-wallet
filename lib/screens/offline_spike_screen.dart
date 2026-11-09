@@ -308,6 +308,18 @@ class _OfflineSpikeScreenState extends State<OfflineSpikeScreen> {
     await _bridge.startDiscovery(_localName);
   }
 
+  /// Mode gabung (PR A tuas produksi): tanpa peran, ID node
+  /// sendiri wajib ada karena ia isi muatan HELLO.
+  Future<void> _startCombined() async {
+    if (!await _ensurePermissions()) return;
+    final id = _ownNodeId;
+    if (id == null) {
+      _addLog('ID node sendiri belum terbaca; mode gabung dibatalkan.');
+      return;
+    }
+    await _bridge.startCombined(localName: _localName, localNodeIdHex: id);
+  }
+
   /// Pindai QR ID node host dari HP seberang (kartu ID node di
   /// layarnya menampilkan QR-nya) dan isi kolom ID tujuan.
   Future<void> _scanHostNodeId() async {
@@ -393,19 +405,9 @@ class _OfflineSpikeScreenState extends State<OfflineSpikeScreen> {
       _addLog('Peer seberang belum tersambung; buka channel ditunda.');
       return;
     }
-    final msat = parseChannelAmountToMsat(_channelAmountController.text);
-    if (msat == null || msat <= BigInt.zero) {
-      _addLog('Jumlah channel tidak valid (nusan bulat, tanpa pecahan).');
-      return;
-    }
-    final sats = msat ~/ BigInt.from(1000);
-    final spendable = _onchainSats;
-    if (spendable != null && sats > spendable) {
-      _addLog(
-        'Saldo on-chain internal tidak cukup: butuh ${formatNusan(msat)} nusan, tersedia ${formatNusan(spendable * BigInt.from(1000))} nusan.',
-      );
-      return;
-    }
+    final validated = _validatedChannelAmount();
+    if (validated == null) return;
+    final (msat, sats) = validated;
     setState(() => _openingChannel = true);
     try {
       await widget.lspService.openChannelToPeer(
@@ -420,6 +422,59 @@ class _OfflineSpikeScreenState extends State<OfflineSpikeScreen> {
       await _refreshChannels();
     } catch (e) {
       _addLog('Buka channel gagal: $e');
+    } finally {
+      if (mounted) setState(() => _openingChannel = false);
+    }
+  }
+
+  /// Jumlah channel dari kolom nominal, tervalidasi terhadap
+  /// saldo on-chain internal. Mengembalikan (msat, sats) atau
+  /// null sesudah mencatat alasan penolakannya di log — dipakai
+  /// bersama oleh pembukaan ke peer jembatan dan ke LSP.
+  (BigInt, BigInt)? _validatedChannelAmount() {
+    final msat = parseChannelAmountToMsat(_channelAmountController.text);
+    if (msat == null || msat <= BigInt.zero) {
+      _addLog('Jumlah channel tidak valid (nusan bulat, tanpa pecahan).');
+      return null;
+    }
+    final sats = msat ~/ BigInt.from(1000);
+    final spendable = _onchainSats;
+    if (spendable != null && sats > spendable) {
+      _addLog(
+        'Saldo on-chain internal tidak cukup: butuh ${formatNusan(msat)} nusan, tersedia ${formatNusan(spendable * BigInt.from(1000))} nusan.',
+      );
+      return null;
+    }
+    return (msat, sats);
+  }
+
+  /// Buka channel ke LSP dengan dana sendiri (arah pemodal):
+  /// pagar boot offline yang sama, validasi jumlah yang sama;
+  /// bedanya hanya tujuan — node LSP lewat internet, bukan peer
+  /// jembatan. Channel LSP tidak tampil di daftar channel
+  /// langsung layar ini; kemajuannya dipantau lewat log ini dan
+  /// Profil → Kelola Channel.
+  Future<void> _openChannelToLsp() async {
+    if (widget.lspService.isOfflineMode) {
+      _addLog(
+        'Buka channel ditolak: sesi ini dimulai tanpa internet, node tidak '
+        'punya akses ke rantai sehingga siaran pendanaan tidak akan sampai '
+        'ke jaringan. Mulai ulang aplikasi dengan internet untuk membuka '
+        'channel.',
+      );
+      return;
+    }
+    final validated = _validatedChannelAmount();
+    if (validated == null) return;
+    final (msat, sats) = validated;
+    setState(() => _openingChannel = true);
+    try {
+      await widget.lspService.openChannelToLsp(sats);
+      _addLog(
+        'Pembukaan channel ke LSP ${formatNusan(msat)} nusan terkirim; menunggu konfirmasi on-chain (pantau di Profil → Kelola Channel)…',
+      );
+    } catch (e) {
+      _addLog('Buka channel ke LSP gagal: $e');
     } finally {
       if (mounted) setState(() => _openingChannel = false);
     }
@@ -644,6 +699,14 @@ class _OfflineSpikeScreenState extends State<OfflineSpikeScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: _startCombined,
+                      child: Text(l10n.offlineRoleCombined),
+                    ),
+                  ),
                 ] else ...[
                   Align(
                     alignment: Alignment.centerRight,
@@ -653,11 +716,14 @@ class _OfflineSpikeScreenState extends State<OfflineSpikeScreen> {
                     ),
                   ),
                 ],
-                if (bridge.role == OfflineBridgeRole.guest &&
+                if ((bridge.role == OfflineBridgeRole.guest ||
+                        bridge.role == OfflineBridgeRole.combined) &&
                     bridge.phase == OfflineBridgePhase.discovering) ...[
                   const SizedBox(height: 8),
                   Text(
-                    l10n.offlineDiscoveredHosts,
+                    bridge.role == OfflineBridgeRole.combined
+                        ? l10n.offlineDiscoveredDevices
+                        : l10n.offlineDiscoveredHosts,
                     style: const TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
@@ -675,10 +741,32 @@ class _OfflineSpikeScreenState extends State<OfflineSpikeScreen> {
                         style: const TextStyle(fontSize: 13),
                       ),
                       trailing: TextButton(
-                        onPressed: () => bridge.connectToHost(host, _localName),
+                        onPressed: () =>
+                            bridge.role == OfflineBridgeRole.combined
+                                ? bridge.connectCombined(host)
+                                : bridge.connectToHost(host, _localName),
                         child: Text(l10n.offlineConnect),
                       ),
                     ),
+                ],
+                if (bridge.role == OfflineBridgeRole.combined &&
+                    bridge.isLinked) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.offlineHelloPeer,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  SelectableText(
+                    bridge.peerNodeId ?? '—',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
                 ],
                 if (bridge.role == OfflineBridgeRole.guest &&
                     bridge.isLinked) ...[
@@ -851,6 +939,17 @@ class _OfflineSpikeScreenState extends State<OfflineSpikeScreen> {
                         ? null
                         : _openChannel,
                     child: Text(l10n.offlineOpenChannel),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: (_openingChannel ||
+                            widget.lspService.isOfflineMode)
+                        ? null
+                        : _openChannelToLsp,
+                    child: Text(l10n.offlineOpenChannelToLsp),
                   ),
                 ),
                 const SizedBox(height: 12),

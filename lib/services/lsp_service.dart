@@ -15,6 +15,7 @@ class LspService {
   bool _running = false;
   bool _offlineMode = false;
   String? _lspHost;
+  int? _lspPort;
   String? _lspNodeId;
 
   bool get isRunning => _running;
@@ -52,6 +53,7 @@ class LspService {
     final lspHost = lspAddress.substring(0, sep);
     final lspPort = int.parse(lspAddress.substring(sep + 1));
     _lspHost = lspHost;
+    _lspPort = lspPort;
     _lspNodeId = lspNodeId;
     // Mode offline (kondisi ekstrem tanpa internet): resolusi DNS host
     // LSP pasti gagal dan LSPS2 memang tidak terjangkau, jadi resolusi
@@ -234,6 +236,38 @@ class LspService {
     );
   }
 
+  /// Buka channel privat ke LSP sebesar [amountSats] nusan,
+  /// didanai dompet on-chain internal — arah PEMODAL: pengguna
+  /// yang mendanai, LSP menjadi lawan channel sekaligus hub
+  /// perute ke semua peer-nya. Host LSP di-resolve ke IPv4
+  /// dengan cara yang sama seperti saat init; bila peer LSP
+  /// sudah tersambung (keadaan normal saat online), alamat itu
+  /// tidak didial dan channel dibuka di atas koneksi yang ada.
+  /// Ditolak pada sesi boot offline: node tanpa akses rantai
+  /// tidak bisa menyiarkan pendanaan dengan selamat (pagar yang
+  /// sama dengan pembukaan channel langsung).
+  Future<UserChannelId> openChannelToLsp(BigInt amountSats) async {
+    _ensureRunning();
+    if (_offlineMode) {
+      throw StateError(
+        'Buka channel ke LSP ditolak pada sesi boot offline.',
+      );
+    }
+    final nodeId = _lspNodeId;
+    final host = _lspHost;
+    final port = _lspPort;
+    if (nodeId == null || host == null || port == null) {
+      throw StateError('Konfigurasi LSP belum tersedia.');
+    }
+    final addrs = await InternetAddress.lookup(host);
+    final ipv4 = addrs.firstWhere(
+      (a) => a.type == InternetAddressType.IPv4,
+      orElse: () =>
+          throw StateError('Host LSP tidak punya alamat IPv4: "$host"'),
+    );
+    return openChannelToPeer(nodeId, ipv4.address, port, amountSats);
+  }
+
   /// Alamat terima on-chain dompet internal node (SegWit bech32,
   /// diturunkan dari seed dompet yang sama, jalur BIP84). Inilah
   /// alamat yang diisi dana untuk mendanai pembukaan channel
@@ -277,6 +311,34 @@ class LspService {
   Future<List<ChannelDetails>> listChannels() async {
     _ensureRunning();
     return await _node!.listChannels();
+  }
+
+  /// Tutup satu channel secara KERJA SAMA dengan lawannya:
+  /// kedua node menyepakati transaksi penutup yang membagi
+  /// saldo final — bagian pengguna mendarat di dompet on-chain
+  /// internal node (alamat dari frasa yang sama) sesudah
+  /// terkonfirmasi. Lawan harus terjangkau; bila tidak, panggilan
+  /// ini gagal dan jalan lanjutnya adalah [forceCloseChannel].
+  Future<void> closeChannel(ChannelDetails channel) async {
+    _ensureRunning();
+    await _node!.closeChannel(
+      counterpartyNodeId: channel.counterpartyNodeId,
+      userChannelId: channel.userChannelId,
+    );
+  }
+
+  /// Tutup PAKSA satu channel secara sepihak: menyiarkan
+  /// keadaan komitmen terakhir. Dana pengguna terkunci jeda
+  /// pengaman (diukur dalam blok) sebelum bisa disapu ke dompet
+  /// on-chain, dan biaya on-chain-nya lebih mahal daripada
+  /// tutup kerja sama — pakai hanya bila tutup kerja sama tidak
+  /// bisa (lawan tidak terjangkau / tidak kooperatif).
+  Future<void> forceCloseChannel(ChannelDetails channel) async {
+    _ensureRunning();
+    await _node!.forceCloseChannel(
+      counterpartyNodeId: channel.counterpartyNodeId,
+      userChannelId: channel.userChannelId,
+    );
   }
 
   /// Total kapasitas terima (msat) dari channel yang usable saat
