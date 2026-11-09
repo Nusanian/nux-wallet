@@ -2736,9 +2736,21 @@ class _StoreModeScreenState extends State<StoreModeScreen>
   /// Blok pesanan: judul + tahan, baris-baris, subtotal, diskon, total — dipakai layout portrait & landscape.
   Widget _buildOrderLinesBlock(BuildContext context) {
     final l10n = context.l10n;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
+    // Segmen pesanan dibungkus KARTU (permintaan NUX 9 Nov
+    // 2026): dari baris judul Pesanan + tombol Ditahan sampai
+    // baris Total — menandai segmen pesanan lebih tegas,
+    // terpisah dari katalog/keypad di atas dan panel status
+    // di bawahnya. Tombol bayar/tahan tetap di luar kartu.
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.palette.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.palette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
       // --- Pesanan ---
       Row(
         children: [
@@ -2832,6 +2844,7 @@ class _StoreModeScreenState extends State<StoreModeScreen>
         ),
       ],
       ],
+      ),
     );
   }
 
@@ -2911,28 +2924,18 @@ class _StoreModeScreenState extends State<StoreModeScreen>
             style: TextStyle(fontSize: 12, color: context.palette.muted),
           )
         else
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final item in visibleCatalog)
-                ActionChip(
-                  label: Text(
-                    item.defaultDiscount == null
-                        ? '${item.name} • Rp${_fmtRp(item.priceRp)}'
-                        : '${item.name} • Rp${_fmtRp(item.priceRp)} • ${l10n.storeDiscount} ${_discountBadge(item.defaultDiscount!)}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 8,
-                  ),
-                  onPressed: () => _addProduct(item),
-                ),
-            ],
+          // Portrait: pager kartu item ukuran tetap (2 kolom ×
+          // maks 5 baris per halaman, geser untuk halaman
+          // berikutnya) dalam kartu segmen — lihat _CatalogPager.
+          _CatalogPager(
+            items: visibleCatalog,
+            resetKey: '$_searchQuery|$_catalogCategory|${_catalog.length}',
+            priceText: (item) => 'Rp${_fmtRp(item.priceRp)}',
+            badgeText: (item) => item.defaultDiscount == null
+                ? null
+                : '${l10n.storeDiscount} '
+                      '${_discountBadge(item.defaultDiscount!)}',
+            onTap: _addProduct,
           ),
         const SizedBox(height: 18),
         _buildKeypadSection(context),
@@ -3551,87 +3554,114 @@ class _StoreModeScreenState extends State<StoreModeScreen>
     );
   }
 
+  /// Satu baris pesanan. Susunan memilih menurut lebar yang
+  /// tersedia: baris tunggal klasik (lebar cukup) atau susunan
+  /// bertumpuk untuk panel sempit — panel pesanan landscape
+  /// hanya ±40% lebar layar, dan tombol-tombol + total baris
+  /// klasik memakan ±300dp tetap, sehingga kolom nama terjepit
+  /// sampai ±1 karakter (laporan uji NUX 9 Nov 2026).
   Widget _buildOrderLine(BuildContext context, int i) {
+    return LayoutBuilder(
+      builder: (context, constraints) => constraints.maxWidth >= 340
+          ? _buildOrderLineWide(context, i)
+          : _buildOrderLineNarrow(context, i),
+    );
+  }
+
+  /// Kolom keterangan satu baris pesanan: nama, harga × qty,
+  /// lencana diskon, catatan — dipakai kedua susunan.
+  Widget _orderLineInfoColumn(BuildContext context, OrderLine line) {
     final l10n = context.l10n;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          line.label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        Text(
+          'Rp${_fmtRp(line.unitPriceRp)} × ${line.qty}',
+          style: TextStyle(
+            fontSize: 12,
+            color: context.palette.muted,
+          ),
+        ),
+        if (line.discount != null)
+          Text(
+            '${l10n.storeDiscount} ${_discountBadge(line.discount!)}',
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF34D399),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        if (line.note.isNotEmpty)
+          Text(
+            '${l10n.storeNoteWord}: ${line.note}',
+            style: TextStyle(
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+              color: context.palette.muted,
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// Tombol-tombol aksi satu baris pesanan (catatan, diskon,
+  /// kurang, qty, tambah, hapus) — dipakai kedua susunan.
+  List<Widget> _orderLineActions(BuildContext context, int i) {
+    final line = _lines[i];
+    return [
+      IconButton(
+        icon: Icon(
+          line.note.isEmpty
+              ? Icons.note_add_outlined
+              : Icons.note_alt_rounded,
+          size: 19,
+          color: line.note.isEmpty ? null : const Color(0xFF34D399),
+        ),
+        onPressed: () => _editLineNote(i),
+        visualDensity: VisualDensity.compact,
+      ),
+      IconButton(
+        icon: const Icon(Icons.percent_rounded, size: 19),
+        onPressed: () => _editLineDiscount(i),
+        visualDensity: VisualDensity.compact,
+      ),
+      IconButton(
+        icon: const Icon(Icons.remove_circle_outline, size: 20),
+        onPressed: () => _decrementLine(i),
+        visualDensity: VisualDensity.compact,
+      ),
+      Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Text(
+          '${line.qty}',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+      IconButton(
+        icon: const Icon(Icons.add_circle_outline, size: 20),
+        onPressed: () =>
+            setState(() => _lines = orderChangeQty(_lines, i, 1)),
+        visualDensity: VisualDensity.compact,
+      ),
+    ];
+  }
+
+  Widget _buildOrderLineWide(BuildContext context, int i) {
     final line = _lines[i];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  line.label,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  'Rp${_fmtRp(line.unitPriceRp)} × ${line.qty}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: context.palette.muted,
-                  ),
-                ),
-                if (line.discount != null)
-                  Text(
-                    '${l10n.storeDiscount} ${_discountBadge(line.discount!)}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF34D399),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                if (line.note.isNotEmpty)
-                  Text(
-                    '${l10n.storeNoteWord}: ${line.note}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontStyle: FontStyle.italic,
-                      color: context.palette.muted,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: Icon(
-              line.note.isEmpty
-                  ? Icons.note_add_outlined
-                  : Icons.note_alt_rounded,
-              size: 19,
-              color: line.note.isEmpty ? null : const Color(0xFF34D399),
-            ),
-            onPressed: () => _editLineNote(i),
-            visualDensity: VisualDensity.compact,
-          ),
-          IconButton(
-            icon: const Icon(Icons.percent_rounded, size: 19),
-            onPressed: () => _editLineDiscount(i),
-            visualDensity: VisualDensity.compact,
-          ),
-          IconButton(
-            icon: const Icon(Icons.remove_circle_outline, size: 20),
-            onPressed: () => _decrementLine(i),
-            visualDensity: VisualDensity.compact,
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: Text(
-              '${line.qty}',
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline, size: 20),
-            onPressed: () =>
-                setState(() => _lines = orderChangeQty(_lines, i, 1)),
-            visualDensity: VisualDensity.compact,
-          ),
+          Expanded(child: _orderLineInfoColumn(context, line)),
+          ..._orderLineActions(context, i),
           SizedBox(
             width: 86,
             child: Padding(
@@ -3647,6 +3677,49 @@ class _StoreModeScreenState extends State<StoreModeScreen>
             icon: const Icon(Icons.delete_outline_rounded, size: 19),
             onPressed: () => _confirmRemoveLine(i),
             visualDensity: VisualDensity.compact,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Susunan bertumpuk baris pesanan untuk panel sempit
+  /// (panel pesanan landscape): kontrol per item (catatan,
+  /// diskon, qty −/+) di baris ATAS tiap item (arah NUX
+  /// 9 Nov 2026), di bawahnya nama + keterangan selebar panel
+  /// dengan total baris rata kanan. Nama mendapat hampir
+  /// seluruh lebar panel, tidak lagi terjepit elemen tetap.
+  Widget _buildOrderLineNarrow(BuildContext context, int i) {
+    final line = _lines[i];
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ..._orderLineActions(context, i),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded, size: 19),
+                onPressed: () => _confirmRemoveLine(i),
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _orderLineInfoColumn(context, line)),
+              const SizedBox(width: 8),
+              Padding(
+                padding: const EdgeInsets.only(top: 1),
+                child: Text(
+                  'Rp${_fmtRp(line.lineTotalRp)}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -4935,10 +5008,19 @@ class _CatalogManagerSheetState extends State<_CatalogManagerSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    // Susunan lembar (arah NUX 9 Nov 2026): judul diam di
+    // atas, daftar item ListView yang bergeser sendiri di
+    // tengah, tombol Tambah Produk diam di bawah. Susunan
+    // lama — satu kolom utuh berisi semua item di dalam
+    // SingleChildScrollView — membuat bagian atas lembar
+    // terpotong keluar layar bila item banyak, karena lembar
+    // menjangkar di bawah dan isinya tumbuh melewati layar.
+    // Kini tinggi lembar dibatasi (75% layar) dan hanya
+    // daftarnya yang bergeser, jadi layout selalu aman.
     return SafeArea(
-      child: SingleChildScrollView(
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.75,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
@@ -4951,45 +5033,62 @@ class _CatalogManagerSheetState extends State<_CatalogManagerSheet> {
                 ),
               ),
             ),
-            if (_items.isEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 6, 18, 6),
-                child: Text(
-                  l10n.storeCatalogEmpty,
-                  style: TextStyle(fontSize: 13, color: context.palette.muted),
-                ),
-              )
-            else
-              for (var i = 0; i < _items.length; i++)
-                ListTile(
-                  title: Text(
-                    _items[i].name,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Text(
-                    'Rp${formatRupiah(_items[i].priceRp)}'
-                    '${_items[i].code.isEmpty ? '' : ' • ${_items[i].code}'}'
-                    '${_items[i].category.isEmpty ? '' : ' • ${_items[i].category}'}',
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit_outlined, size: 20),
-                        onPressed: () =>
-                            _editItem(existing: _items[i], index: i),
+            Expanded(
+              child: _items.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 6, 18, 6),
+                      child: Text(
+                        l10n.storeCatalogEmpty,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: context.palette.muted,
+                        ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded, size: 20),
-                        onPressed: () {
-                          final next = List<CatalogItem>.of(_items)
-                            ..removeAt(i);
-                          _saveAll(next);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
+                    )
+                  : ListView.builder(
+                      itemCount: _items.length,
+                      itemBuilder: (context, i) {
+                        final item = _items[i];
+                        return ListTile(
+                          title: Text(
+                            item.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Rp${formatRupiah(item.priceRp)}'
+                            '${item.code.isEmpty ? '' : ' • ${item.code}'}'
+                            '${item.category.isEmpty ? '' : ' • ${item.category}'}',
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit_outlined,
+                                  size: 20,
+                                ),
+                                onPressed: () =>
+                                    _editItem(existing: item, index: i),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 20,
+                                ),
+                                onPressed: () {
+                                  final next = List<CatalogItem>.of(_items)
+                                    ..removeAt(i);
+                                  _saveAll(next);
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 8, 18, 16),
               child: ElevatedButton.icon(
@@ -5006,6 +5105,189 @@ class _CatalogManagerSheetState extends State<_CatalogManagerSheet> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Pager kartu katalog khusus PORTRAIT (arah NUX 9 Nov 2026):
+/// kartu item berukuran TETAP — baris 1 nama (1 baris, elipsis
+/// bila kepanjangan), baris 2 harga, lencana diskon bawaan
+/// bila ada — tersusun 2 kolom × maksimal 5 baris = 10 kartu
+/// per halaman; katalog lebih dari 10 berlanjut ke halaman
+/// berikutnya yang dicapai dengan geser (PageView). Seluruh
+/// pager dibungkus kartu segmen seperti segmen pesanan,
+/// supaya segmen katalog tegas terpisah. Set item yang tampil
+/// berubah (cari/kategori/katalog berubah) → kembali ke
+/// halaman pertama.
+class _CatalogPager extends StatefulWidget {
+  const _CatalogPager({
+    required this.items,
+    required this.resetKey,
+    required this.priceText,
+    required this.badgeText,
+    required this.onTap,
+  });
+
+  final List<CatalogItem> items;
+
+  /// Tanda set item yang sedang tampil; berubah → pager
+  /// kembali ke halaman pertama.
+  final String resetKey;
+  final String Function(CatalogItem item) priceText;
+  final String? Function(CatalogItem item) badgeText;
+  final void Function(CatalogItem item) onTap;
+
+  @override
+  State<_CatalogPager> createState() => _CatalogPagerState();
+}
+
+class _CatalogPagerState extends State<_CatalogPager> {
+  static const _cardHeight = 84.0;
+  static const _spacing = 10.0;
+  static const _perPage = 10;
+
+  final _controller = PageController();
+  int _page = 0;
+
+  @override
+  void didUpdateWidget(_CatalogPager oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.resetKey != widget.resetKey) {
+      _page = 0;
+      if (_controller.hasClients) _controller.jumpToPage(0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = widget.items;
+    final pageCount = (items.length + _perPage - 1) ~/ _perPage;
+    final fullest = items.length < _perPage ? items.length : _perPage;
+    final rows = (fullest + 1) ~/ 2;
+    final gridHeight = rows * _cardHeight + (rows - 1) * _spacing;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: context.palette.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.palette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: gridHeight,
+            child: PageView.builder(
+              controller: _controller,
+              onPageChanged: (p) => setState(() => _page = p),
+              itemCount: pageCount,
+              itemBuilder: (context, page) {
+                final start = page * _perPage;
+                final end = start + _perPage < items.length
+                    ? start + _perPage
+                    : items.length;
+                final slice = items.sublist(start, end);
+                return GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisExtent: _cardHeight,
+                        crossAxisSpacing: _spacing,
+                        mainAxisSpacing: _spacing,
+                      ),
+                  itemCount: slice.length,
+                  itemBuilder: (context, i) {
+                    final item = slice[i];
+                    final badge = widget.badgeText(item);
+                    return Material(
+                      color: context.palette.cardAlt,
+                      borderRadius: BorderRadius.circular(14),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () => widget.onTap(item),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: context.palette.border,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                item.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                widget.priceText(item),
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: context.palette.muted,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              if (badge != null)
+                                Text(
+                                  badge,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF10B981),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          if (pageCount > 1) ...[
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var p = 0; p < pageCount; p++)
+                  Container(
+                    width: 6,
+                    height: 6,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: p == _page
+                          ? const Color(0xFF10B981)
+                          : context.palette.border,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
