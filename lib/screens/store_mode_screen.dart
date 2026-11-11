@@ -2885,51 +2885,68 @@ class _StoreModeScreenState extends State<StoreModeScreen>
     );
   }
 
-  /// Blok aksi pesanan: pesan galat + tombol Selesaikan Pembayaran + Tahan Pesanan — dipakai layout portrait & landscape.
+  /// Blok aksi pesanan: pesan galat + baris tombol Selesai/Tahan
+  /// (satu baris dua kolom, ramping) — dipakai layout portrait &
+  /// landscape; di landscape blok ini menempel di dasar panel
+  /// katalog (sticky).
   Widget _buildOrderActions(BuildContext context) {
     final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
       if (_error != null) ...[
-        const SizedBox(height: 12),
         Text(
           _error!,
           style: const TextStyle(color: Colors.redAccent, fontSize: 13),
         ),
+        const SizedBox(height: 8),
       ],
-      const SizedBox(height: 14),
-      ElevatedButton(
-        onPressed: _lines.isNotEmpty ? _openPayment : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF10B981),
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 17),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        child: Text(
-          l10n.storeCheckout,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-        ),
-      ),
       const SizedBox(height: 10),
-      // Tahan pesanan (tamu bayar belakangan): parkir pesanan
-      // berjalan ke daftar tahan persisten.
-      OutlinedButton.icon(
-        onPressed: _lines.isNotEmpty ? _holdCurrentOrder : null,
-        icon: const Icon(Icons.pause_circle_outline_rounded, size: 20),
-        label: Text(
-          l10n.storeHoldOrder,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-        ),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 13),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+      // Satu baris dua kolom (permintaan NUX 11 Nov 2026):
+      // Selesai (primer, hijau) di kiri, Tahan (garis tepi;
+      // parkir pesanan berjalan ke daftar tahan persisten) di
+      // kanan. Ramping — strip aksi ini menempel di dasar panel
+      // (landscape) dan tidak boleh memakan tinggi katalog.
+      Row(
+        children: [
+          Expanded(
+            child: ElevatedButton(
+              onPressed: _lines.isNotEmpty ? _openPayment : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                l10n.storeCheckout,
+                style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+            ),
           ),
-        ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _lines.isNotEmpty ? _holdCurrentOrder : null,
+              icon: const Icon(Icons.pause_circle_outline_rounded,
+                  size: 18),
+              label: Text(
+                l10n.storeHoldOrder,
+                style: const TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w700),
+              ),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       ],
     );
@@ -2946,6 +2963,13 @@ class _StoreModeScreenState extends State<StoreModeScreen>
         const SizedBox(height: 6),
         _buildSearchRow(context),
         const SizedBox(height: 10),
+        // Urutan alur lapangan (permintaan NUX 11 Nov 2026):
+        // kasir menyebut JUMLAH yang dipesan dulu, baru nama
+        // produknya — jadi keypad tepat di bawah baris pencarian
+        // (yang tetap paling atas), dan segmen produk (kategori +
+        // pager) di bawah keypad.
+        _buildKeypadSection(context),
+        const SizedBox(height: 18),
         if (catalogCategories(_catalog).isNotEmpty) ...[
           _buildCategoryChips(context),
           const SizedBox(height: 10),
@@ -2974,8 +2998,6 @@ class _StoreModeScreenState extends State<StoreModeScreen>
                       '${_discountBadge(item.defaultDiscount!)}',
             onTap: _addProduct,
           ),
-        const SizedBox(height: 18),
-        _buildKeypadSection(context),
         const SizedBox(height: 20),
         _buildOrderLinesBlock(context),
         _buildOrderActions(context),
@@ -3143,6 +3165,12 @@ class _StoreModeScreenState extends State<StoreModeScreen>
                       const SizedBox(height: 6),
                       _buildSearchRow(context),
                       const SizedBox(height: 10),
+                      // Urutan alur lapangan (permintaan NUX
+                      // 11 Nov 2026): keypad tepat di bawah baris
+                      // pencarian, segmen produk (kategori + grid)
+                      // di bawahnya — sama seperti portrait.
+                      _buildKeypadSection(context),
+                      const SizedBox(height: 18),
                       if (catalogCategories(_catalog).isNotEmpty) ...[
                         _buildCategoryChips(context),
                         const SizedBox(height: 10),
@@ -3165,13 +3193,11 @@ class _StoreModeScreenState extends State<StoreModeScreen>
                         )
                       else
                         _buildProductGrid(context, visibleCatalog),
-                      const SizedBox(height: 18),
-                      _buildKeypadSection(context),
                     ],
                   ),
                 ),
               ),
-              // Tombol Selesaikan Pembayaran + Tahan Pesanan di
+              // Tombol Selesai + Tahan (satu baris dua kolom) di
               // sisi kanan (permintaan NUX 9 Nov 2026), menempel
               // di dasar panel katalog.
               Padding(

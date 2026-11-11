@@ -7,7 +7,9 @@ import '../unit_controller.dart';
 import '../theme.dart';
 import 'package:flutter/services.dart';
 import '../services/lsp_service.dart';
+import '../services/offline_bridge.dart';
 import '../services/payment_notes.dart';
+import '../utils/amount_input.dart';
 import '../utils/animated_checkmark.dart';
 import '../utils/bolt11_info.dart';
 import '../utils/bolt12_info.dart';
@@ -61,7 +63,11 @@ String normalizeInvoice(String raw) {
 class SendScreen extends StatefulWidget {
   final LspService lspService;
 
-  const SendScreen({super.key, required this.lspService});
+  /// Jembatan offline (diterima sama seperti di ReceiveScreen);
+  /// sesi jembatannya yang aktif ikut menandai konteks langsung.
+  final OfflineBridgeService? bridge;
+
+  const SendScreen({super.key, required this.lspService, this.bridge});
 
   @override
   State<SendScreen> createState() => _SendScreenState();
@@ -357,10 +363,25 @@ class _SendScreenState extends State<SendScreen> {
           if (hash != null && invoiceDescription != null) {
             await PaymentNoteStore().save(hash, invoiceDescription);
           }
+          if (hash != null && _directContext) {
+            await PaymentTagStore().saveDirect(hash);
+          }
         },
       );
     }
   }
+
+  /// Konteks langsung saat ini: node boot offline atau sesi
+  /// jembatan offline aktif. Pembayaran yang dikirim dari
+  /// konteks ini pasti berjalan lewat channel langsung (LSP
+  /// tidak terjangkau), jadi hash-nya dicatat bertag direct
+  /// untuk Riwayat (lihat PaymentTagStore) — node sendiri tidak
+  /// mencatat channel jalur pembayaran. Predikat konteksnya sama
+  /// dengan yang dipakai layar Terima.
+  bool get _directContext => receiveIsOfflineContext(
+        bootedOffline: widget.lspService.isOfflineMode,
+        bridgeSessionActive: widget.bridge?.sessionActive ?? false,
+      );
 
   /// Pemeriksaan pra-bayar bersama untuk invoice Bolt11 dan
   /// offer Bolt12: nilai [amountMsat] terhadap saldo & kapasitas
@@ -488,9 +509,37 @@ class _SendScreenState extends State<SendScreen> {
       ),
     );
     if (confirmed == true && mounted) {
-      await _pay(() => fixedAmount
-          ? widget.lspService.payOffer(offer)
-          : widget.lspService.payOfferUsingAmount(offer, amountMsat));
+      final description = info.description;
+      PaymentId? sentId;
+      await _pay(() async {
+        final id = await (fixedAmount
+            ? widget.lspService.payOffer(offer)
+            : widget.lspService.payOfferUsingAmount(offer, amountMsat));
+        sentId = id;
+        return id;
+      });
+      // Tautkan deskripsi offer sebagai catatan riwayat (judul
+      // baris di Riwayat pengirim), meniru jalur Bolt11. Bedanya:
+      // hash pembayaran offer tidak diketahui sebelum membayar —
+      // ia baru muncul di catatan node sesudah invoice penerbit
+      // diambil — jadi penautan dilakukan di sini, sesudah _pay
+      // menunggu hasil akhir. Gagal taut tidak masalah: riwayat
+      // jatuh ke judul baku, pembayaran tidak terpengaruh.
+      if (description != null && sentId != null) {
+        try {
+          final payments = await widget.lspService.listPayments();
+          final hashHex =
+              findBolt12PaymentHashHex(payments, paymentIdHex(sentId!));
+          if (hashHex != null) {
+            await PaymentNoteStore().save(hashHex, description);
+            if (_directContext) {
+              await PaymentTagStore().saveDirect(hashHex);
+            }
+          }
+        } catch (_) {
+          // Abaikan — catatan tambahan, bukan bagian pembayaran.
+        }
+      }
     }
   }
 
@@ -682,6 +731,15 @@ class _SendScreenState extends State<SendScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _invoiceController,
+              // Readonly (keputusan NUX 10 Nov 2026): invoice adalah
+              // data ber-checksum — mengetik/mengeditnya manual hanya
+              // bisa merusak, tidak pernah memperbaiki. Dua jalur
+              // masuk yang sah (tombol Tempel & Pindai di bawah)
+              // mengisi field ini secara program sehingga tidak
+              // terpengaruh; keyboard pun tidak lagi muncul saat
+              // field disentuh. Pengganti edit manual adalah tombol
+              // hapus (x) di ujung field (suffixIcon di bawah).
+              readOnly: true,
               onChanged: (_) {
                 // Kotak cadangan menunjuk invoice sebelumnya —
                 // invoice berubah, kotaknya gugur.
@@ -711,6 +769,30 @@ class _SendScreenState extends State<SendScreen> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
+                ),
+                // Tombol hapus: hanya tampil bila field terisi.
+                // Mengosongkan field + mereset keadaan yang menunjuk
+                // invoice lama (pesan error & kotak cadangan) —
+                // meniru reset pada jalur Pindai.
+                suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: _invoiceController,
+                  builder: (context, value, _) {
+                    if (value.text.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return IconButton(
+                      icon: Icon(Icons.close_rounded,
+                          size: 19, color: context.palette.muted),
+                      onPressed: () {
+                        _invoiceController.clear();
+                        setState(() {
+                          _error = null;
+                          _reserveHeldMsat = null;
+                          _reserveSendableMsat = null;
+                        });
+                      },
+                    );
+                  },
                 ),
               ),
             ),
@@ -832,6 +914,26 @@ class _SendScreenState extends State<SendScreen> {
                 const SizedBox(height: 8),
                 TextField(
                   controller: _offerAmountController,
+                  // Pemformat nominal bersama (sama seperti kolom
+                  // nominal Terima): ribuan dikelompokkan on-the-fly
+                  // mengikuti locale, dan karakter asing — termasuk
+                  // '.' sebagai desimal pada locale id — dibuang
+                  // saat diketik, bukan baru ditolak di pagar akhir
+                  // (permintaan NUX 10 Nov 2026).
+                  inputFormatters: [
+                    AmountInputFormatter(
+                      thousandsSep:
+                          LocaleController.locale.value.languageCode ==
+                                  'en'
+                              ? ','
+                              : '.',
+                      decimalSep:
+                          LocaleController.locale.value.languageCode ==
+                                  'en'
+                              ? '.'
+                              : ',',
+                    ),
+                  ],
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   style: const TextStyle(

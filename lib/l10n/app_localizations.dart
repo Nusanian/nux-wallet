@@ -776,6 +776,12 @@ abstract class AppLocalizations {
   /// **'Kode ini bisa dipakai berulang kali tanpa kedaluwarsa — bagikan sekali, pembayar menentukan jumlahnya setiap kali membayar.'**
   String get staticCodeHint;
 
+  /// No description provided for @staticCodeInactive.
+  ///
+  /// In id, this message translates to:
+  /// **'Kode statis belum aktif. Terima satu pembayaran lewat invoice terlebih dahulu — sesudah jalur pertama terbentuk, kode ini aktif dengan sendirinya.'**
+  String get staticCodeInactive;
+
   /// No description provided for @staticCodeCopied.
   ///
   /// In id, this message translates to:
@@ -1523,7 +1529,7 @@ abstract class AppLocalizations {
   /// No description provided for @storeHoldOrder.
   ///
   /// In id, this message translates to:
-  /// **'Tahan Pesanan'**
+  /// **'Tahan'**
   String get storeHoldOrder;
 
   /// No description provided for @storeHeldSaved.
@@ -2633,7 +2639,7 @@ abstract class AppLocalizations {
   /// No description provided for @storeCheckout.
   ///
   /// In id, this message translates to:
-  /// **'Selesaikan Pembayaran'**
+  /// **'Selesai'**
   String get storeCheckout;
 
   /// No description provided for @storePayTitle.
@@ -3293,7 +3299,7 @@ abstract class AppLocalizations {
   /// No description provided for @storeSettingsTitle.
   ///
   /// In id, this message translates to:
-  /// **'Pengaturan Toko'**
+  /// **'Pengaturan'**
   String get storeSettingsTitle;
 
   /// No description provided for @storeSettingsStoreName.

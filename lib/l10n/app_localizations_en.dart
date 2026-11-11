@@ -382,6 +382,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This code can be used again and again with no expiry — share it once, and the payer chooses the amount each time they pay.';
 
   @override
+  String get staticCodeInactive =>
+      'Static code is not active yet. Receive one payment via an invoice first — once the first path is in place, this code activates on its own.';
+
+  @override
   String get staticCodeCopied => 'Payment code copied';
 
   @override
@@ -795,7 +799,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storeSaveNote => 'Save';
 
   @override
-  String get storeHoldOrder => 'Hold Order';
+  String get storeHoldOrder => 'Hold';
 
   @override
   String get storeHeldSaved =>
@@ -1412,7 +1416,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storeNoDiscount => 'No Discount';
 
   @override
-  String get storeCheckout => 'Settle Payment';
+  String get storeCheckout => 'Finish';
 
   @override
   String get storePayTitle => 'Settle Payment';
@@ -1791,7 +1795,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Leave empty for the default text in the app language.';
 
   @override
-  String get storeSettingsTitle => 'Store Settings';
+  String get storeSettingsTitle => 'Settings';
 
   @override
   String get storeSettingsStoreName => 'Store Name';

@@ -12,6 +12,7 @@ import '../services/lsp_service.dart';
 import '../services/offline_bridge.dart';
 import '../services/payment_notes.dart';
 import '../services/saved_invoices.dart';
+import '../utils/amount_input.dart';
 import '../utils/animated_checkmark.dart';
 import '../utils/coin_alert.dart';
 import '../utils/bolt11_info.dart';
@@ -117,6 +118,13 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   String? _staticOffer;
   String? _staticError;
 
+  /// Hasil ukur gerbang Kode Bayar Statis (lihat
+  /// [staticCodeIsActive]): true = ada kapasitas terima usable
+  /// sehingga kode bisa dibayar dan panel aktif; false = belum
+  /// ada ruang terima sehingga panel dinonaktifkan; null =
+  /// belum terukur (panel berperilaku seperti sebelumnya).
+  bool? _staticActive;
+
   /// Konteks Terima offline sesi ini (dinilai segar setiap
   /// kali dibaca — niat sesi jembatan bisa berubah selama
   /// aplikasi terbuka): invoice dipaksa Bolt11 biasa dan Kode
@@ -138,7 +146,9 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
     // Sesudah frame pertama: context.l10n belum boleh dibaca di
     // initState.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _prefetchStaticOffer();
+      if (!mounted) return;
+      _prefetchStaticOffer();
+      _probeStaticGate();
     });
   }
 
@@ -150,6 +160,12 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   /// dan saat itu node mungkin sudah tersambung.
   /// Deskripsi offer yang berlaku: label kustom user bila
   /// dipasang, selain itu teks bawaan bahasa aplikasi.
+  ///
+  /// Ini cermin TAMPILAN (baris label di panel). Deskripsi yang
+  /// benar-benar dipakai untuk offer diputuskan Bolt12OfferService
+  /// langsung dari simpanan label — state ini bisa tertinggal
+  /// (mis. panel dibuka sebelum muatan label selesai) dan tidak
+  /// boleh menjadi wewenang atas offer yang berlaku.
   String get _offerDescription =>
       _customOfferDescription ?? context.l10n.staticOfferDescription;
 
@@ -158,15 +174,47 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
     // jadi offer tidak disiapkan — pembuatannya juga menuntut
     // peer LSP yang memang tidak terjangkau dalam konteks ini.
     if (_konteksOffline) return;
-    // Label kustom dibaca lebih dulu: offer yang dibuat/
-    // dipakai harus yang berlabel berlaku, bukan bawaan.
+    // Label kustom dimuat ke state untuk cermin tampilan;
+    // offer-nya sendiri diputuskan service dari simpanan.
     _customOfferDescription =
         await Bolt12OfferStore().loadCustomDescription();
     if (!mounted) return;
     final result = await _bolt12Service.ensureOffer(
-        description: _offerDescription);
+        defaultDescription: context.l10n.staticOfferDescription);
     if (result.outcome == StaticOfferOutcome.ready && mounted) {
       setState(() => _staticOffer = result.offer);
+    }
+  }
+
+  /// Ukur gerbang Kode Bayar Statis dari kapasitas terima saat
+  /// ini (lihat [staticCodeIsActive]). Dipanggil saat layar
+  /// dibuka, saat panel dibuka, dan sesudah pembayaran diterima
+  /// di layar ini — pembayaran pertama yang melahirkan channel
+  /// mengubah hasil ukurnya, dan panel harus menyala tanpa user
+  /// keluar-masuk layar.
+  ///
+  /// Kegagalan baca TIDAK mengunci panel: kesalahan sesaat node
+  /// tidak boleh mematikan kode yang sebenarnya bisa dibayar.
+  /// Hasil ukur dibiarkan apa adanya (null = belum terukur =
+  /// perilaku lama), dan kegagalan nyata pembuatan offer tetap
+  /// tampil lewat jalurnya sendiri.
+  Future<void> _probeStaticGate() async {
+    if (_konteksOffline) return;
+    try {
+      final cap = await widget.lspService.usableInboundCapacityMsat();
+      if (!mounted) return;
+      setState(() => _staticActive =
+          staticCodeIsActive(usableInboundCapacityMsat: cap));
+      // Panel sedang terbuka dan gerbang baru saja menyala:
+      // siapkan offer-nya sekarang juga.
+      if (_staticOpen &&
+          _staticActive == true &&
+          _staticOffer == null &&
+          !_staticLoading) {
+        _loadStaticOffer();
+      }
+    } catch (_) {
+      // Abaikan — lihat penjelasan di atas.
     }
   }
 
@@ -185,9 +233,15 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   /// dashboard (temuan lapangan NUX 3 Nov 2026).
   void _toggleStaticCode() {
     setState(() => _staticOpen = !_staticOpen);
-    if (_staticOpen && _staticOffer == null && !_staticLoading) {
+    if (_staticOpen) _probeStaticGate();
+    if (_staticOpen &&
+        _staticActive != false &&
+        _staticOffer == null &&
+        !_staticLoading) {
       _loadStaticOffer();
-    } else if (_staticOpen && _staticOffer != null) {
+    } else if (_staticOpen &&
+        _staticActive != false &&
+        _staticOffer != null) {
       // Panel dibuka dengan offer sudah siap: gulir ke QR-nya.
       _scrollToKey(_staticKey);
     }
@@ -195,12 +249,20 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   }
 
   Future<void> _loadStaticOffer() async {
+    final defaultDescription = context.l10n.staticOfferDescription;
+    // Segarkan cermin label dari simpanan supaya baris label di
+    // panel sama dengan yang service pakai untuk offer — jalur
+    // buka panel ini bisa berjalan sebelum prefetch sempat
+    // memuat label ke state.
+    _customOfferDescription =
+        await Bolt12OfferStore().loadCustomDescription();
+    if (!mounted) return;
     setState(() {
       _staticLoading = true;
       _staticError = null;
     });
     final result = await _bolt12Service.ensureOffer(
-        description: _offerDescription);
+        defaultDescription: defaultDescription);
     if (!mounted) return;
     setState(() {
       _staticLoading = false;
@@ -579,6 +641,9 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
       _noteController.clear();
     });
     _scrollToCelebration();
+    // Pembayaran ini bisa saja yang melahirkan channel pertama:
+    // ukur ulang gerbang Kode Bayar Statis.
+    _probeStaticGate();
     _syncWatcher();
   }
 
@@ -682,7 +747,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
             TextField(
               controller: _amountController,
               inputFormatters: [
-                _ThousandsSeparatorFormatter(
+                AmountInputFormatter(
                   thousandsSep:
                       context.l10n.localeName == 'en' ? ',' : '.',
                   decimalSep: context.l10n.localeName == 'en' ? '.' : ',',
@@ -924,6 +989,13 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
             // dibayar oleh perangkat di sebelah — menampilkannya
             // hanya menawarkan jalan yang pasti gagal. Yang
             // berlaku offline adalah invoice Bolt11 di atas.
+            //
+            // Dalam konteks online panelnya tetap tampil, tetapi
+            // dinonaktifkan selama belum ada kapasitas terima
+            // usable (lihat [staticCodeIsActive]): kode yang
+            // belum bisa dibayar tidak ditawarkan sebagai QR,
+            // melainkan sebagai penjelasan dan jalan
+            // mengaktifkannya (terima lewat invoice dulu).
             if (!_konteksOffline) ...[
             const SizedBox(height: 28),
             OutlinedButton.icon(
@@ -933,9 +1005,13 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                   style: TextStyle(
                       fontSize: 15, fontWeight: FontWeight.w700)),
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF34D399),
+                foregroundColor: _staticActive == false
+                    ? context.palette.muted
+                    : const Color(0xFF34D399),
                 side: BorderSide(
-                    color: const Color(0xFF10B981).withValues(alpha: 0.5)),
+                    color: _staticActive == false
+                        ? context.palette.border
+                        : const Color(0xFF10B981).withValues(alpha: 0.5)),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -952,6 +1028,28 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                         strokeWidth: 2, color: Color(0xFF34D399)),
                   ),
                 )
+              else if (_staticActive == false) ...[
+                // Panel dinonaktifkan: belum ada kapasitas terima
+                // usable, jadi kode ini belum bisa dibayar —
+                // tampilkan alasannya dalam bahasa polos, bukan
+                // QR yang pasti gagal di sisi pembayar.
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                    children: [
+                      Icon(Icons.qr_code_2_rounded,
+                          size: 40, color: context.palette.muted),
+                      const SizedBox(height: 10),
+                      Text(
+                        context.l10n.staticCodeInactive,
+                        style: TextStyle(
+                            fontSize: 13, color: context.palette.muted),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ]
               else if (_staticOffer != null) ...[
                 Container(
                   key: _staticKey,
@@ -1049,62 +1147,3 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   }
 }
 
-/// Pemformat kolom nominal Terima: terapkan pemisah ribuan
-/// secara langsung saat user mengetik, supaya tampilan selalu
-/// rapi — bukan hanya saat nilai diisi program (mis. pulihan
-/// invoice pending yang terisi "1.000", lalu rusak formatnya
-/// begitu user mengedit). Pemisah mengikuti locale aplikasi
-/// (id: '.' ribuan & ',' desimal; en sebaliknya) — pasangan
-/// pemisah yang sama dengan parser terpusat
-/// [parseAmountInputToMsat]. Format hanya tampilan: nilai angka
-/// murninya dipulihkan saat parsing di
-/// _ReceiveScreenState._createInvoice. Pecahan TIDAK dipotong di
-/// sini: batas presisi satuan ditegakkan parser saat pembuatan
-/// invoice, jadi pemformat tidak pernah diam-diam mengubah angka
-/// yang diketik user.
-class _ThousandsSeparatorFormatter extends TextInputFormatter {
-  final String thousandsSep;
-  final String decimalSep;
-
-  const _ThousandsSeparatorFormatter({
-    this.thousandsSep = '.',
-    this.decimalSep = ',',
-  });
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final raw = newValue.text;
-    if (raw.isEmpty) return newValue;
-
-    // Pisah bagian bulat dan pecahan pada pemisah desimal
-    // pertama; selain digit dibuang (termasuk pemisah ribuan
-    // lama).
-    final comma = raw.indexOf(decimalSep);
-    var intDigits = (comma >= 0 ? raw.substring(0, comma) : raw)
-        .replaceAll(RegExp(r'[^0-9]'), '');
-    final fracDigits = comma >= 0
-        ? raw.substring(comma + 1).replaceAll(RegExp(r'[^0-9]'), '')
-        : null;
-
-    // Buang nol di depan yang berlebih: "05" -> "5", "00" -> "0".
-    intDigits = intDigits.replaceFirst(RegExp(r'^0+(?=\d)'), '');
-
-    // Kelompokkan ribuan dengan pemisah locale.
-    final buf = StringBuffer();
-    for (var i = 0; i < intDigits.length; i++) {
-      if (i > 0 && (intDigits.length - i) % 3 == 0) buf.write(thousandsSep);
-      buf.write(intDigits[i]);
-    }
-    var text = buf.toString();
-    if (fracDigits != null) text = '$text$decimalSep$fracDigits';
-
-    // Kursor selalu di akhir teks hasil format.
-    return TextEditingValue(
-      text: text,
-      selection: TextSelection.collapsed(offset: text.length),
-    );
-  }
-}
