@@ -222,6 +222,20 @@ class _OnchainScreenState extends State<OnchainScreen> {
     );
   }
 
+  /// Kartu keterangan (rincian saldo): label di atas, nilai di
+  /// bawah — Column, bukan Row. Bentuk Row sebelumnya membuat
+  /// LABEL yang menumpuk vertikal, bukan nilai: nilai (tanpa
+  /// flex) diukur duluan dengan lebar intrinsik penuhnya
+  /// (~484dp untuk "jumlah • terbuka ~blok N"), sehingga label
+  /// Expanded hanya kebagian lebar 0 dan menumpuk kata-per-kata
+  /// setinggi 320dp, sementara nilai tetap satu baris horizontal
+  /// dan meluber 247dp ke kanan kartu (diukur dari bentuk Row
+  /// lama pada HP 320; koreksi NUX 13 Nov — laporan pertama
+  /// Strider sempat tertukar menyebut nilai yang menumpuk).
+  /// Dalam Column kedua teks memakai lebar penuh kartu dan hanya
+  /// terlipat di batas kata. Bentuknya sengaja mengikuti kartu
+  /// total di atas (label kecil di atas, angka di bawah) supaya
+  /// satu bahasa visual.
   Widget _row(BuildContext context, String label, String value) {
     return Container(
       width: double.infinity,
@@ -232,17 +246,16 @@ class _OnchainScreenState extends State<OnchainScreen> {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: context.palette.border),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Text(label,
-                style: TextStyle(
-                    fontSize: 14, color: context.palette.label)),
-          ),
-          const SizedBox(width: 12),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 13, color: context.palette.muted)),
+          const SizedBox(height: 4),
           Text(value,
               style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: context.palette.label)),
         ],
