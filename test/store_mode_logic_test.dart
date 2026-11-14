@@ -544,16 +544,6 @@ void main() {
     });
   });
 
-  group('ringkasan sesi', () {
-    test('akumulator menjumlah transaksi dan rupiah', () {
-      var s = StoreSessionSummary.empty;
-      s = s.recordSale(4975);
-      s = s.recordSale(3000);
-      expect(s.saleCount, 2);
-      expect(s.totalRp, 7975);
-    });
-  });
-
   group('breakpoint layout', () {
     test('di bawah 720 satu kolom, 720 ke atas dua panel', () {
       expect(storeModeUsesTwoPanels(719), isFalse);

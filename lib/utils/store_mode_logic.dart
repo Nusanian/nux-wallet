@@ -519,39 +519,6 @@ List<String> orderReceiptDetailLines(
   return out;
 }
 
-/// Ringkasan penjualan selama kasir berada di Mode Toko.
-///
-/// JUJUR soal cakupan: ini akumulator sesi di memori layar ini
-/// saja — nol lagi setiap Mode Toko dibuka, bukan laporan harian
-/// dan bukan catatan resmi (catatan resmi tetap record penjualan
-/// tersimpan). Label di layar menyatakannya sebagai "Sesi Ini".
-/// Total dalam RUPIAH (total akhir penjualan lunas sesi ini).
-class StoreSessionSummary {
-  final int saleCount;
-  final int totalRp;
-
-  const StoreSessionSummary({this.saleCount = 0, this.totalRp = 0});
-
-  static const empty = StoreSessionSummary();
-
-  /// Catat satu penjualan yang sungguh lunas sebesar [totalRp]
-  /// (dipanggil hanya dari penyelesaian pembayaran rupiah yang
-  /// tercatat, tidak dari peristiwa lain).
-  StoreSessionSummary recordSale(int totalRp) => StoreSessionSummary(
-    saleCount: saleCount + 1,
-    totalRp: this.totalRp + totalRp,
-  );
-
-  @override
-  bool operator ==(Object other) =>
-      other is StoreSessionSummary &&
-      other.saleCount == saleCount &&
-      other.totalRp == totalRp;
-
-  @override
-  int get hashCode => Object.hash(saleCount, totalRp);
-}
-
 /// Keputusan keluar dari layar Mode Toko (temuan NUX 4 Nov
 /// 2026): pesanan yang sedang disusun TIDAK BOLEH hilang hanya
 /// karena kasir keluar ke Profil. Keputusan murninya di sini;

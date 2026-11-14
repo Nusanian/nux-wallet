@@ -190,8 +190,16 @@ class _StoreModeScreenState extends State<StoreModeScreen>
   /// penanda & daftar antre "Poin Tertunda".
   List<CompletedOrder> _pendingIssues = const [];
 
-  // --- Ringkasan sesi ---
-  StoreSessionSummary _session = StoreSessionSummary.empty;
+  // --- Ringkasan sesi berjalan ("Sesi Ini") ---
+  //
+  // Angka LIVE dari record tersimpan shift yang sedang berjalan
+  // (lihat liveSessionTotals di store_report.dart) — BUKAN
+  // akumulator memori: penjualan yang lunas sebelum Mode Toko
+  // dibuka tetap terhitung, dan angka kartu selalu sama dengan
+  // angka review live saat kartu diketuk. Disegarkan di
+  // _loadPendingIssues (dipanggil saat init + sesudah tiap
+  // perubahan penjualan).
+  ({int saleCount, int totalRp}) _liveSession = (saleCount: 0, totalRp: 0);
 
   String? _error;
 
@@ -380,6 +388,7 @@ class _StoreModeScreenState extends State<StoreModeScreen>
   Future<void> _loadPendingIssues() async {
     final orders = await _historyStore.load();
     if (!mounted) return;
+    final shift = _openShift;
     setState(() {
       _pendingIssues = [
         for (final o in orders)
@@ -388,6 +397,15 @@ class _StoreModeScreenState extends State<StoreModeScreen>
               o.pointsIssueStatus == issueStatusPending)
             o,
       ];
+      // Angka "Sesi Ini" ikut disegarkan dari record yang sama:
+      // penjualan shift berjalan sampai saat ini.
+      _liveSession = shift == null
+          ? (saleCount: 0, totalRp: 0)
+          : liveSessionTotals(
+              orders,
+              shiftOpenedAt: shift.openedAt,
+              now: DateTime.now(),
+            );
     });
   }
 
@@ -1709,7 +1727,6 @@ class _StoreModeScreenState extends State<StoreModeScreen>
     }
     if (!mounted) return;
     setState(() {
-      _session = _session.recordSale(settled.grandTotalRp);
       _saleRecord = settled;
       _received = true;
       _resetOrderPanel();
@@ -3261,46 +3278,62 @@ class _StoreModeScreenState extends State<StoreModeScreen>
           ],
         ),
         const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: context.palette.card,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.palette.border),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.receipt_long_rounded,
-                color: Color(0xFF34D399),
-                size: 26,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.storeSessionTitle,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: context.palette.muted,
-                      ),
-                    ),
-                    Text(
-                      l10n.storeSessionSales(
-                        _session.saleCount,
-                        _fmtRp(_session.totalRp),
-                      ),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+        // Kartu "Sesi Ini" — BISA DIKETUK: membuka review live
+        // shift berjalan (StoreShiftReportScreen.forShift, lencana
+        // "Masih Berlangsung", hitungan dari record yang sama
+        // dengan angka kartu). Aturan aksesnya sama seperti
+        // pemilih laporan (_openShiftReport): shift sendiri
+        // langsung terbuka, shift operator lain wajib PIN owner.
+        // Review-nya read-only (pratinjau + cetak/bagi PDF saja;
+        // tanpa ubah, tanpa VOID, tanpa tutup shift dari sana).
+        InkWell(
+          onTap: () => _openShiftReport(_openShift!),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: context.palette.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: context.palette.border),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.receipt_long_rounded,
+                  color: Color(0xFF34D399),
+                  size: 26,
                 ),
-              ),
-            ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.storeSessionTitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: context.palette.muted,
+                        ),
+                      ),
+                      Text(
+                        l10n.storeSessionSales(
+                          _liveSession.saleCount,
+                          _fmtRp(_liveSession.totalRp),
+                        ),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: context.palette.muted,
+                ),
+              ],
+            ),
           ),
         ),
         if (_pendingIssues.isNotEmpty) ...[
@@ -3746,11 +3779,22 @@ class _StoreModeScreenState extends State<StoreModeScreen>
         onPressed: () => _decrementLine(i),
         visualDensity: VisualDensity.compact,
       ),
-      Padding(
-        padding: const EdgeInsets.only(top: 10),
-        child: Text(
-          '${line.qty}',
-          style: const TextStyle(fontWeight: FontWeight.w700),
+      // Angka qty: kotak 40dp (sama dengan tinggi tombol
+      // IconButton compact) + Center + height 1.0. Diukur di lab
+      // (store_order_line_qty_test): tengah angka TEPAT di tengah
+      // ikon −/+ (delta 0,0) di KEDUA susunan — baris kontrol
+      // sempit (rata tengah) maupun baris lebar (rata atas +
+      // kolom info tinggi). Bentuk lama (Padding top:10) berasumsi
+      // baris rata atas; baris sempit nyatanya rata tengah, jadi
+      // kotak baris Momo yang tinggi mendorong angka 5dp ke bawah
+      // dari tengah ikon — persis temuan NUX sesudah ganti font.
+      SizedBox(
+        height: 40,
+        child: Center(
+          child: Text(
+            '${line.qty}',
+            style: const TextStyle(fontWeight: FontWeight.w700, height: 1.0),
+          ),
         ),
       ),
       IconButton(
