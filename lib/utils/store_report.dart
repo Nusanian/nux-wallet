@@ -434,6 +434,30 @@ ShiftSalesSummary aggregateShiftSales(
   );
 }
 
+/// Total sesi berjalan ("Sesi Ini") dari RECORD TERSIMPAN, bukan
+/// akumulator memori layar.
+///
+/// Semantik (keputusan NUX 14 Nov 2026): angka di kartu "Sesi Ini"
+/// adalah penjualan shift yang sedang berjalan SAMPAI SAAT INI —
+/// jendela [shiftOpenedAt] inklusif sampai [now] eksklusif, dari
+/// record resmi yang sama dengan laporan shift. Karena itu
+/// penjualan yang lunas SEBELUM Mode Toko dibuka (tapi sesudah
+/// shift dibuka — mis. kasir keluar-masuk tengah shift) TETAP
+/// terhitung, dan angka kartu SELALU sama dengan angka yang
+/// tampil saat kartunya diketuk (review live shift). Pesanan VOID
+/// tidak masuk hitungan penjualan (hanya blok VOID di laporan).
+/// Menggantikan akumulator StoreSessionSummary yang nol lagi
+/// setiap Mode Toko dibuka.
+({int saleCount, int totalRp}) liveSessionTotals(
+  List<CompletedOrder> orders, {
+  required DateTime shiftOpenedAt,
+  required DateTime now,
+}) {
+  final summary =
+      aggregateShiftSales(orders, from: shiftOpenedAt, to: now);
+  return (saleCount: summary.invoiceCount, totalRp: summary.totalRp);
+}
+
 // ---------------------------------------------------------------------
 // Agregasi rincian per item (Dokumen 2)
 // ---------------------------------------------------------------------

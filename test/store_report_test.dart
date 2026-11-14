@@ -242,6 +242,65 @@ void main() {
     });
   });
 
+  group('total sesi berjalan (liveSessionTotals)', () {
+    // Shift dibuka 08:00, "sekarang" 10:00. Beda dengan akumulator
+    // lama: penjualan 08:30 TETAP terhitung walau Mode Toko baru
+    // dibuka sesudahnya (kasir keluar-masuk tengah shift).
+    final openedAt = DateTime(2026, 11, 14, 8, 0);
+    final now = DateTime(2026, 11, 14, 10, 0);
+    List<CompletedOrder> orders() => [
+      buildCompletedOrder(
+        time: DateTime(2026, 11, 14, 7, 30),
+        lines: const [OrderLine(label: 'Sebelum shift', unitPriceRp: 9999, qty: 1)],
+        orderDiscount: null,
+        paymentHashHex: 'a1',
+        payMethod: payMethodCash,
+      ),
+      buildCompletedOrder(
+        time: DateTime(2026, 11, 14, 8, 30),
+        lines: const [OrderLine(label: 'Kopi', unitPriceRp: 5000, qty: 1)],
+        orderDiscount: null,
+        paymentHashHex: 'b1',
+        payMethod: payMethodCash,
+      ),
+      buildCompletedOrder(
+        time: DateTime(2026, 11, 14, 9, 45),
+        lines: const [OrderLine(label: 'Teh', unitPriceRp: 3000, qty: 2)],
+        orderDiscount: null,
+        paymentHashHex: 'c1',
+        payMethod: payMethodQris,
+      ),
+      buildCompletedOrder(
+        time: DateTime(2026, 11, 14, 10, 0),
+        lines: const [OrderLine(label: 'Tepat saat ini', unitPriceRp: 7777, qty: 1)],
+        orderDiscount: null,
+        paymentHashHex: 'd1',
+        payMethod: payMethodCash,
+      ),
+      buildCompletedOrder(
+        time: DateTime(2026, 11, 14, 9, 0),
+        lines: const [OrderLine(label: 'VOID', unitPriceRp: 4000, qty: 1)],
+        orderDiscount: null,
+        paymentHashHex: 'e1',
+        isVoid: true,
+      ),
+    ];
+
+    test('hanya penjualan lunas dalam jendela shift berjalan', () {
+      final t = liveSessionTotals(orders(), shiftOpenedAt: openedAt, now: now);
+      expect(t.saleCount, 2);
+      expect(t.totalRp, 11000);
+    });
+
+    test('angka kartu sama dengan angka laporan shift yang sama', () {
+      final list = orders();
+      final t = liveSessionTotals(list, shiftOpenedAt: openedAt, now: now);
+      final report = aggregateShiftSales(list, from: openedAt, to: now);
+      expect(t.saleCount, report.invoiceCount);
+      expect(t.totalRp, report.totalRp);
+    });
+  });
+
   group('rincian per item', () {
     test('pengelompokan (label, harga) + diskon persen sebagian unit', () {
       final groups = aggregateMenuDetails(fixture(), from: _from, to: _to);
