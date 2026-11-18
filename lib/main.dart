@@ -28,11 +28,14 @@ import 'screens/offline_mode_screen.dart';
 import 'screens/printer_settings_screen.dart';
 import 'screens/store_mode_screen.dart';
 import 'screens/transaction_detail_screen.dart';
+import 'services/bolt12_service.dart';
 import 'services/lsp_profile.dart';
 import 'services/payment_notes.dart';
 import 'services/saved_invoices.dart';
 import 'services/lsp_service.dart';
 import 'services/offline_bridge.dart';
+import 'services/offline_mode_utils.dart';
+import 'services/path_ready_watcher.dart';
 import 'services/csv_export.dart';
 import 'services/history_filter.dart';
 import 'services/update_service.dart';
@@ -175,6 +178,16 @@ class _HomeScreenState extends State<HomeScreen>
   /// terjadi dalam konteks offline (lihat PaymentTagStore).
   Map<String, String> _paymentTags = const {};
 
+  /// Label kustom offer Bolt12 statis node ini (lihat
+  /// Bolt12OfferStore), dimuat sekali per penyegaran riwayat
+  /// bersama catatan/tag — tidak pernah dibaca per baris. Null
+  /// berarti user tidak memasang label: tag Bolt12 masuk tetap
+  /// '⚡' polos seperti sebelumnya. Node hanya punya SATU offer
+  /// statis, jadi semua pembayaran Bolt12 masuk lewat offer ini
+  /// dan labelnya berlaku untuk semuanya tanpa pencarian
+  /// per pembayaran.
+  String? _bolt12OfferLabel;
+
   /// Deteksi koin masuk: true setelah muat riwayat pertama selesai —
   /// riwayat lama tidak memicu bunyi/getar, hanya kedatangan baru.
   bool _paymentsPrimed = false;
@@ -187,6 +200,13 @@ class _HomeScreenState extends State<HomeScreen>
   /// perubahan status pending → berhasil — persis alur terima yang
   /// paling umum. Yang dirayakan adalah TRANSISInya.
   final Set<String> _receivedAlertKeys = {};
+
+  /// Pengamat "jalur sudah siap" (PR C): mendeteksi channel
+  /// langsung yang baru menjadi usable dan menembakkan
+  /// notifikasi lokal sekali per transaksi pendanaan. Dimuat di
+  /// boot (sebelum timer penyegar dibuat) supaya garis dasarnya
+  /// aman sebelum pemeriksaan pertama.
+  final PathReadyWatcher _pathReadyWatcher = PathReadyWatcher();
 
   /// Penyegar berkala dashboard selama aplikasi terbuka.
   Timer? _pollTimer;
@@ -320,11 +340,13 @@ class _HomeScreenState extends State<HomeScreen>
       _paymentsPrimed = true;
       final notes = await PaymentNoteStore().loadAll();
       final tags = await PaymentTagStore().loadAll();
+      final offerLabel = await Bolt12OfferStore().loadCustomDescription();
       if (mounted) {
         setState(() {
           _payments = payments;
           _paymentNotes = notes;
           _paymentTags = tags;
+          _bolt12OfferLabel = offerLabel;
         });
       }
     } catch (_) {
@@ -463,6 +485,45 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _refreshDashboard() async {
     await _refreshBalance();
     await _refreshPayments();
+    await _watchPathReady();
+  }
+
+  /// Periksa channel langsung yang baru menjadi usable dan
+  /// beri tahu pengguna (PR C) — menumpang siklus refresh 5
+  /// detik yang sudah ada. Hanya berjalan bila sesi offline
+  /// aktif ATAU siklus sebelumnya melihat channel yang sedang
+  /// disiapkan, supaya node tidak dibebani listChannels ekstra
+  /// saat tidak ada yang diawasi. Gagal-diam: keadaan siap
+  /// tetap terlihat di layar Mode Offline.
+  Future<void> _watchPathReady() async {
+    if (!lspService.isRunning || !mounted) return;
+    if (!offlineBridge.sessionActive &&
+        !_pathReadyWatcher.hasPendingPreparation) {
+      return;
+    }
+    try {
+      final channels = await lspService.listChannels();
+      if (!mounted) return;
+      final fresh = _pathReadyWatcher.check(
+        channels,
+        AppConfig.lspNodeId,
+      );
+      if (fresh.isEmpty) return;
+      final l10n = context.l10n;
+      for (final channel in fresh) {
+        final name = localEndpointName(channel.counterpartyNodeId.hex);
+        await postPathReadyNotification(
+          title: l10n.offlineModePathReadyTitle(name),
+          body: l10n.offlineModePathReadyBody,
+        );
+      }
+      await CoinAlert.play();
+      await _pathReadyWatcher.markNotified(
+        fresh.map((c) => c.fundingTxo!.txid.hash),
+      );
+    } catch (_) {
+      // Abaikan — siklus berikutnya mencoba lagi.
+    }
   }
 
   /// Inisialisasi node LDK + LSPS2 saat aplikasi dibuka.
@@ -565,6 +626,10 @@ class _HomeScreenState extends State<HomeScreen>
         isTestnet: lspProfile.isTestnet,
         offlineMode: offlineMode,
       );
+      // Muat himpunan "sudah diberitahu" pengamat jalur siap
+      // SEBELUM refresh pertama — tanpa ini pemeriksaan pertama
+      // dilewati dan garis dasarnya tidak terisi.
+      await _pathReadyWatcher.load();
       await _refreshDashboard();
       if (mounted) setState(() => _booting = false);
       _aturHeartbeatOffline(offlineMode);
@@ -1459,6 +1524,12 @@ class _HomeScreenState extends State<HomeScreen>
       isJit: kind is PaymentKind_Bolt11Jit,
       isOnchain: kind is PaymentKind_Onchain,
       routeTag: hashHex == null ? null : _paymentTags[hashHex],
+      // Bolt12 MASUK lewat offer statis berlabel: label tampil
+      // sebagai tag baris. Bolt12 KELUAR tidak disentuh — layar
+      // Kirim sudah menyimpan deskripsi offer sebagai judul
+      // catatan pembayaran keluar.
+      isBolt12Inbound: isIn && kind is PaymentKind_Bolt12Offer,
+      bolt12Label: _bolt12OfferLabel,
     );
     final amount = payment.amountMsat == null
         ? '\u2014'
@@ -1529,6 +1600,10 @@ class _HomeScreenState extends State<HomeScreen>
           savedInvoice: saved,
           note: hashHex == null ? null : _paymentNotes[hashHex],
           routeTag: tagHashHex == null ? null : _paymentTags[tagHashHex],
+          // Label offer diteruskan apa adanya; layar detail
+          // menerapkannya dengan syarat yang sama persis seperti
+          // baris (Bolt12 masuk) supaya kedua permukaan sepakat.
+          bolt12Label: _bolt12OfferLabel,
         ),
       ),
     );
