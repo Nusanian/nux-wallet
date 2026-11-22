@@ -1,0 +1,6 @@
+Channel management and Receive fixes:
+- Open Channel to LSP button in Channel Management: open a channel from the production screen, with a fee estimate and a preparing card
+- Channel cards show the funding txid (tap to copy) and the channel kind (Via LSP — JIT / Self-Funded / Direct Channel)
+- Activity detail now explains payments that opened a channel
+- The Channel Management refresh button now shows a spinner while reloading
+- The static Receive code is now bound to its network, so it cannot be mixed up between networks
