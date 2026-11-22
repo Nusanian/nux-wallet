@@ -224,6 +224,12 @@ abstract class AppLocalizations {
   /// **'File seed korup (panjang {length}, harus 64). Hapus {path} untuk generate ulang (DANA LAMA HILANG).'**
   String seedCorrupt(int length, String path);
 
+  /// No description provided for @seedSecureCorrupt.
+  ///
+  /// In id, this message translates to:
+  /// **'Seed di penyimpanan aman korup. Pulihkan dompet dari frasa backup 12 kata.'**
+  String get seedSecureCorrupt;
+
   /// No description provided for @exitTitle.
   ///
   /// In id, this message translates to:
@@ -355,6 +361,30 @@ abstract class AppLocalizations {
   /// In id, this message translates to:
   /// **'Alamat baru'**
   String get onchainNewAddress;
+
+  /// No description provided for @onchainPendingTitle.
+  ///
+  /// In id, this message translates to:
+  /// **'Menunggu konfirmasi'**
+  String get onchainPendingTitle;
+
+  /// No description provided for @onchainDepositConfirmations.
+  ///
+  /// In id, this message translates to:
+  /// **'Konfirmasi {done}/{required}'**
+  String onchainDepositConfirmations(int done, int required);
+
+  /// No description provided for @onchainDepositWaitingFirst.
+  ///
+  /// In id, this message translates to:
+  /// **'0/{required} — menunggu blok pertama'**
+  String onchainDepositWaitingFirst(int required);
+
+  /// No description provided for @onchainDepositConfirmationsUnknown.
+  ///
+  /// In id, this message translates to:
+  /// **'Konfirmasi belum dapat dimuat'**
+  String get onchainDepositConfirmationsUnknown;
 
   /// No description provided for @networkTestnet.
   ///
@@ -4316,6 +4346,12 @@ abstract class AppLocalizations {
   /// **'Menunggu konfirmasi'**
   String get channelStatusPending;
 
+  /// No description provided for @channelStatusClosing.
+  ///
+  /// In id, this message translates to:
+  /// **'Menutup…'**
+  String get channelStatusClosing;
+
   /// No description provided for @channelOpenToLsp.
   ///
   /// In id, this message translates to:
@@ -4571,13 +4607,13 @@ abstract class AppLocalizations {
   /// No description provided for @closeChannelDirectWarning.
   ///
   /// In id, this message translates to:
-  /// **'Channel ini adalah jalur pembayaran offline-mu dengan perangkat di seberang. Menutupnya mengakhiri jalur itu; membukanya lagi harus melalui proses pembukaan dari awal.'**
+  /// **'Channel ini adalah jalur pembayaran offline-mu dengan perangkat di seberang. Menutupnya mengakhiri jalur itu; membukanya lagi harus melalui proses pembukaan dari awal (penambangan).'**
   String get closeChannelDirectWarning;
 
   /// No description provided for @closeChannelStarted.
   ///
   /// In id, this message translates to:
-  /// **'Penutupan dimulai. Saldo akan masuk ke dompet on-chain setelah transaksi penutup terkonfirmasi.'**
+  /// **'Penutupan kerja sama dimulai. Saldo akan masuk ke dompet on-chain setelah transaksi penutup terkonfirmasi.'**
   String get closeChannelStarted;
 
   /// No description provided for @closeForceTitle.
@@ -4595,8 +4631,20 @@ abstract class AppLocalizations {
   /// No description provided for @closeForceBody.
   ///
   /// In id, this message translates to:
-  /// **'Tutup paksa menyiarkan keadaan terakhir channel secara sepihak: dana kamu terkunci jeda pengaman (diukur dalam blok) sebelum tersapu ke dompet on-chain, dan biaya on-chain-nya lebih mahal. Pakai hanya bila memang terpaksa.'**
+  /// **'Tutup paksa menyiarkan keadaan terakhir channel secara sepihak: dana kamu terkunci jeda pengaman 144 blok sebelum tersapu ke dompet on-chain, dan biaya on-chain-nya lebih mahal. Pakai hanya bila memang terpaksa.'**
   String get closeForceBody;
+
+  /// No description provided for @closeForceUnlockEstimate.
+  ///
+  /// In id, this message translates to:
+  /// **'Perkiraan terbuka: sekitar blok {height}.'**
+  String closeForceUnlockEstimate(int height);
+
+  /// No description provided for @closeForceDaysNote.
+  ///
+  /// In id, this message translates to:
+  /// **'Di jaringan saat ini, 144 blok ≈ 10 hari.'**
+  String get closeForceDaysNote;
 
   /// No description provided for @closeForceButton.
   ///

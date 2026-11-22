@@ -77,6 +77,10 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
+  String get seedSecureCorrupt =>
+      'Seed di penyimpanan aman korup. Pulihkan dompet dari frasa backup 12 kata.';
+
+  @override
   String get exitTitle => 'Keluar dari ELNUX?';
 
   @override
@@ -145,6 +149,23 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get onchainNewAddress => 'Alamat baru';
+
+  @override
+  String get onchainPendingTitle => 'Menunggu konfirmasi';
+
+  @override
+  String onchainDepositConfirmations(int done, int required) {
+    return 'Konfirmasi $done/$required';
+  }
+
+  @override
+  String onchainDepositWaitingFirst(int required) {
+    return '0/$required — menunggu blok pertama';
+  }
+
+  @override
+  String get onchainDepositConfirmationsUnknown =>
+      'Konfirmasi belum dapat dimuat';
 
   @override
   String get networkTestnet => 'Lightning Network • Testnet';
@@ -2380,6 +2401,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get channelStatusPending => 'Menunggu konfirmasi';
 
   @override
+  String get channelStatusClosing => 'Menutup…';
+
+  @override
   String get channelOpenToLsp => 'Buka Channel ke LSP';
 
   @override
@@ -2537,11 +2561,11 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get closeChannelDirectWarning =>
-      'Channel ini adalah jalur pembayaran offline-mu dengan perangkat di seberang. Menutupnya mengakhiri jalur itu; membukanya lagi harus melalui proses pembukaan dari awal.';
+      'Channel ini adalah jalur pembayaran offline-mu dengan perangkat di seberang. Menutupnya mengakhiri jalur itu; membukanya lagi harus melalui proses pembukaan dari awal (penambangan).';
 
   @override
   String get closeChannelStarted =>
-      'Penutupan dimulai. Saldo akan masuk ke dompet on-chain setelah transaksi penutup terkonfirmasi.';
+      'Penutupan kerja sama dimulai. Saldo akan masuk ke dompet on-chain setelah transaksi penutup terkonfirmasi.';
 
   @override
   String get closeForceTitle => 'Tutup kerja sama tidak berhasil';
@@ -2552,7 +2576,15 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get closeForceBody =>
-      'Tutup paksa menyiarkan keadaan terakhir channel secara sepihak: dana kamu terkunci jeda pengaman (diukur dalam blok) sebelum tersapu ke dompet on-chain, dan biaya on-chain-nya lebih mahal. Pakai hanya bila memang terpaksa.';
+      'Tutup paksa menyiarkan keadaan terakhir channel secara sepihak: dana kamu terkunci jeda pengaman 144 blok sebelum tersapu ke dompet on-chain, dan biaya on-chain-nya lebih mahal. Pakai hanya bila memang terpaksa.';
+
+  @override
+  String closeForceUnlockEstimate(int height) {
+    return 'Perkiraan terbuka: sekitar blok $height.';
+  }
+
+  @override
+  String get closeForceDaysNote => 'Di jaringan saat ini, 144 blok ≈ 10 hari.';
 
   @override
   String get closeForceButton => 'Tutup Paksa';

@@ -78,6 +78,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get seedSecureCorrupt =>
+      'Seed in secure storage is corrupted. Restore the wallet from the 12-word backup phrase.';
+
+  @override
   String get exitTitle => 'Exit ELNUX?';
 
   @override
@@ -146,6 +150,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onchainNewAddress => 'New address';
+
+  @override
+  String get onchainPendingTitle => 'Waiting for confirmation';
+
+  @override
+  String onchainDepositConfirmations(int done, int required) {
+    return 'Confirmation $done/$required';
+  }
+
+  @override
+  String onchainDepositWaitingFirst(int required) {
+    return '0/$required — waiting for the first block';
+  }
+
+  @override
+  String get onchainDepositConfirmationsUnknown => 'Confirmations unavailable';
 
   @override
   String get networkTestnet => 'Lightning Network • Testnet';
@@ -2377,6 +2397,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get channelStatusPending => 'Awaiting confirmations';
 
   @override
+  String get channelStatusClosing => 'Closing…';
+
+  @override
   String get channelOpenToLsp => 'Open Channel to LSP';
 
   @override
@@ -2534,11 +2557,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get closeChannelDirectWarning =>
-      'This channel is your offline payment path to the device across from you. Closing it ends that path; opening it again has to go through the opening process from the start.';
+      'This channel is your offline payment path to the device across from you. Closing it ends that path; opening it again has to go through the opening process from the start (mining).';
 
   @override
   String get closeChannelStarted =>
-      'Closing has started. The balance will land in your on-chain wallet once the closing transaction confirms.';
+      'Cooperative closing has started. The balance will land in your on-chain wallet once the closing transaction confirms.';
 
   @override
   String get closeForceTitle => 'Cooperative close did not succeed';
@@ -2549,7 +2572,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get closeForceBody =>
-      'A force close broadcasts the channel\'s last state unilaterally: your funds stay locked for a safety delay (measured in blocks) before they are swept to your on-chain wallet, and its on-chain fees are higher. Use it only when there is no other way.';
+      'A force close broadcasts the channel\'s last state unilaterally: your funds stay locked for a safety delay of 144 blocks before they are swept to your on-chain wallet, and its on-chain fees are higher. Use it only when there is no other way.';
+
+  @override
+  String closeForceUnlockEstimate(int height) {
+    return 'Estimated unlock: around block $height.';
+  }
+
+  @override
+  String get closeForceDaysNote =>
+      'On the current network, 144 blocks ≈ 10 days.';
 
   @override
   String get closeForceButton => 'Force Close';
