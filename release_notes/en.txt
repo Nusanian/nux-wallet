@@ -1,6 +1,7 @@
-Offline Mode and channel card fixes:
-- Pending channel cards now show a green confirmation progress bar under the status line
-- The splash now offers "Continue without internet" after 20 seconds of connecting, without waiting for the boot to fail first
-- Sessions booted without internet are now marked by a chip on the Home screen, under the balance card
-- Connection failures now show a clear message (e.g. Bluetooth or Location off) with what to do about it
-- The Receive screen now explains why the Static Payment Code cannot be used without internet
+Offline Mode, Channel Management, and Market Info fixes:
+- The offline session chip on the Home screen is now tappable → it opens the Offline Mode screen directly
+- The privacy policy is now shown inside the app (WebView) with a one-time consent gate — the checkbox activates after scrolling to the bottom
+- Channel cards now follow the display unit and show when they were created ("Opened")
+- Offline Mode is now available without the testnet gate
+- LSP channel cards now show the node id
+- The NUX/IDR rate in Market Info now comes directly from CoinPaprika in a single call

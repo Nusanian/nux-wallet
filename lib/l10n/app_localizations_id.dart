@@ -212,7 +212,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get market => 'Jelajah';
 
   @override
-  String get jelajahSource => 'Harga pasar — qutrade.io';
+  String get jelajahSource => 'Harga pasar — CoinPaprika';
 
   @override
   String jelajahUpdated(String time) {
@@ -2626,4 +2626,31 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get closeForceStarted =>
       'Tutup paksa dimulai. Dana akan tersapu ke dompet on-chain sesudah jeda pengaman berakhir.';
+
+  @override
+  String get privacyPolicy => 'Kebijakan Privasi';
+
+  @override
+  String get privacyConsentCheck =>
+      'Saya telah membaca dan menyetujui Kebijakan Privasi';
+
+  @override
+  String get privacyConsentContinue => 'Lanjut';
+
+  @override
+  String get privacyScrollHint =>
+      'Gulir sampai ke bawah untuk mengaktifkan centangan';
+
+  @override
+  String get privacyLoadFailed =>
+      'Kebijakan privasi gagal dimuat. Periksa koneksi internet Anda lalu coba lagi.';
+
+  @override
+  String get privacyRetry => 'Muat ulang';
+
+  @override
+  String get privacySkipForNow => 'Lewati untuk sekarang';
+
+  @override
+  String get channelOpenedLabel => 'Dibuka';
 }

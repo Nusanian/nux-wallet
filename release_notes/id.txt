@@ -1,6 +1,7 @@
-Perbaikan Mode Offline dan kartu channel:
-- Kartu channel yang masih menunggu kini menampilkan bilah progres konfirmasi hijau di bawah baris status
-- Splash kini menawarkan "Lanjutkan tanpa internet" sesudah 20 detik tersambung, tanpa menunggu boot gagal dulu
-- Sesi yang dibuka tanpa internet kini ditandai chip di Beranda, di bawah kartu saldo
-- Kegagalan tersambung kini menampilkan pesan jelas (mis. Bluetooth atau Lokasi mati) beserta solusinya
-- Layar Terima kini menjelaskan kenapa Kode Bayar Statis tidak bisa dipakai tanpa internet
+Perbaikan Mode Offline, Kelola Channel, dan Info Pasar:
+- Chip sesi offline di Beranda kini bisa diketuk → langsung membuka layar Mode Offline
+- Kebijakan privasi kini tampil di aplikasi (WebView) dengan persetujuan sekali — centangan aktif sesudah gulir sampai bawah
+- Kartu channel kini mengikuti satuan tampilan dan menampilkan waktu dibuat ("Dibuka")
+- Mode Offline kini tersedia tanpa gerbang testnet
+- Kartu channel LSP kini menampilkan id node
+- Kurs NUX/IDR di Info Pasar kini diambil langsung dari CoinPaprika dalam satu panggilan

@@ -18,6 +18,11 @@ const _peerId =
 
 OutPoint _fundingTxo(String txid) => OutPoint(txid: Txid(hash: txid), vout: 0);
 
+/// Bentuk pendek id node seperti `_shortId` di layar (10 awal …
+/// 6 akhir) — dipakai ekspektasi tes id node kartu LSP.
+String _shortNodeId(String hex) =>
+    '${hex.substring(0, 10)}…${hex.substring(hex.length - 6)}';
+
 ChannelDetails _channel(
   String counterpartyHex, {
   bool usable = true,
@@ -184,10 +189,15 @@ class _FakeFeeEstimateService extends FeeEstimateService {
   final BigInt? fundingFee;
   final int? tipHeight;
 
+  /// Waktu blok per txid pendanaan (null/absen = pengambilan gagal
+  /// — baris "Dibuka" disembunyikan).
+  final Map<String, DateTime>? blockTimes;
+
   _FakeFeeEstimateService({
     BigInt? estimate,
     BigInt? fundingFee,
     this.tipHeight,
+    this.blockTimes,
   }) : estimate = estimate ?? BigInt.from(250),
        fundingFee = fundingFee ?? BigInt.from(250);
 
@@ -199,6 +209,10 @@ class _FakeFeeEstimateService extends FeeEstimateService {
 
   @override
   Future<int?> fetchTipHeight() async => tipHeight;
+
+  @override
+  Future<DateTime?> fetchFundingBlockTime(String txid) async =>
+      blockTimes?[txid];
 }
 
 Widget _app(Widget home) {
@@ -1131,6 +1145,154 @@ void main() {
       expect(cappedConfirmations(3, 6), 3);
       expect(cappedConfirmations(0, 6), 0);
       expect(cappedConfirmations(-1, 6), 0);
+    });
+  });
+
+  group('ChannelsScreen satuan kartu + waktu dibuat', () {
+    testWidgets('kartu channel satuan NUX: kapasitas & saldo memakai '
+        'satuan aktif', (tester) async {
+      // Saklar satuan adalah state statis — kembalikan ke nusan
+      // sesudah tes supaya tes lain tidak terpengaruh.
+      UnitController.unit.value = DisplayUnit.nux;
+      addTearDown(() {
+        UnitController.unit.value = DisplayUnit.nusan;
+      });
+      await _pumpScreen(
+        tester,
+        service: _FakeLspService(
+          channels: [
+            _channel(
+              AppConfig.lspNodeId,
+              fundingTxo: _fundingTxo('dd' * 32),
+              confirmations: 6,
+              confirmationsRequired: 6,
+            ),
+          ],
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      // Kapasitas 25.000 nusan + saldo 24.000 nusan (24.000.000
+      // msat keluar; cadangan null di pabrik channel tes) —
+      // keduanya 0,00025 / 0,00024 NUX.
+      expect(
+        find.text('Kapasitas 0,00025 NUX • Saldo kamu 0,00024 NUX'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('kartu channel satuan nusan: kapasitas & saldo '
+        'tetap nusan', (tester) async {
+      await _pumpScreen(
+        tester,
+        service: _FakeLspService(
+          channels: [
+            _channel(
+              AppConfig.lspNodeId,
+              fundingTxo: _fundingTxo('dd' * 32),
+              confirmations: 6,
+              confirmationsRequired: 6,
+            ),
+          ],
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      expect(
+        find.text('Kapasitas 25.000 nusan • Saldo kamu 24.000 nusan'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('kartu channel menampilkan waktu dibuat dari waktu '
+        'blok pendanaan', (tester) async {
+      await _pumpScreen(
+        tester,
+        service: _FakeLspService(
+          channels: [
+            _channel(
+              AppConfig.lspNodeId,
+              fundingTxo: _fundingTxo('dd' * 32),
+              confirmations: 6,
+              confirmationsRequired: 6,
+            ),
+          ],
+        ),
+        feeEstimates: _FakeFeeEstimateService(
+          blockTimes: {'dd' * 32: DateTime(2026, 11, 25, 14, 32)},
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      expect(find.text('Dibuka 25 Nov 2026, 14.32'), findsOneWidget);
+    });
+
+    testWidgets('kartu channel menyembunyikan waktu dibuat bila '
+        'waktu blok gagal diambil', (tester) async {
+      await _pumpScreen(
+        tester,
+        service: _FakeLspService(
+          channels: [
+            _channel(
+              AppConfig.lspNodeId,
+              fundingTxo: _fundingTxo('dd' * 32),
+              confirmations: 6,
+              confirmationsRequired: 6,
+            ),
+          ],
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      expect(find.textContaining('Dibuka'), findsNothing);
+    });
+
+    testWidgets('kartu channel LSP menampilkan id node di bawah '
+        'judul', (tester) async {
+      await _pumpScreen(
+        tester,
+        service: _FakeLspService(
+          channels: [
+            _channel(
+              AppConfig.lspNodeId,
+              fundingTxo: _fundingTxo('dd' * 32),
+              confirmations: 6,
+              confirmationsRequired: 6,
+            ),
+          ],
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      final shortId = _shortNodeId(AppConfig.lspNodeId);
+      expect(find.text(shortId), findsOneWidget);
+      // Di bawah judul "Via LSP" (di atas baris status "Siap").
+      expect(
+        tester.getTopLeft(find.text(shortId)).dy,
+        lessThan(tester.getTopLeft(find.text('Siap')).dy),
+      );
+    });
+
+    testWidgets('kartu channel LSP menunggu: id node di atas batang '
+        'kemajuan', (tester) async {
+      await _pumpScreen(
+        tester,
+        service: _FakeLspService(
+          channels: [
+            _channel(
+              AppConfig.lspNodeId,
+              usable: false,
+              fundingTxo: _fundingTxo('dd' * 32),
+              confirmations: 2,
+              confirmationsRequired: 6,
+            ),
+          ],
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      final shortId = _shortNodeId(AppConfig.lspNodeId);
+      expect(find.text(shortId), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text(shortId)).dy,
+        lessThan(
+          tester.getTopLeft(find.byType(LinearProgressIndicator)).dy,
+        ),
+      );
     });
   });
 }
